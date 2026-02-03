@@ -1,3 +1,11 @@
+## MGMT 690 – Project 1 (Feb 2, 2026)
+
+I set up the AI Hedge Fund repo locally, configured `.env` safely (gitignored), and ran the CLI on **AAPL, MSFT, NVDA**.
+
+- **Run command:** `poetry run python src/main.py --tickers AAPL,MSFT,NVDA`
+- **Saved output:** `product/sections/run_2026-02-02.md`
+- **What I learned:** interactive prompts must run in a real terminal; GitHub pushes require PAT/SSH (password won’t work).
+- **Feature added next:** auto-save run outputs to `product/sections/` (so results are reproducible and easy to review).
 
 # AI Hedge Fund
 

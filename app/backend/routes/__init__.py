@@ -8,6 +8,10 @@ from app.backend.routes.flow_runs import router as flow_runs_router
 from app.backend.routes.ollama import router as ollama_router
 from app.backend.routes.language_models import router as language_models_router
 from app.backend.routes.api_keys import router as api_keys_router
+from app.backend.routes.run_history import router as run_history_router
+from app.backend.routes.stock_data import router as stock_data_router
+from app.backend.routes.alerts import router as alerts_router
+from app.backend.routes.simple_analysis import router as simple_analysis_router
 
 # Main API router
 api_router = APIRouter()
@@ -15,9 +19,13 @@ api_router = APIRouter()
 # Include sub-routers
 api_router.include_router(health_router, tags=["health"])
 api_router.include_router(hedge_fund_router, tags=["hedge-fund"])
+api_router.include_router(run_history_router, tags=["run-history"])
+api_router.include_router(stock_data_router, tags=["stock-data"])
+api_router.include_router(alerts_router, tags=["alerts"])
 api_router.include_router(storage_router, tags=["storage"])
 api_router.include_router(flows_router, tags=["flows"])
 api_router.include_router(flow_runs_router, tags=["flow-runs"])
 api_router.include_router(ollama_router, tags=["ollama"])
 api_router.include_router(language_models_router, tags=["language-models"])
 api_router.include_router(api_keys_router, tags=["api-keys"])
+api_router.include_router(simple_analysis_router, tags=["simple-analysis"])

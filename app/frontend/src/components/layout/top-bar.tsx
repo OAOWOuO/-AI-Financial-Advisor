@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PanelBottom, PanelLeft, PanelRight, Settings } from 'lucide-react';
+import { BarChart3, PanelBottom, PanelLeft, PanelRight, Settings } from 'lucide-react';
 
 interface TopBarProps {
   isLeftCollapsed: boolean;
@@ -10,6 +10,7 @@ interface TopBarProps {
   onToggleRight: () => void;
   onToggleBottom: () => void;
   onSettingsClick: () => void;
+  onProject1Click: () => void;
 }
 
 export function TopBar({
@@ -20,6 +21,7 @@ export function TopBar({
   onToggleRight,
   onToggleBottom,
   onSettingsClick,
+  onProject1Click,
 }: TopBarProps) {
   return (
     <div className="absolute top-0 right-0 z-40 flex items-center gap-0 py-1 px-2 bg-panel/80">
@@ -70,6 +72,19 @@ export function TopBar({
 
       {/* Divider */}
       <div className="w-px h-5 bg-ramp-grey-700 mx-1" />
+
+      {/* Analysis Dashboard */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onProject1Click}
+        className="h-8 px-3 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 transition-colors gap-1.5 rounded-lg"
+        aria-label="Open Analysis"
+        title="Open Analysis Dashboard"
+      >
+        <BarChart3 size={16} />
+        <span className="text-sm font-medium">Analysis</span>
+      </Button>
 
       {/* Settings */}
       <Button
