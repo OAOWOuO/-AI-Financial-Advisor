@@ -1,7 +1,6 @@
 """
-AI Hedge Fund Terminal v4.3
-P0 fixes: allocation caps, HTML rendering, duplicate keys, analyst state, fractional rounding
-P1: allocation audit trail, consolidated lookup, improved charts, analysts tab
+AI Hedge Fund Terminal v4.4
+UX fixes: styling, consensus reasoning, risk linkage, stable tables, analyst dropdowns
 """
 
 import streamlit as st
@@ -19,17 +18,63 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ============== CSS ==============
+# ============== CSS - DARK THEME, NO CODE BOXES ==============
 st.markdown("""
 <style>
     .main { background: #0d1117; }
     .stApp { background: #0d1117; }
     #MainMenu, footer, header { visibility: hidden; }
+
+    /* Text styling */
     h1, h2, h3, h4 { color: #e6edf3 !important; font-weight: 600 !important; }
-    p, span, label, li { color: #c9d1d9 !important; }
+    p, span, label, li, div { color: #c9d1d9 !important; }
+
+    /* Remove code-style boxes from metrics */
+    [data-testid="stMetricValue"] {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        font-family: inherit !important;
+    }
+    [data-testid="stMetricDelta"] {
+        background: transparent !important;
+    }
+
+    /* Tab styling */
     .stTabs [data-baseweb="tab-list"] { gap: 8px; background: #161b22; padding: 8px; border-radius: 8px; }
     .stTabs [data-baseweb="tab"] { background: transparent; color: #8b949e; border-radius: 6px; padding: 8px 16px; }
     .stTabs [aria-selected="true"] { background: #238636 !important; color: white !important; }
+
+    /* Static dataframes - disable selection/drag */
+    [data-testid="stDataFrame"] {
+        pointer-events: none;
+    }
+    [data-testid="stDataFrame"] [data-testid="StyledDataFrameRowCell"],
+    [data-testid="stDataFrame"] [data-testid="StyledDataFrameCell"] {
+        user-select: none;
+        cursor: default;
+    }
+
+    /* Info boxes */
+    .info-box {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 8px 0;
+    }
+    .warning-box {
+        background: #3d2a1f;
+        border: 1px solid #d29922;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 8px 0;
+    }
+
+    /* Multiselect styling */
+    .stMultiSelect [data-baseweb="tag"] {
+        background: #238636;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -155,6 +200,7 @@ def get_risk_params(risk_level: float, custom: dict = None) -> dict:
         for k, v in custom.items():
             if k in params and v is not None:
                 params[k]["value"] = v
+                params[k]["custom"] = True
     return params
 
 
@@ -288,13 +334,10 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
         for t, r in ticker_results.items():
             hold_tickers[t] = r["reason"]
     else:
-        # DYNAMIC POSITION CAP: Scale based on number of actionable tickers
         base_cap = risk_params["max_position_pct"]["value"] / 100
         target_pct = mode.get("target_pct") or 0.5
 
-        # Key fix: For max_deploy mode, allow position cap to scale up when few tickers
         if mode_key == "max_deploy":
-            # Allow up to 95% per position if only 1 ticker, 47.5% if 2, etc.
             effective_cap = min(target_pct / n_actionable, 0.95)
             if effective_cap > base_cap:
                 audit["steps"].append(f"Position cap scaled: {base_cap:.1%} → {effective_cap:.1%} (for {n_actionable} ticker(s) to reach {target_pct:.0%} target)")
@@ -306,7 +349,6 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
         target_total = capital * target_pct
         audit["steps"].append(f"Target: deploy {target_pct:.0%} of ${capital:,.0f} = ${target_total:,.0f}")
 
-        # Calculate per-position budget
         if mode_key == "confidence_weighted":
             total_conf = sum(r["avg_confidence"] for r in actionable.values())
         else:
@@ -323,7 +365,6 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
             else:
                 budget = per_pos_budget
 
-            # Apply position cap
             max_budget = capital * effective_cap
             capped = budget > max_budget
             if capped:
@@ -332,9 +373,8 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
                 budget = max_budget
                 audit["steps"].append(f"{ticker}: capped at ${max_budget:,.0f} (${blocked:,.0f} blocked)")
 
-            # Calculate shares
             if allow_fractional:
-                shares = round(budget / price, 2)  # P0 fix: round to 2 decimals
+                shares = round(budget / price, 2)
                 actual = shares * price
                 remainder = budget - actual
             else:
@@ -344,7 +384,6 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
 
             rounding_remainder += remainder
 
-            # Stop loss / take profit
             sl_pct = risk_params["stop_loss_pct"]["value"]
             tp_pct = risk_params["take_profit_pct"]["value"]
 
@@ -406,22 +445,37 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
     }
 
 
-# ============== SESSION STATE - STABLE INITIALIZATION ==============
+# ============== SESSION STATE ==============
 if "result" not in st.session_state:
     st.session_state.result = None
 if "selected_analysts" not in st.session_state:
-    st.session_state.selected_analysts = set(ALL_ANALYST_KEYS)  # Default all selected
+    st.session_state.selected_analysts = set(ALL_ANALYST_KEYS)
 if "custom_params" not in st.session_state:
     st.session_state.custom_params = {}
 if "use_custom" not in st.session_state:
     st.session_state.use_custom = False
 if "chart_period" not in st.session_state:
     st.session_state.chart_period = "1y"
+if "risk_level" not in st.session_state:
+    st.session_state.risk_level = 0.5
+
+
+# ============== HELPER: Format money without code box ==============
+def fmt_money(val, prefix="$", decimals=0):
+    """Format money as plain text, no code styling."""
+    if decimals == 0:
+        return f"{prefix}{val:,.0f}"
+    return f"{prefix}{val:,.{decimals}f}"
+
+
+def fmt_pct(val, decimals=1):
+    """Format percentage as plain text."""
+    return f"{val:.{decimals}f}%"
 
 
 # ============== HEADER ==============
 st.markdown("# 📊 AI Hedge Fund Terminal")
-st.caption("v4.3 | Yahoo Finance (15-20 min delayed)")
+st.caption("v4.4 | Yahoo Finance (15-20 min delayed)")
 
 # ============== TABS ==============
 tab_signals, tab_portfolio, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
@@ -438,16 +492,16 @@ with tab_signals:
 
         # Tickers
         ticker_input = st.text_input("Stock Tickers", value="AAPL, MSFT, NVDA, GOOGL",
-                                      help="Comma-separated symbols")
+                                      help="Comma-separated symbols", key="ticker_input")
         tickers = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
         st.caption(f"{len(tickers)} ticker(s)")
 
         # Capital
-        capital = st.number_input("Investment Capital ($)", min_value=1000, value=100000, step=10000)
+        capital = st.number_input("Investment Capital ($)", min_value=1000, value=100000, step=10000, key="capital_input")
 
         # Holdings
-        with st.expander("Current Holdings"):
-            holdings_text = st.text_area("TICKER:SHARES per line", placeholder="AAPL:50\nMSFT:30", height=80)
+        with st.expander("Current Holdings", expanded=False):
+            holdings_text = st.text_area("TICKER:SHARES per line", placeholder="AAPL:50\nMSFT:30", height=80, key="holdings_input")
             holdings = {}
             for line in holdings_text.strip().split("\n"):
                 if ":" in line:
@@ -461,23 +515,46 @@ with tab_signals:
 
         # Mode
         mode_key = st.selectbox("Allocation Mode", options=list(ALLOCATION_MODES.keys()),
-                                 format_func=lambda x: ALLOCATION_MODES[x]["name"])
+                                 format_func=lambda x: ALLOCATION_MODES[x]["name"], key="mode_select")
         st.caption(ALLOCATION_MODES[mode_key]["desc"])
 
-        allow_fractional = st.checkbox("Allow fractional shares", help="Paper trading only")
+        allow_fractional = st.checkbox("Allow fractional shares", help="Paper trading only", key="fractional_check")
 
         st.divider()
 
-        # Risk
-        risk_level = st.slider("Risk Level", 0.0, 1.0, 0.5, 0.05)
+        # Risk - LINKED TO SETTINGS
+        st.markdown("**Risk Settings**")
+
+        # Show current effective risk parameters
+        effective_params = get_risk_params(st.session_state.risk_level,
+                                            st.session_state.custom_params if st.session_state.use_custom else None)
+
+        risk_level = st.slider("Risk Level", 0.0, 1.0, st.session_state.risk_level, 0.05, key="risk_slider")
+        st.session_state.risk_level = risk_level
+
         risk_label = "Conservative" if risk_level < 0.35 else "Aggressive" if risk_level > 0.65 else "Moderate"
-        st.caption(f"{risk_label} ({risk_level:.0%})")
+
+        # Show active parameters in a clean format
+        if st.session_state.use_custom:
+            st.warning("⚠️ Custom parameters active (see Settings tab)")
+
+        with st.expander("Active Risk Parameters", expanded=False):
+            for key, param in effective_params.items():
+                status = " ✏️" if param.get("custom") else ""
+                st.markdown(f"**{param['desc']}:** {param['value']}{param['unit']}{status}")
 
         st.divider()
 
-        # Analysts - FIXED: No form, direct session state manipulation
+        # Analysts - USE MULTISELECT TO AVOID EXPANDER COLLAPSE ISSUES
         st.markdown("**AI Analysts**")
 
+        # Build options for multiselect grouped display
+        analyst_options = []
+        for cat, analysts in ANALYST_CATEGORIES.items():
+            for key, info in analysts.items():
+                analyst_options.append(key)
+
+        # Quick select buttons
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Select All", key="btn_select_all", use_container_width=True):
@@ -488,17 +565,29 @@ with tab_signals:
                 st.session_state.selected_analysts = set()
                 st.rerun()
 
-        # Display analyst checkboxes by category
+        # Use multiselect per category to avoid checkbox collapse issues
         for cat, analysts in ANALYST_CATEGORIES.items():
-            cat_count = sum(1 for k in analysts if k in st.session_state.selected_analysts)
-            with st.expander(f"{cat} ({cat_count}/{len(analysts)})"):
-                for key, info in analysts.items():
-                    # Use stable key based on analyst key
-                    is_selected = key in st.session_state.selected_analysts
-                    if st.checkbox(info["name"], value=is_selected, key=f"chk_{key}", help=info["desc"]):
-                        st.session_state.selected_analysts.add(key)
-                    else:
-                        st.session_state.selected_analysts.discard(key)
+            cat_keys = list(analysts.keys())
+            cat_names = {k: analysts[k]["name"] for k in cat_keys}
+
+            # Get currently selected from this category
+            current_selected = [k for k in cat_keys if k in st.session_state.selected_analysts]
+
+            selected = st.multiselect(
+                f"{cat}",
+                options=cat_keys,
+                default=current_selected,
+                format_func=lambda x: cat_names.get(x, x),
+                key=f"multiselect_{cat.replace(' ', '_')}",
+                help=f"Select analysts from {cat}"
+            )
+
+            # Update session state
+            for k in cat_keys:
+                if k in selected:
+                    st.session_state.selected_analysts.add(k)
+                else:
+                    st.session_state.selected_analysts.discard(k)
 
         selected_count = len(st.session_state.selected_analysts)
         st.markdown(f"**{selected_count}/{len(ALL_ANALYST_KEYS)}** analysts selected")
@@ -508,14 +597,13 @@ with tab_signals:
         # Run button
         can_run = len(tickers) > 0 and selected_count > 0
 
-        if st.button("🚀 RUN ANALYSIS", type="primary", use_container_width=True, disabled=not can_run):
+        if st.button("🚀 RUN ANALYSIS", type="primary", use_container_width=True, disabled=not can_run, key="run_btn"):
             custom = st.session_state.custom_params if st.session_state.use_custom else None
-            # Use current selected analysts
             analysts_to_use = list(st.session_state.selected_analysts)
             st.session_state.result = run_analysis(
                 tickers=tickers,
                 analysts=analysts_to_use,
-                risk_level=risk_level,
+                risk_level=st.session_state.risk_level,
                 capital=capital,
                 holdings=holdings,
                 mode_key=mode_key,
@@ -539,27 +627,36 @@ with tab_signals:
             st.subheader("Results")
             st.caption(f"Mode: {r['config']['mode']} | {r['config']['analyst_count']} analysts | {r['timestamp'].strftime('%H:%M:%S')}")
 
-            # Metrics
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Capital", f"${s['capital']:,.0f}")
-            c2.metric("Deployed", f"${s['deployed']:,.0f}", f"{s['deployed_pct']:.1f}%")
-            c3.metric("Cash", f"${s['cash']:,.0f}", f"{s['cash_pct']:.1f}%")
-            c4.metric("Max Loss", f"${sum(p['notional'] * p['sl_pct']/100 for p in r['positions'].values()):,.0f}")
+            # Metrics - use markdown instead of st.metric to avoid code-style boxes
+            st.markdown("#### Summary")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown(f"**Capital**")
+                st.markdown(f"### {fmt_money(s['capital'])}")
+            with col2:
+                st.markdown(f"**Deployed**")
+                st.markdown(f"### {fmt_money(s['deployed'])}")
+                st.caption(f"{fmt_pct(s['deployed_pct'])}")
+            with col3:
+                st.markdown(f"**Cash**")
+                st.markdown(f"### {fmt_money(s['cash'])}")
+                st.caption(f"{fmt_pct(s['cash_pct'])}")
+            with col4:
+                max_loss = sum(p['notional'] * p['sl_pct']/100 for p in r['positions'].values())
+                st.markdown(f"**Max Loss**")
+                st.markdown(f"### {fmt_money(max_loss)}")
 
             st.divider()
 
             # ===== ALLOCATION AUDIT TRAIL =====
             st.markdown("### Allocation Audit Trail")
-            st.caption("Step-by-step breakdown showing exactly how capital was allocated")
 
-            # Inputs
             audit = r["audit"]
             st.markdown(f"""
             **Inputs:** {len(audit['inputs']['tickers'])} tickers, {len(audit['inputs']['analysts'])} analysts,
-            ${audit['inputs']['capital']:,.0f} capital, {audit['inputs']['mode']}, {audit['inputs']['risk_level']} risk
+            {fmt_money(audit['inputs']['capital'])} capital, {audit['inputs']['mode']}, {audit['inputs']['risk_level']} risk
             """)
 
-            # Steps
             for step in audit["steps"]:
                 if "Signal:" in step:
                     st.markdown(f"🎯 {step}")
@@ -576,14 +673,22 @@ with tab_signals:
 
             # Exposure
             st.markdown("### Exposure")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Long", f"${s['long']:,.0f}")
-            c2.metric("Short", f"${s['short']:,.0f}")
-            c3.metric("Gross", f"${s['gross']:,.0f}")
-            c4.metric("Net", f"${s['net']:,.0f}")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown("**Long**")
+                st.markdown(f"### {fmt_money(s['long'])}")
+            with col2:
+                st.markdown("**Short**")
+                st.markdown(f"### {fmt_money(s['short'])}")
+            with col3:
+                st.markdown("**Gross**")
+                st.markdown(f"### {fmt_money(s['gross'])}")
+            with col4:
+                st.markdown("**Net**")
+                st.markdown(f"### {fmt_money(s['net'])}")
 
             if s['short'] > 0:
-                st.info(f"Short margin required: ${s['short'] * 0.5:,.0f} (50% Reg T)")
+                st.info(f"Short margin required: {fmt_money(s['short'] * 0.5)} (50% Reg T)")
 
             st.divider()
 
@@ -598,7 +703,7 @@ with tab_signals:
                 with col1:
                     if stock["valid"]:
                         chg = "▲" if stock["change"] >= 0 else "▼"
-                        st.markdown(f"**{ticker}** — ${stock['price']:.2f} {chg}{abs(stock['change_pct']):.2f}%")
+                        st.markdown(f"**{ticker}** — {fmt_money(stock['price'], decimals=2)} {chg}{abs(stock['change_pct']):.2f}%")
                         st.caption(f"{stock['name']} | {stock['sector']}")
                     else:
                         st.markdown(f"**{ticker}** — Price unavailable")
@@ -613,32 +718,47 @@ with tab_signals:
                 st.caption(f"**Reason:** {tr['reason']}")
 
                 if pos:
-                    c1, c2, c3, c4 = st.columns(4)
+                    col1, col2, col3, col4 = st.columns(4)
                     shares_fmt = f"{pos['shares']:.2f}" if isinstance(pos['shares'], float) and pos['shares'] != int(pos['shares']) else f"{int(pos['shares']):,}"
-                    c1.metric("Shares", shares_fmt)
-                    c2.metric("Notional", f"${pos['notional']:,.0f}")
-                    c3.metric("Stop Loss", f"${pos['sl_price']:.2f}")
-                    c4.metric("Take Profit", f"${pos['tp_price']:.2f}")
+                    with col1:
+                        st.markdown("**Shares**")
+                        st.markdown(f"### {shares_fmt}")
+                    with col2:
+                        st.markdown("**Notional**")
+                        st.markdown(f"### {fmt_money(pos['notional'])}")
+                    with col3:
+                        st.markdown("**Stop Loss**")
+                        st.markdown(f"### {fmt_money(pos['sl_price'], decimals=2)}")
+                    with col4:
+                        st.markdown("**Take Profit**")
+                        st.markdown(f"### {fmt_money(pos['tp_price'], decimals=2)}")
 
+                # Analyst signals table
                 with st.expander(f"View {tr['total']} analyst signals"):
-                    # Use proper dataframe instead of HTML
                     sig_data = []
                     for sig in tr["signals"]:
                         sig_data.append({
                             "Analyst": sig["analyst"],
-                            "Category": sig["category"],
                             "Signal": sig["signal"],
                             "Confidence": f"{sig['confidence']:.0f}%"
                         })
                     if sig_data:
-                        st.dataframe(pd.DataFrame(sig_data), hide_index=True, use_container_width=True)
+                        st.dataframe(
+                            pd.DataFrame(sig_data),
+                            hide_index=True,
+                            use_container_width=True,
+                            column_config={
+                                "Analyst": st.column_config.TextColumn("Analyst", width="medium"),
+                                "Signal": st.column_config.TextColumn("Signal", width="small"),
+                                "Confidence": st.column_config.TextColumn("Confidence", width="small")
+                            }
+                        )
 
                 st.divider()
 
             # Export
             st.markdown("### Export")
 
-            # Generate CSV
             if r["positions"]:
                 csv_rows = ["Ticker,Action,Shares,Entry,Notional,Stop Loss,Take Profit,Confidence"]
                 for t, p in r["positions"].items():
@@ -648,26 +768,25 @@ with tab_signals:
             else:
                 csv_data = "No trades"
 
-            # Generate text
             text_lines = [
                 f"AI HEDGE FUND - TRADE LIST",
                 f"Generated: {r['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}",
-                f"Capital: ${r['config']['capital']:,.0f} | Mode: {r['config']['mode']}",
+                f"Capital: {fmt_money(r['config']['capital'])} | Mode: {r['config']['mode']}",
                 f"Risk: {r['config']['risk_level']:.0%} | Analysts: {r['config']['analyst_count']}",
                 "", "=" * 50, ""
             ]
             for t, p in r["positions"].items():
                 shares_str = f"{p['shares']:.2f}" if isinstance(p['shares'], float) else str(p['shares'])
                 text_lines.extend([
-                    f"{p['action']} {shares_str} {t} @ ${p['price']:.2f}",
-                    f"  Notional: ${p['notional']:,.0f} ({p['pct']:.1f}%)",
-                    f"  Stop: ${p['sl_price']:.2f} ({p['sl_dir']}) | Target: ${p['tp_price']:.2f} ({p['tp_dir']})",
+                    f"{p['action']} {shares_str} {t} @ {fmt_money(p['price'], decimals=2)}",
+                    f"  Notional: {fmt_money(p['notional'])} ({p['pct']:.1f}%)",
+                    f"  Stop: {fmt_money(p['sl_price'], decimals=2)} ({p['sl_dir']}) | Target: {fmt_money(p['tp_price'], decimals=2)} ({p['tp_dir']})",
                     ""
                 ])
             text_lines.extend([
                 "=" * 50,
-                f"Deployed: ${s['deployed']:,.0f} ({s['deployed_pct']:.1f}%)",
-                f"Cash: ${s['cash']:,.0f} ({s['cash_pct']:.1f}%)",
+                f"Deployed: {fmt_money(s['deployed'])} ({fmt_pct(s['deployed_pct'])})",
+                f"Cash: {fmt_money(s['cash'])} ({fmt_pct(s['cash_pct'])})",
                 "", "DISCLAIMER: Educational use only. Not financial advice."
             ])
             text_data = "\n".join(text_lines)
@@ -681,7 +800,7 @@ with tab_signals:
                                    "text/plain", key="dl_txt_signals", use_container_width=True)
 
             with st.expander("Copy-Paste Format"):
-                st.code(text_data, language=None)
+                st.text(text_data)
 
         else:
             st.markdown("""
@@ -690,7 +809,7 @@ with tab_signals:
             1. Enter ticker symbols (comma-separated)
             2. Set investment capital
             3. Choose allocation mode
-            4. Adjust risk level
+            4. Adjust risk level (or customize in Settings)
             5. Select AI analysts
             6. Click **RUN ANALYSIS**
 
@@ -710,11 +829,19 @@ with tab_portfolio:
         r = st.session_state.result
         s = r["summary"]
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Positions", s["positions_count"])
-        c2.metric("HOLD", s["hold_count"])
-        c3.metric("Deployed", f"{s['deployed_pct']:.1f}%")
-        c4.metric("Cash", f"{s['cash_pct']:.1f}%")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown("**Positions**")
+            st.markdown(f"### {s['positions_count']}")
+        with col2:
+            st.markdown("**HOLD**")
+            st.markdown(f"### {s['hold_count']}")
+        with col3:
+            st.markdown("**Deployed**")
+            st.markdown(f"### {fmt_pct(s['deployed_pct'])}")
+        with col4:
+            st.markdown("**Cash**")
+            st.markdown(f"### {fmt_pct(s['cash_pct'])}")
 
         st.divider()
 
@@ -725,11 +852,16 @@ with tab_portfolio:
                 shares_fmt = f"{p['shares']:.2f}" if isinstance(p['shares'], float) and p['shares'] != int(p['shares']) else int(p['shares'])
                 pos_data.append({
                     "Ticker": t, "Action": p["action"], "Shares": shares_fmt,
-                    "Entry": f"${p['price']:.2f}", "Notional": f"${p['notional']:,.0f}",
-                    "% Port": f"{p['pct']:.1f}%", "Stop Loss": f"${p['sl_price']:.2f}",
-                    "Take Profit": f"${p['tp_price']:.2f}", "Conf": f"{p['confidence']:.0f}%"
+                    "Entry": fmt_money(p['price'], decimals=2), "Notional": fmt_money(p['notional']),
+                    "% Port": fmt_pct(p['pct']), "Stop Loss": fmt_money(p['sl_price'], decimals=2),
+                    "Take Profit": fmt_money(p['tp_price'], decimals=2), "Conf": fmt_pct(p['confidence'], 0)
                 })
-            st.dataframe(pd.DataFrame(pos_data), hide_index=True, use_container_width=True)
+            st.dataframe(
+                pd.DataFrame(pos_data),
+                hide_index=True,
+                use_container_width=True,
+                column_config={col: st.column_config.TextColumn(col) for col in pos_data[0].keys()}
+            )
 
         if r["hold_tickers"]:
             st.markdown("### Not Trading (HOLD)")
@@ -739,12 +871,17 @@ with tab_portfolio:
         st.divider()
 
         st.markdown("### Cash Analysis")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Undeployed", f"${s['cash']:,.0f}")
-        c2.metric("Rounding", f"${s['rounding']:,.0f}")
-        c3.metric("Cap Blocked", f"${s['cap_blocked']:,.0f}")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**Undeployed**")
+            st.markdown(f"### {fmt_money(s['cash'])}")
+        with col2:
+            st.markdown("**Rounding**")
+            st.markdown(f"### {fmt_money(s['rounding'])}")
+        with col3:
+            st.markdown("**Cap Blocked**")
+            st.markdown(f"### {fmt_money(s['cap_blocked'])}")
 
-        # Export
         st.divider()
         if r["positions"]:
             csv_rows = ["Ticker,Action,Shares,Entry,Notional,Stop Loss,Take Profit,Confidence"]
@@ -772,11 +909,16 @@ with tab_trades:
                 delta_str = "New" if p["current"] == 0 else f"{delta:+,}" if isinstance(delta, int) else f"{delta:+.2f}"
                 trade_data.append({
                     "Ticker": t, "Action": p["action"], "Shares": shares_fmt,
-                    "Entry": f"${p['price']:.2f}", "Notional": f"${p['notional']:,.0f}",
-                    "Stop": f"${p['sl_price']:.2f}", "Target": f"${p['tp_price']:.2f}",
+                    "Entry": fmt_money(p['price'], decimals=2), "Notional": fmt_money(p['notional']),
+                    "Stop": fmt_money(p['sl_price'], decimals=2), "Target": fmt_money(p['tp_price'], decimals=2),
                     "Delta": delta_str
                 })
-            st.dataframe(pd.DataFrame(trade_data), hide_index=True, use_container_width=True)
+            st.dataframe(
+                pd.DataFrame(trade_data),
+                hide_index=True,
+                use_container_width=True,
+                column_config={col: st.column_config.TextColumn(col) for col in trade_data[0].keys()}
+            )
 
             st.divider()
 
@@ -790,7 +932,6 @@ with tab_trades:
 
             st.divider()
 
-            # Export
             csv_rows = ["Ticker,Action,Shares,Entry,Notional,Stop,Target,Delta"]
             for t, p in r["positions"].items():
                 shares_str = f"{p['shares']:.2f}" if isinstance(p['shares'], float) else str(p['shares'])
@@ -802,7 +943,7 @@ with tab_trades:
                 st.download_button("📥 CSV", "\n".join(csv_rows), "trades.csv", "text/csv",
                                    key="dl_csv_trades", use_container_width=True)
             with col2:
-                text_lines = [f"{p['action']} {p['shares']} {t} @ ${p['price']:.2f}" for t, p in r["positions"].items()]
+                text_lines = [f"{p['action']} {p['shares']} {t} @ {fmt_money(p['price'], decimals=2)}" for t, p in r["positions"].items()]
                 st.download_button("📋 Text", "\n".join(text_lines), "trades.txt", "text/plain",
                                    key="dl_txt_trades", use_container_width=True)
         else:
@@ -820,7 +961,6 @@ with tab_analysts:
         selected = r["config"]["analysts"]
 
         st.markdown(f"### Selected Analysts ({len(selected)})")
-        st.caption("Analysts that contributed to the current analysis")
 
         for analyst_key in selected:
             if analyst_key not in ALL_ANALYSTS:
@@ -832,9 +972,8 @@ with tab_analysts:
                 st.markdown(f"**Key Drivers:** {info.get('drivers', 'N/A')}")
                 st.markdown(f"**Time Horizon:** {info.get('horizon', 'N/A')}")
                 st.markdown(f"**Risks:** {info.get('risks', 'N/A')}")
-                st.markdown(f"**Bias:** {info.get('bias', 0):+.2f} (negative=bearish, positive=bullish)")
+                st.markdown(f"**Bias:** {info.get('bias', 0):+.2f}")
 
-                # Show this analyst's signals for each ticker
                 st.markdown("**Signals in this run:**")
                 sig_data = []
                 for ticker, tr in r["ticker_results"].items():
@@ -843,38 +982,62 @@ with tab_analysts:
                             sig_data.append({
                                 "Ticker": ticker,
                                 "Signal": sig["signal"],
-                                "Confidence": f"{sig['confidence']:.0f}%",
-                                "Score": f"{sig['score']:.2f}"
+                                "Confidence": f"{sig['confidence']:.0f}%"
                             })
                 if sig_data:
                     st.dataframe(pd.DataFrame(sig_data), hide_index=True, use_container_width=True)
 
         st.divider()
 
-        # Consensus breakdown per ticker
+        # ENHANCED CONSENSUS BREAKDOWN - Show ALL analysts' reasoning
         st.markdown("### Consensus Breakdown")
-        st.caption("How analyst signals rolled up to final decisions")
+        st.caption("How all analyst signals rolled up to final decisions")
 
         for ticker, tr in r["ticker_results"].items():
-            with st.expander(f"**{ticker}** → {tr['action']}"):
+            with st.expander(f"**{ticker}** → {tr['action']} ({tr['avg_confidence']:.0f}% confidence)"):
                 st.markdown(f"**Final Decision:** {tr['action']}")
                 st.markdown(f"**Reason:** {tr['reason']}")
-                st.markdown(f"**Vote:** {tr['bullish']}B / {tr['neutral']}N / {tr['bearish']}Be")
-                st.markdown(f"**Avg Confidence:** {tr['avg_confidence']:.0f}%")
+                st.markdown(f"**Vote Breakdown:** {tr['bullish']} Bullish / {tr['neutral']} Neutral / {tr['bearish']} Bearish")
 
-                # Show rationale from top contributors
+                # Show ALL bullish arguments
                 bullish_sigs = [s for s in tr["signals"] if s["signal"] == "BULLISH"]
-                bearish_sigs = [s for s in tr["signals"] if s["signal"] == "BEARISH"]
-
                 if bullish_sigs:
-                    st.markdown("**Bullish Arguments:**")
-                    for s in sorted(bullish_sigs, key=lambda x: -x["confidence"])[:3]:
-                        st.markdown(f"- {s['analyst']} ({s['confidence']:.0f}%): {s['thesis']}")
+                    st.markdown("---")
+                    st.markdown(f"**📈 Bullish Arguments ({len(bullish_sigs)}):**")
+                    for s in sorted(bullish_sigs, key=lambda x: -x["confidence"]):
+                        st.markdown(f"""
+                        **{s['analyst']}** ({s['confidence']:.0f}% confidence)
+                        - *Thesis:* {s['thesis']}
+                        - *Drivers:* {s['drivers']}
+                        - *Horizon:* {s['horizon']}
+                        - *Risks:* {s['risks']}
+                        """)
 
+                # Show ALL bearish arguments
+                bearish_sigs = [s for s in tr["signals"] if s["signal"] == "BEARISH"]
                 if bearish_sigs:
-                    st.markdown("**Bearish Arguments:**")
-                    for s in sorted(bearish_sigs, key=lambda x: -x["confidence"])[:3]:
-                        st.markdown(f"- {s['analyst']} ({s['confidence']:.0f}%): {s['thesis']}")
+                    st.markdown("---")
+                    st.markdown(f"**📉 Bearish Arguments ({len(bearish_sigs)}):**")
+                    for s in sorted(bearish_sigs, key=lambda x: -x["confidence"]):
+                        st.markdown(f"""
+                        **{s['analyst']}** ({s['confidence']:.0f}% confidence)
+                        - *Thesis:* {s['thesis']}
+                        - *Drivers:* {s['drivers']}
+                        - *Horizon:* {s['horizon']}
+                        - *Risks:* {s['risks']}
+                        """)
+
+                # Show ALL neutral arguments
+                neutral_sigs = [s for s in tr["signals"] if s["signal"] == "NEUTRAL"]
+                if neutral_sigs:
+                    st.markdown("---")
+                    st.markdown(f"**⏸️ Neutral Arguments ({len(neutral_sigs)}):**")
+                    for s in sorted(neutral_sigs, key=lambda x: -x["confidence"]):
+                        st.markdown(f"""
+                        **{s['analyst']}** ({s['confidence']:.0f}% confidence)
+                        - *Thesis:* {s['thesis']}
+                        - *Drivers:* {s['drivers']}
+                        """)
 
     else:
         st.markdown("### All Available Analysts")
@@ -891,7 +1054,7 @@ with tab_analysts:
                     st.markdown(f"**Risks:** {info.get('risks', 'N/A')}")
 
 
-# ============== SECURITIES TAB (CONSOLIDATED LOOKUP) ==============
+# ============== SECURITIES TAB ==============
 with tab_securities:
     st.subheader("Securities Lookup")
 
@@ -906,34 +1069,42 @@ with tab_securities:
         if stock["valid"]:
             st.caption(f"Yahoo Finance | 15-20 min delayed | {stock['timestamp'].strftime('%H:%M:%S')}")
 
-            # Price display
             col1, col2 = st.columns([2, 1])
             with col1:
                 chg = "▲" if stock["change"] >= 0 else "▼"
                 st.markdown(f"## {stock['ticker']}")
                 st.markdown(f"*{stock['name']}*")
-                st.metric("Price", f"${stock['price']:.2f}",
-                          f"{chg} ${abs(stock['change']):.2f} ({abs(stock['change_pct']):.2f}%)")
+                st.markdown(f"### {fmt_money(stock['price'], decimals=2)}")
+                color = "green" if stock["change"] >= 0 else "red"
+                st.markdown(f":{color}[{chg} {fmt_money(abs(stock['change']), decimals=2)} ({abs(stock['change_pct']):.2f}%)]")
             with col2:
-                st.metric("Sector", stock["sector"])
+                st.markdown("**Sector**")
+                st.markdown(f"{stock['sector']}")
                 if stock["market_cap"]:
                     cap = stock["market_cap"]
-                    cap_str = f"${cap/1e12:.2f}T" if cap >= 1e12 else f"${cap/1e9:.1f}B" if cap >= 1e9 else f"${cap/1e6:.0f}M"
-                    st.metric("Market Cap", cap_str)
+                    cap_str = f"{cap/1e12:.2f}T" if cap >= 1e12 else f"{cap/1e9:.1f}B" if cap >= 1e9 else f"{cap/1e6:.0f}M"
+                    st.markdown("**Market Cap**")
+                    st.markdown(f"${cap_str}")
 
             st.divider()
 
-            # Key metrics
             st.markdown("### Key Metrics")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("P/E Ratio", f"{stock['pe_ratio']:.1f}" if stock['pe_ratio'] else "N/A")
-            c2.metric("Beta", f"{stock['beta']:.2f}" if stock['beta'] else "N/A")
-            c3.metric("52W High", f"${stock['high_52w']:.2f}" if stock['high_52w'] else "N/A")
-            c4.metric("52W Low", f"${stock['low_52w']:.2f}" if stock['low_52w'] else "N/A")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown("**P/E Ratio**")
+                st.markdown(f"{stock['pe_ratio']:.1f}" if stock['pe_ratio'] else "N/A")
+            with col2:
+                st.markdown("**Beta**")
+                st.markdown(f"{stock['beta']:.2f}" if stock['beta'] else "N/A")
+            with col3:
+                st.markdown("**52W High**")
+                st.markdown(fmt_money(stock['high_52w'], decimals=2) if stock['high_52w'] else "N/A")
+            with col4:
+                st.markdown("**52W Low**")
+                st.markdown(fmt_money(stock['low_52w'], decimals=2) if stock['low_52w'] else "N/A")
 
             st.divider()
 
-            # Chart with selectable time range
             st.markdown("### Price Chart")
 
             periods = {"1M": "1mo", "3M": "3mo", "6M": "6mo", "1Y": "1y", "2Y": "2y", "5Y": "5y", "MAX": "max"}
@@ -950,18 +1121,24 @@ with tab_securities:
             if len(hist) > 0:
                 st.line_chart(hist["Close"])
 
-                # Period stats
                 if len(hist) > 1:
-                    c1, c2, c3, c4 = st.columns(4)
-                    c1.metric("Period High", f"${hist['Close'].max():.2f}")
-                    c2.metric("Period Low", f"${hist['Close'].min():.2f}")
-                    change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0] * 100)
-                    c3.metric("Period Change", f"{change:+.1f}%")
-                    c4.metric("Volatility", f"{hist['Close'].std():.2f}")
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.markdown("**Period High**")
+                        st.markdown(fmt_money(hist['Close'].max(), decimals=2))
+                    with col2:
+                        st.markdown("**Period Low**")
+                        st.markdown(fmt_money(hist['Close'].min(), decimals=2))
+                    with col3:
+                        change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0] * 100)
+                        st.markdown("**Period Change**")
+                        st.markdown(f"{change:+.1f}%")
+                    with col4:
+                        st.markdown("**Volatility**")
+                        st.markdown(f"{hist['Close'].std():.2f}")
             else:
                 st.warning("Chart data unavailable")
 
-            # Show analysis results if available
             if st.session_state.result and ticker in st.session_state.result["ticker_results"]:
                 st.divider()
                 st.markdown("### From Current Analysis")
@@ -976,16 +1153,23 @@ with tab_securities:
                     else:
                         st.warning(f"⏸️ {tr['action']}")
                 with col2:
-                    st.metric("Confidence", f"{tr['avg_confidence']:.0f}%")
+                    st.markdown("**Confidence**")
+                    st.markdown(f"### {tr['avg_confidence']:.0f}%")
 
                 st.caption(f"**Reason:** {tr['reason']}")
 
                 pos = st.session_state.result["positions"].get(ticker)
                 if pos:
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Allocation", f"${pos['notional']:,.0f}")
-                    c2.metric("Stop Loss", f"${pos['sl_price']:.2f}")
-                    c3.metric("Take Profit", f"${pos['tp_price']:.2f}")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown("**Allocation**")
+                        st.markdown(fmt_money(pos['notional']))
+                    with col2:
+                        st.markdown("**Stop Loss**")
+                        st.markdown(fmt_money(pos['sl_price'], decimals=2))
+                    with col3:
+                        st.markdown("**Take Profit**")
+                        st.markdown(fmt_money(pos['tp_price'], decimals=2))
         else:
             st.error(f"Could not fetch data for {ticker}")
 
@@ -998,6 +1182,7 @@ with tab_settings:
 
     with tab_presets:
         st.markdown("### Risk Level Parameter Mapping")
+        st.caption("These parameters are derived from the risk slider on the Signals tab")
 
         preset_data = []
         for level in [0.0, 0.25, 0.5, 0.75, 1.0]:
@@ -1011,41 +1196,54 @@ with tab_settings:
                 "Min Confidence": f"{params['min_confidence']['value']}%",
                 "Leverage": f"{params['leverage_cap']['value']}x"
             })
-        st.dataframe(pd.DataFrame(preset_data), hide_index=True, use_container_width=True)
+        st.dataframe(
+            pd.DataFrame(preset_data),
+            hide_index=True,
+            use_container_width=True,
+            column_config={col: st.column_config.TextColumn(col) for col in preset_data[0].keys()}
+        )
 
-        with st.expander("Parameter Explanations"):
-            st.markdown("""
-            - **Max Position**: Maximum % per position. Scales dynamically in Max Deploy mode.
-            - **Stop Loss**: Distance from entry to exit on loss.
-            - **Take Profit**: Distance from entry to take profit.
-            - **Min Confidence**: Minimum analyst confidence to generate a signal.
-            - **Leverage**: Maximum leverage allowed.
-            """)
+        # Show current active parameters
+        st.divider()
+        st.markdown("### Current Active Parameters")
+        st.caption(f"Based on risk level {st.session_state.risk_level:.0%}" + (" with custom overrides" if st.session_state.use_custom else ""))
+
+        current_params = get_risk_params(st.session_state.risk_level,
+                                          st.session_state.custom_params if st.session_state.use_custom else None)
+        for key, param in current_params.items():
+            status = " ✏️ (custom)" if param.get("custom") else ""
+            st.markdown(f"- **{param['desc']}:** {param['value']}{param['unit']}{status}")
 
     with tab_custom:
         st.markdown("### Custom Parameters")
+        st.caption("Override preset values. Changes apply to the next analysis run.")
 
-        use_custom = st.checkbox("Enable custom parameters", value=st.session_state.use_custom)
+        use_custom = st.checkbox("Enable custom parameters", value=st.session_state.use_custom, key="use_custom_check")
         st.session_state.use_custom = use_custom
 
         if use_custom:
-            st.warning("Custom parameters override preset values")
+            st.warning("⚠️ Custom parameters will override preset values on next run")
 
             col1, col2 = st.columns(2)
             with col1:
                 st.session_state.custom_params["max_position_pct"] = st.number_input(
-                    "Max Position %", 5.0, 100.0, float(st.session_state.custom_params.get("max_position_pct", 22.5)), 1.0)
+                    "Max Position %", 5.0, 100.0, float(st.session_state.custom_params.get("max_position_pct", 22.5)), 1.0,
+                    key="custom_max_pos")
                 st.session_state.custom_params["stop_loss_pct"] = st.number_input(
-                    "Stop Loss %", 1.0, 50.0, float(st.session_state.custom_params.get("stop_loss_pct", 12.5)), 0.5)
+                    "Stop Loss %", 1.0, 50.0, float(st.session_state.custom_params.get("stop_loss_pct", 12.5)), 0.5,
+                    key="custom_sl")
                 st.session_state.custom_params["take_profit_pct"] = st.number_input(
-                    "Take Profit %", 5.0, 200.0, float(st.session_state.custom_params.get("take_profit_pct", 37.5)), 1.0)
+                    "Take Profit %", 5.0, 200.0, float(st.session_state.custom_params.get("take_profit_pct", 37.5)), 1.0,
+                    key="custom_tp")
             with col2:
                 st.session_state.custom_params["min_confidence"] = st.number_input(
-                    "Min Confidence %", 10.0, 90.0, float(st.session_state.custom_params.get("min_confidence", 47.5)), 5.0)
+                    "Min Confidence %", 10.0, 90.0, float(st.session_state.custom_params.get("min_confidence", 47.5)), 5.0,
+                    key="custom_conf")
                 st.session_state.custom_params["leverage_cap"] = st.number_input(
-                    "Leverage Cap", 1.0, 5.0, float(st.session_state.custom_params.get("leverage_cap", 1.5)), 0.1)
+                    "Leverage Cap", 1.0, 5.0, float(st.session_state.custom_params.get("leverage_cap", 1.5)), 0.1,
+                    key="custom_lev")
 
-            if st.button("Reset to Defaults", use_container_width=True):
+            if st.button("Reset to Defaults", use_container_width=True, key="reset_custom"):
                 st.session_state.custom_params = {}
                 st.session_state.use_custom = False
                 st.rerun()
@@ -1055,4 +1253,4 @@ with tab_settings:
 
 # ============== FOOTER ==============
 st.divider()
-st.caption("AI Hedge Fund Terminal v4.3 | Educational Use Only | Not Financial Advice")
+st.caption("AI Hedge Fund Terminal v4.4 | Educational Use Only | Not Financial Advice")
