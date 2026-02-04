@@ -390,18 +390,25 @@ def fetch_news(ticker: str) -> List[dict]:
     try:
         import yfinance as yf
         stock = yf.Ticker(ticker)
-        news = stock.news
+        # Try to get news - may not be available in all yfinance versions
+        news = getattr(stock, 'news', None)
+        if not news:
+            return []
         results = []
         for item in news[:10]:  # Limit to 10 articles
-            results.append({
-                "title": item.get("title", ""),
-                "publisher": item.get("publisher", "Unknown"),
-                "link": item.get("link", ""),
-                "timestamp": datetime.fromtimestamp(item.get("providerPublishTime", 0)) if item.get("providerPublishTime") else None,
-                "type": item.get("type", "article")
-            })
+            try:
+                pub_time = item.get("providerPublishTime")
+                results.append({
+                    "title": item.get("title", ""),
+                    "publisher": item.get("publisher", "Unknown"),
+                    "link": item.get("link", ""),
+                    "timestamp": datetime.fromtimestamp(pub_time) if pub_time else None,
+                    "type": item.get("type", "article")
+                })
+            except:
+                continue
         return results
-    except:
+    except Exception:
         return []
 
 
