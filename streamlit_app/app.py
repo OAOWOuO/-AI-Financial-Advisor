@@ -1,6 +1,6 @@
 """
-AI Hedge Fund Terminal v4.8
-Fixes: Holdings impact, analyst signals display, news section, settings reorganization
+AI Hedge Fund Terminal v4.9
+Fixes: Chart colors, non-draggable charts, volume chart, improved news
 """
 
 import streamlit as st
@@ -195,11 +195,16 @@ st.markdown("""
         border: 1px solid #f85149 !important;
     }
 
-    /* Dataframe styling */
+    /* Dataframe styling - non-draggable */
     [data-testid="stDataFrame"] { pointer-events: none; }
     .stDataFrame {
         background: #161b22 !important;
     }
+
+    /* Chart styling - non-draggable, custom colors */
+    [data-testid="stVegaLiteChart"] { pointer-events: none; }
+    [data-testid="stArrowVegaLiteChart"] { pointer-events: none; }
+    .stLineChart, .stAreaChart { pointer-events: none; }
 
     /* Download button */
     .stDownloadButton > button {
@@ -384,25 +389,43 @@ def fetch_history(ticker: str, period: str = "1y") -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=600, show_spinner=False)
 def fetch_news(ticker: str) -> List[dict]:
     """Fetch recent news for a ticker using yfinance."""
     try:
         import yfinance as yf
         stock = yf.Ticker(ticker)
-        # Try to get news - may not be available in all yfinance versions
-        news = getattr(stock, 'news', None)
+        # Try multiple ways to get news
+        news = None
+        try:
+            news = stock.news
+        except:
+            pass
         if not news:
+            try:
+                news = getattr(stock, 'news', None)
+            except:
+                pass
+        if not news or len(news) == 0:
             return []
         results = []
         for item in news[:10]:  # Limit to 10 articles
             try:
+                title = item.get("title", "")
+                if not title:
+                    continue
                 pub_time = item.get("providerPublishTime")
+                ts = None
+                if pub_time:
+                    try:
+                        ts = datetime.fromtimestamp(pub_time)
+                    except:
+                        pass
                 results.append({
-                    "title": item.get("title", ""),
+                    "title": title,
                     "publisher": item.get("publisher", "Unknown"),
                     "link": item.get("link", ""),
-                    "timestamp": datetime.fromtimestamp(pub_time) if pub_time else None,
+                    "timestamp": ts,
                     "type": item.get("type", "article")
                 })
             except:
@@ -695,7 +718,7 @@ def get_selected_analysts():
 
 # ============== HEADER ==============
 st.write("# 📊 AI Hedge Fund Terminal")
-st.caption("v4.8 | Yahoo Finance (15-20 min delayed)")
+st.caption("v4.9 | Yahoo Finance (15-20 min delayed)")
 
 # ============== TABS ==============
 tab_signals, tab_portfolio, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
@@ -1202,7 +1225,7 @@ with tab_securities:
                 st.write(f"${stock['low_52w']:.2f}" if stock['low_52w'] else "N/A")
 
             st.divider()
-            st.write("### Price Chart")
+            st.write("### Price & Volume Chart")
 
             periods = {"1M": "1mo", "3M": "3mo", "6M": "6mo", "1Y": "1y", "2Y": "2y", "5Y": "5y", "MAX": "max"}
             cols = st.columns(len(periods))
@@ -1215,7 +1238,22 @@ with tab_securities:
 
             hist = fetch_history(ticker, st.session_state.chart_period)
             if len(hist) > 0:
-                st.line_chart(hist["Close"])
+                # Prepare chart data
+                chart_data = hist.reset_index()
+                chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_localize(None)
+
+                # Price chart with green color
+                st.write("**Price**")
+                price_chart_data = chart_data[['Date', 'Close']].set_index('Date')
+                st.area_chart(price_chart_data, color="#238636", use_container_width=True)
+
+                # Volume chart with blue color
+                if 'Volume' in chart_data.columns and chart_data['Volume'].sum() > 0:
+                    st.write("**Volume**")
+                    volume_chart_data = chart_data[['Date', 'Volume']].set_index('Date')
+                    st.bar_chart(volume_chart_data, color="#58a6ff", use_container_width=True)
+
+                # Stats
                 if len(hist) > 1:
                     col1, col2, col3, col4 = st.columns(4)
                     with col1:
@@ -1227,36 +1265,45 @@ with tab_securities:
                     with col3:
                         change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0] * 100)
                         st.write("**Period Change**")
-                        st.write(f"{change:+.1f}%")
+                        color = "green" if change >= 0 else "red"
+                        st.write(f":{color}[{change:+.1f}%]")
                     with col4:
-                        st.write("**Volatility**")
-                        st.write(f"{hist['Close'].std():.2f}")
+                        avg_vol = hist['Volume'].mean() if 'Volume' in hist.columns else 0
+                        st.write("**Avg Volume**")
+                        vol_str = f"{avg_vol/1e6:.1f}M" if avg_vol >= 1e6 else f"{avg_vol/1e3:.0f}K"
+                        st.write(vol_str)
             else:
                 st.warning("Chart data unavailable")
 
             # News Section
             st.divider()
             st.write("### Recent News")
-            try:
-                news = fetch_news(ticker)
-                if news:
-                    for i, article in enumerate(news[:5]):
-                        col1, col2 = st.columns([4, 1])
-                        with col1:
-                            if article.get("link"):
-                                st.write(f"**[{article['title']}]({article['link']})**")
-                            else:
-                                st.write(f"**{article['title']}**")
-                        with col2:
-                            if article.get("timestamp"):
-                                st.caption(article["timestamp"].strftime("%b %d"))
-                            st.caption(article.get("publisher", ""))
-                        if i < len(news[:5]) - 1:
-                            st.write("---")
-                else:
-                    st.info("No recent news available for this ticker.")
-            except Exception:
-                st.info("News data temporarily unavailable.")
+            with st.spinner("Loading news..."):
+                try:
+                    news = fetch_news(ticker)
+                    if news and len(news) > 0:
+                        for i, article in enumerate(news[:5]):
+                            col1, col2 = st.columns([4, 1])
+                            with col1:
+                                title = article.get('title', 'Untitled')
+                                link = article.get("link")
+                                if link:
+                                    st.markdown(f"**[{title}]({link})**")
+                                else:
+                                    st.write(f"**{title}**")
+                            with col2:
+                                ts = article.get("timestamp")
+                                if ts:
+                                    st.caption(ts.strftime("%b %d, %Y"))
+                                pub = article.get("publisher", "")
+                                if pub:
+                                    st.caption(pub)
+                            if i < min(len(news), 5) - 1:
+                                st.markdown("---")
+                    else:
+                        st.caption("No recent news found. News may not be available for all tickers.")
+                except Exception as e:
+                    st.caption("News temporarily unavailable.")
 
             if st.session_state.result and ticker in st.session_state.result["ticker_results"]:
                 st.divider()
@@ -1418,4 +1465,4 @@ with tab_settings:
 
 # ============== FOOTER ==============
 st.divider()
-st.caption("AI Hedge Fund Terminal v4.8 | Educational Use Only | Not Financial Advice")
+st.caption("AI Hedge Fund Terminal v4.9 | Educational Use Only | Not Financial Advice")
