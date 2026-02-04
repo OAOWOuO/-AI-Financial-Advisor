@@ -1,6 +1,6 @@
 """
-AI Hedge Fund Terminal v4.6
-Fixes: Select All/Clear All sync, dark theme contrast for all UI elements
+AI Hedge Fund Terminal v4.8
+Fixes: Holdings impact, analyst signals display, news section, settings reorganization
 """
 
 import streamlit as st
@@ -51,37 +51,33 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] { background: transparent; color: #8b949e; border-radius: 6px; padding: 8px 16px; }
     .stTabs [aria-selected="true"] { background: #238636 !important; color: white !important; }
 
-    /* Expander styling - dark background */
-    .streamlit-expanderHeader {
-        background: #161b22 !important;
-        color: #e6edf3 !important;
-        border-radius: 8px;
-    }
-    .streamlit-expanderHeader:hover {
-        background: #21262d !important;
-    }
-    .streamlit-expanderContent {
-        background: #0d1117 !important;
-        border: 1px solid #30363d !important;
-        border-top: none !important;
-    }
+    /* Expander styling - simplified to prevent flickering */
     [data-testid="stExpander"] {
         background: #161b22 !important;
         border: 1px solid #30363d !important;
         border-radius: 8px !important;
+        transition: none !important;
     }
-    [data-testid="stExpander"] details {
+    [data-testid="stExpander"] > details {
         background: #161b22 !important;
+        transition: none !important;
     }
-    [data-testid="stExpander"] summary {
+    [data-testid="stExpander"] > details > summary {
         background: #161b22 !important;
         color: #e6edf3 !important;
+        transition: none !important;
     }
-    [data-testid="stExpander"] summary:hover {
+    [data-testid="stExpander"] > details > summary:hover {
         background: #21262d !important;
     }
-    [data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
-        background: transparent !important;
+    [data-testid="stExpander"] > details > div {
+        background: #0d1117 !important;
+        border-top: 1px solid #30363d !important;
+        transition: none !important;
+    }
+    /* Prevent layout shift on expand/collapse */
+    [data-testid="stExpander"] * {
+        animation: none !important;
     }
 
     /* Button styling */
@@ -388,6 +384,45 @@ def fetch_history(ticker: str, period: str = "1y") -> pd.DataFrame:
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=600)
+def fetch_news(ticker: str) -> List[dict]:
+    """Fetch recent news for a ticker using yfinance."""
+    try:
+        import yfinance as yf
+        stock = yf.Ticker(ticker)
+        news = stock.news
+        results = []
+        for item in news[:10]:  # Limit to 10 articles
+            results.append({
+                "title": item.get("title", ""),
+                "publisher": item.get("publisher", "Unknown"),
+                "link": item.get("link", ""),
+                "timestamp": datetime.fromtimestamp(item.get("providerPublishTime", 0)) if item.get("providerPublishTime") else None,
+                "type": item.get("type", "article")
+            })
+        return results
+    except:
+        return []
+
+
+# ============== ALLOCATION PARAMETERS ==============
+def get_allocation_params(mode_key: str, custom: dict = None) -> dict:
+    """Get allocation parameters for a given mode with optional custom overrides."""
+    mode = ALLOCATION_MODES.get(mode_key, ALLOCATION_MODES["max_deploy"])
+    params = {
+        "target_deploy_pct": {"value": (mode.get("target_pct") or 0.5) * 100, "unit": "%", "desc": "Target deployment"},
+        "position_cap_pct": {"value": 35.0, "unit": "%", "desc": "Max single position"},
+        "scale_caps": {"value": mode_key == "max_deploy", "unit": "", "desc": "Scale caps with # tickers"},
+        "min_position_pct": {"value": 2.0, "unit": "%", "desc": "Min position size"},
+    }
+    if custom:
+        for k, v in custom.items():
+            if k in params and v is not None:
+                params[k]["value"] = v
+                params[k]["custom"] = True
+    return params
+
+
 # ============== ANALYSIS ENGINE ==============
 def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, capital: float,
                  holdings: Dict[str, int], mode_key: str, allow_fractional: bool = False,
@@ -550,12 +585,30 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
             if t not in positions:
                 hold_tickers[t] = r["reason"]
 
+    # Calculate existing holdings value
+    existing_long = 0
+    existing_short = 0
+    for ticker, result in ticker_results.items():
+        current_shares = result["holdings"]
+        if current_shares > 0 and result["stock"]["valid"]:
+            existing_long += current_shares * result["stock"]["price"]
+        elif current_shares < 0 and result["stock"]["valid"]:
+            existing_short += abs(current_shares) * result["stock"]["price"]
+
     long_exp = sum(p["notional"] for p in positions.values() if p["action"] == "BUY")
     short_exp = sum(p["notional"] for p in positions.values() if p["action"] == "SHORT")
     gross = long_exp + short_exp
     cash = capital - gross
 
+    # Calculate net trades needed (delta from current to target)
+    total_buys = sum(p["delta"] * p["price"] for p in positions.values() if p["delta"] > 0)
+    total_sells = sum(abs(p["delta"]) * p["price"] for p in positions.values() if p["delta"] < 0)
+
     audit["steps"].append(("result", f"Result: {gross:,.0f} deployed ({gross/capital*100:.1f}%), {cash:,.0f} cash ({cash/capital*100:.1f}%)"))
+    if existing_long > 0 or existing_short > 0:
+        audit["steps"].append(("info", f"Existing holdings: ${existing_long:,.0f} long, ${existing_short:,.0f} short"))
+    if total_buys > 0 or total_sells > 0:
+        audit["steps"].append(("info", f"Net trades: ${total_buys:,.0f} to buy, ${total_sells:,.0f} to sell"))
     if cap_blocked > 0:
         audit["steps"].append(("warning", f"Cap blocked: {cap_blocked:,.0f}"))
     if rounding_remainder > 1:
@@ -564,7 +617,7 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
     return {
         "timestamp": timestamp,
         "config": {"tickers": tickers, "analysts": sorted_analysts, "analyst_count": len(sorted_analysts),
-                   "capital": capital, "mode": mode["name"], "risk_level": risk_level},
+                   "capital": capital, "mode": mode["name"], "risk_level": risk_level, "holdings": holdings},
         "risk_params": risk_params,
         "ticker_results": ticker_results,
         "positions": positions,
@@ -575,7 +628,9 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
             "cash": cash, "cash_pct": (cash/capital*100) if capital else 0,
             "long": long_exp, "short": short_exp, "gross": gross, "net": long_exp - short_exp,
             "cap_blocked": cap_blocked, "rounding": rounding_remainder,
-            "positions_count": len(positions), "hold_count": len(hold_tickers)
+            "positions_count": len(positions), "hold_count": len(hold_tickers),
+            "existing_long": existing_long, "existing_short": existing_short,
+            "total_buys": total_buys, "total_sells": total_sells
         }
     }
 
@@ -587,17 +642,24 @@ if "custom_params" not in st.session_state:
     st.session_state.custom_params = {}
 if "use_custom" not in st.session_state:
     st.session_state.use_custom = False
+if "alloc_custom_params" not in st.session_state:
+    st.session_state.alloc_custom_params = {}
+if "use_alloc_custom" not in st.session_state:
+    st.session_state.use_alloc_custom = False
 if "chart_period" not in st.session_state:
     st.session_state.chart_period = "1y"
 if "risk_level" not in st.session_state:
     st.session_state.risk_level = 0.5
-if "open_analyst_category" not in st.session_state:
-    st.session_state.open_analyst_category = None
-
 # Initialize checkbox states for all analysts (default: all selected)
 for key in ALL_ANALYST_KEYS:
     if f"chk_{key}" not in st.session_state:
         st.session_state[f"chk_{key}"] = True
+
+# Track which analyst category expanders should stay open
+for cat in ANALYST_CATEGORIES.keys():
+    cat_id = cat.replace(" ", "_")
+    if f"expand_{cat_id}" not in st.session_state:
+        st.session_state[f"expand_{cat_id}"] = False
 
 
 def select_all_analysts():
@@ -612,6 +674,13 @@ def clear_all_analysts():
         st.session_state[f"chk_{key}"] = False
 
 
+def make_category_callback(cat_id: str):
+    """Factory to create a callback that keeps a category expander open."""
+    def callback():
+        st.session_state[f"expand_{cat_id}"] = True
+    return callback
+
+
 def get_selected_analysts():
     """Get list of currently selected analyst keys based on checkbox states."""
     return [key for key in ALL_ANALYST_KEYS if st.session_state.get(f"chk_{key}", False)]
@@ -619,7 +688,7 @@ def get_selected_analysts():
 
 # ============== HEADER ==============
 st.write("# 📊 AI Hedge Fund Terminal")
-st.caption("v4.6 | Yahoo Finance (15-20 min delayed)")
+st.caption("v4.8 | Yahoo Finance (15-20 min delayed)")
 
 # ============== TABS ==============
 tab_signals, tab_portfolio, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
@@ -696,12 +765,13 @@ with tab_signals:
         for cat, analysts in ANALYST_CATEGORIES.items():
             cat_count = sum(1 for k in analysts if st.session_state.get(f"chk_{k}", False))
             cat_id = cat.replace(" ", "_")
-            is_expanded = st.session_state.open_analyst_category == cat_id
+            is_expanded = st.session_state.get(f"expand_{cat_id}", False)
 
             with st.expander(f"{cat} ({cat_count}/{len(analysts)})", expanded=is_expanded):
                 for key, info in analysts.items():
-                    # Checkbox reads directly from session_state via key
-                    st.checkbox(info["name"], key=f"chk_{key}", help=info["desc"])
+                    # Checkbox with on_change to keep this category's expander open
+                    st.checkbox(info["name"], key=f"chk_{key}", help=info["desc"],
+                               on_change=make_category_callback(cat_id))
 
         selected_analysts = get_selected_analysts()
         selected_count = len(selected_analysts)
@@ -723,7 +793,9 @@ with tab_signals:
                 allow_fractional=allow_fractional,
                 custom_params=custom
             )
-            st.session_state.open_analyst_category = None
+            # Reset all analyst category expanders after running
+            for cat in ANALYST_CATEGORIES.keys():
+                st.session_state[f"expand_{cat.replace(' ', '_')}"] = False
             st.rerun()
 
         if not can_run:
@@ -782,10 +854,10 @@ with tab_signals:
             st.write("### Exposure")
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.write("**Long**")
+                st.write("**Target Long**")
                 st.write(f"### ${s['long']:,.0f}")
             with col2:
-                st.write("**Short**")
+                st.write("**Target Short**")
                 st.write(f"### ${s['short']:,.0f}")
             with col3:
                 st.write("**Gross**")
@@ -793,6 +865,23 @@ with tab_signals:
             with col4:
                 st.write("**Net**")
                 st.write(f"### ${s['net']:,.0f}")
+
+            # Show existing holdings impact
+            if s.get('existing_long', 0) > 0 or s.get('existing_short', 0) > 0:
+                st.write("#### Current Holdings")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.write("**Existing Long**")
+                    st.write(f"${s.get('existing_long', 0):,.0f}")
+                with col2:
+                    st.write("**Existing Short**")
+                    st.write(f"${s.get('existing_short', 0):,.0f}")
+                with col3:
+                    st.write("**To Buy**")
+                    st.write(f"${s.get('total_buys', 0):,.0f}")
+                with col4:
+                    st.write("**To Sell**")
+                    st.write(f"${s.get('total_sells', 0):,.0f}")
 
             if s['short'] > 0:
                 st.info(f"Short margin required: ${s['short'] * 0.5:,.0f} (50% Reg T)")
@@ -826,11 +915,16 @@ with tab_signals:
                     col1, col2, col3, col4 = st.columns(4)
                     shares_fmt = f"{pos['shares']:.2f}" if isinstance(pos['shares'], float) and pos['shares'] != int(pos['shares']) else f"{int(pos['shares']):,}"
                     with col1:
-                        st.write("**Shares**")
+                        st.write("**Target Shares**")
                         st.write(f"### {shares_fmt}")
+                        if pos['current'] != 0:
+                            st.caption(f"Current: {pos['current']:,}")
                     with col2:
                         st.write("**Notional**")
                         st.write(f"### ${pos['notional']:,.0f}")
+                        if pos['delta'] != 0:
+                            delta_val = pos['delta'] * pos['price']
+                            st.caption(f"Delta: {'+' if pos['delta'] > 0 else ''}{pos['delta']:,} (${delta_val:+,.0f})")
                     with col3:
                         st.write("**Stop Loss**")
                         st.write(f"### ${pos['sl_price']:.2f}")
@@ -838,10 +932,20 @@ with tab_signals:
                         st.write("**Take Profit**")
                         st.write(f"### ${pos['tp_price']:.2f}")
 
+                # Show all analyst signals - fixed to always display complete list
                 with st.expander(f"View {tr['total']} analyst signals"):
-                    sig_data = [{"Analyst": sig["analyst"], "Signal": sig["signal"], "Confidence": f"{sig['confidence']:.0f}%"} for sig in tr["signals"]]
+                    sig_data = []
+                    for sig in sorted(tr["signals"], key=lambda x: (-x["confidence"], x["analyst"])):
+                        sig_data.append({
+                            "Analyst": sig["analyst"],
+                            "Category": sig["category"],
+                            "Signal": sig["signal"],
+                            "Confidence": f"{sig['confidence']:.0f}%"
+                        })
                     if sig_data:
                         st.dataframe(pd.DataFrame(sig_data), hide_index=True, use_container_width=True)
+                    else:
+                        st.write("No analyst signals generated.")
 
                 st.divider()
 
@@ -1123,6 +1227,30 @@ with tab_securities:
             else:
                 st.warning("Chart data unavailable")
 
+            # News Section
+            st.divider()
+            st.write("### Recent News")
+            try:
+                news = fetch_news(ticker)
+                if news:
+                    for i, article in enumerate(news[:5]):
+                        col1, col2 = st.columns([4, 1])
+                        with col1:
+                            if article.get("link"):
+                                st.write(f"**[{article['title']}]({article['link']})**")
+                            else:
+                                st.write(f"**{article['title']}**")
+                        with col2:
+                            if article.get("timestamp"):
+                                st.caption(article["timestamp"].strftime("%b %d"))
+                            st.caption(article.get("publisher", ""))
+                        if i < len(news[:5]) - 1:
+                            st.write("---")
+                else:
+                    st.info("No recent news available for this ticker.")
+            except Exception:
+                st.info("News data temporarily unavailable.")
+
             if st.session_state.result and ticker in st.session_state.result["ticker_results"]:
                 st.divider()
                 st.write("### From Current Analysis")
@@ -1147,10 +1275,11 @@ with tab_securities:
 with tab_settings:
     st.subheader("Settings")
 
-    tab_presets, tab_custom = st.tabs(["📊 Risk Presets", "✏️ Custom"])
+    tab_risk, tab_allocation = st.tabs(["⚠️ Risk Parameters", "📊 Allocation Parameters"])
 
-    with tab_presets:
-        st.write("### Risk Level Parameter Mapping")
+    # ===== RISK TAB =====
+    with tab_risk:
+        st.write("### Risk Level Presets")
         preset_data = []
         for level in [0.0, 0.25, 0.5, 0.75, 1.0]:
             params = get_risk_params(level)
@@ -1166,16 +1295,25 @@ with tab_settings:
         st.dataframe(pd.DataFrame(preset_data), hide_index=True, use_container_width=True)
 
         st.divider()
-        st.write("### Current Active Parameters")
-        st.caption(f"Risk level: {st.session_state.risk_level:.0%}" + (" with custom overrides" if st.session_state.use_custom else ""))
-        current_params = get_risk_params(st.session_state.risk_level, st.session_state.custom_params if st.session_state.use_custom else None)
-        for key, param in current_params.items():
-            status = " ✏️" if param.get("custom") else ""
-            st.write(f"- **{param['desc']}:** {param['value']}{param['unit']}{status}")
 
-    with tab_custom:
-        st.write("### Custom Parameters")
-        use_custom = st.checkbox("Enable custom parameters", value=st.session_state.use_custom, key="use_custom_check")
+        # Current Active Risk Parameters
+        st.write("### Current Active Risk Parameters")
+        risk_label = "Conservative" if st.session_state.risk_level < 0.35 else "Aggressive" if st.session_state.risk_level > 0.65 else "Moderate"
+        st.caption(f"Risk level: {st.session_state.risk_level:.0%} ({risk_label})" + (" with custom overrides" if st.session_state.use_custom else ""))
+
+        current_params = get_risk_params(st.session_state.risk_level, st.session_state.custom_params if st.session_state.use_custom else None)
+        col1, col2 = st.columns(2)
+        param_items = list(current_params.items())
+        for i, (key, param) in enumerate(param_items):
+            with col1 if i % 2 == 0 else col2:
+                status = " ✏️" if param.get("custom") else ""
+                st.write(f"**{param['desc']}:** {param['value']}{param['unit']}{status}")
+
+        st.divider()
+
+        # Custom Risk Parameters
+        st.write("### Custom Risk Overrides")
+        use_custom = st.checkbox("Enable custom risk parameters", value=st.session_state.use_custom, key="use_custom_check")
         st.session_state.use_custom = use_custom
 
         if use_custom:
@@ -1189,14 +1327,88 @@ with tab_settings:
                 st.session_state.custom_params["min_confidence"] = st.number_input("Min Confidence %", 10.0, 90.0, float(st.session_state.custom_params.get("min_confidence", 47.5)), 5.0, key="custom_conf")
                 st.session_state.custom_params["leverage_cap"] = st.number_input("Leverage Cap", 1.0, 5.0, float(st.session_state.custom_params.get("leverage_cap", 1.5)), 0.1, key="custom_lev")
 
-            if st.button("Reset to Defaults", use_container_width=True, key="reset_custom"):
+            if st.button("Reset Risk to Defaults", use_container_width=True, key="reset_custom"):
                 st.session_state.custom_params = {}
                 st.session_state.use_custom = False
                 st.rerun()
-        else:
-            st.info("Enable custom parameters to override presets.")
+
+    # ===== ALLOCATION TAB =====
+    with tab_allocation:
+        st.write("### Allocation Mode Presets")
+        alloc_data = []
+        for mode_key, mode_info in ALLOCATION_MODES.items():
+            target = mode_info.get("target_pct")
+            alloc_data.append({
+                "Mode": mode_info["name"],
+                "Target Deploy": f"{target*100:.0f}%" if target else "Variable",
+                "Description": mode_info["desc"]
+            })
+        st.dataframe(pd.DataFrame(alloc_data), hide_index=True, use_container_width=True)
+
+        st.divider()
+
+        # Current Active Allocation Parameters
+        st.write("### Current Active Allocation Parameters")
+        # Get current mode from session state if available
+        current_mode = "max_deploy"  # default
+        if st.session_state.result:
+            for mk, mv in ALLOCATION_MODES.items():
+                if mv["name"] == st.session_state.result["config"]["mode"]:
+                    current_mode = mk
+                    break
+
+        alloc_params = get_allocation_params(current_mode, st.session_state.alloc_custom_params if st.session_state.use_alloc_custom else None)
+        st.caption(f"Mode: {ALLOCATION_MODES[current_mode]['name']}" + (" with custom overrides" if st.session_state.use_alloc_custom else ""))
+
+        col1, col2 = st.columns(2)
+        alloc_items = list(alloc_params.items())
+        for i, (key, param) in enumerate(alloc_items):
+            with col1 if i % 2 == 0 else col2:
+                status = " ✏️" if param.get("custom") else ""
+                val = param['value']
+                if isinstance(val, bool):
+                    val = "Yes" if val else "No"
+                st.write(f"**{param['desc']}:** {val}{param['unit']}{status}")
+
+        st.divider()
+
+        # Custom Allocation Parameters
+        st.write("### Custom Allocation Overrides")
+        use_alloc_custom = st.checkbox("Enable custom allocation parameters", value=st.session_state.use_alloc_custom, key="use_alloc_custom_check")
+        st.session_state.use_alloc_custom = use_alloc_custom
+
+        if use_alloc_custom:
+            st.warning("⚠️ Custom parameters override mode defaults")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.session_state.alloc_custom_params["target_deploy_pct"] = st.number_input(
+                    "Target Deployment %", 10.0, 100.0,
+                    float(st.session_state.alloc_custom_params.get("target_deploy_pct", 95.0)), 5.0,
+                    key="custom_target_deploy", help="Percentage of capital to deploy"
+                )
+                st.session_state.alloc_custom_params["position_cap_pct"] = st.number_input(
+                    "Max Single Position %", 5.0, 100.0,
+                    float(st.session_state.alloc_custom_params.get("position_cap_pct", 35.0)), 5.0,
+                    key="custom_pos_cap", help="Maximum allocation to any single position"
+                )
+            with col2:
+                st.session_state.alloc_custom_params["min_position_pct"] = st.number_input(
+                    "Min Position Size %", 0.5, 20.0,
+                    float(st.session_state.alloc_custom_params.get("min_position_pct", 2.0)), 0.5,
+                    key="custom_min_pos", help="Minimum position size to avoid tiny trades"
+                )
+                st.session_state.alloc_custom_params["scale_caps"] = st.checkbox(
+                    "Scale caps with # tickers",
+                    value=st.session_state.alloc_custom_params.get("scale_caps", True),
+                    key="custom_scale_caps", help="Automatically adjust position caps based on number of tickers"
+                )
+
+            if st.button("Reset Allocation to Defaults", use_container_width=True, key="reset_alloc_custom"):
+                st.session_state.alloc_custom_params = {}
+                st.session_state.use_alloc_custom = False
+                st.rerun()
 
 
 # ============== FOOTER ==============
 st.divider()
-st.caption("AI Hedge Fund Terminal v4.6 | Educational Use Only | Not Financial Advice")
+st.caption("AI Hedge Fund Terminal v4.8 | Educational Use Only | Not Financial Advice")
