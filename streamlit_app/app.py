@@ -409,26 +409,57 @@ def fetch_events_income(ticker: str) -> dict:
         if ex_dividend_date:
             ex_dividend_date = datetime.fromtimestamp(ex_dividend_date)
 
-        # Earnings data
+        # Earnings data - try multiple methods
         earnings_dates = []
+        next_earnings = None
+
+        # Method 1: Try earnings_dates property (most reliable for upcoming)
         try:
-            # Try to get earnings calendar
-            cal = stock.calendar
-            if cal is not None:
-                if isinstance(cal, dict):
-                    earnings_date = cal.get("Earnings Date")
-                    if earnings_date:
-                        if isinstance(earnings_date, list):
-                            earnings_dates = [d for d in earnings_date if d]
-                        else:
-                            earnings_dates = [earnings_date]
-                elif isinstance(cal, pd.DataFrame) and not cal.empty:
-                    if "Earnings Date" in cal.index:
-                        ed = cal.loc["Earnings Date"]
-                        if pd.notna(ed).any():
-                            earnings_dates = [ed.iloc[0]] if not isinstance(ed, list) else list(ed)
+            ed_df = stock.earnings_dates
+            if ed_df is not None and not ed_df.empty:
+                # Get future dates
+                now = datetime.now()
+                for idx in ed_df.index:
+                    try:
+                        if isinstance(idx, pd.Timestamp):
+                            dt = idx.to_pydatetime()
+                            if dt.replace(tzinfo=None) >= now - timedelta(days=7):
+                                earnings_dates.append(dt)
+                    except:
+                        continue
         except:
             pass
+
+        # Method 2: Try calendar property
+        if not earnings_dates:
+            try:
+                cal = stock.calendar
+                if cal is not None:
+                    if isinstance(cal, dict):
+                        ed = cal.get("Earnings Date") or cal.get("Earnings Average") or cal.get("earnings_date")
+                        if ed:
+                            if isinstance(ed, list):
+                                earnings_dates = [d for d in ed if d]
+                            elif isinstance(ed, (datetime, pd.Timestamp)):
+                                earnings_dates = [ed]
+                    elif isinstance(cal, pd.DataFrame) and not cal.empty:
+                        for col in ["Earnings Date", "Earnings Average"]:
+                            if col in cal.columns:
+                                vals = cal[col].dropna().tolist()
+                                if vals:
+                                    earnings_dates = vals[:2]
+                                    break
+            except:
+                pass
+
+        # Method 3: Try info dict
+        if not earnings_dates:
+            try:
+                earn_ts = info.get("earningsTimestamp") or info.get("earningsTimestampStart")
+                if earn_ts:
+                    earnings_dates = [datetime.fromtimestamp(earn_ts)]
+            except:
+                pass
 
         # 52-week range
         high_52w = info.get("fiftyTwoWeekHigh") or 0
