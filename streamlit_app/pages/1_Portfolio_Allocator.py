@@ -1009,7 +1009,7 @@ def get_selected_analysts():
 # ============== HEADER ==============
 col_back, col_title = st.columns([1, 11])
 with col_back:
-    st.page_link("app.py", label="← Home")
+    st.markdown('<a href="/" target="_self" style="color:#58a6ff; text-decoration:none;">← Home</a>', unsafe_allow_html=True)
 with col_title:
     st.write("# 📊 AI Portfolio Allocator")
     st.caption("v5.9 | Yahoo Finance (15-20 min delayed)")

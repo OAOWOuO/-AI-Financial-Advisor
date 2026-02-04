@@ -133,7 +133,7 @@ with col1:
     </div>
     """, unsafe_allow_html=True)
 
-    st.page_link("pages/1_Portfolio_Allocator.py", label="Enter Portfolio Allocator →", use_container_width=True)
+    st.markdown('<a href="/1_Portfolio_Allocator" target="_self" style="display:block; background:#238636; color:white; text-align:center; padding:12px 24px; border-radius:6px; text-decoration:none; font-weight:500; margin-top:20px;">Enter Portfolio Allocator →</a>', unsafe_allow_html=True)
 
 with col2:
     st.markdown("""
@@ -155,7 +155,7 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
 
-    st.page_link("pages/2_Stock_Analyzer.py", label="Enter Stock Analyzer →", use_container_width=True)
+    st.markdown('<a href="/2_Stock_Analyzer" target="_self" style="display:block; background:#238636; color:white; text-align:center; padding:12px 24px; border-radius:6px; text-decoration:none; font-weight:500; margin-top:20px;">Enter Stock Analyzer →</a>', unsafe_allow_html=True)
 
 # ============== FOOTER ==============
 st.markdown("<br><br>", unsafe_allow_html=True)
