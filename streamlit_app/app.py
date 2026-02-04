@@ -1,6 +1,6 @@
 """
-AI Portfolio Allocator v5.3
-Holdings work without ticker input, explanations, consistent dark theme
+AI Portfolio Allocator v5.4
+P0 Features: Risk Analytics (Sharpe, VaR, Beta), Sector Allocation Chart
 """
 
 import streamlit as st
@@ -8,8 +8,8 @@ import pandas as pd
 import numpy as np
 import hashlib
 import altair as alt
-from datetime import datetime
-from typing import Dict, List
+from datetime import datetime, timedelta
+from typing import Dict, List, Tuple
 
 # ============== PAGE CONFIG ==============
 st.set_page_config(
@@ -462,6 +462,166 @@ def get_allocation_params(mode_key: str, custom: dict = None) -> dict:
     return params
 
 
+# ============== RISK ANALYTICS ==============
+@st.cache_data(ttl=600)
+def fetch_benchmark_history(period: str = "1y") -> pd.DataFrame:
+    """Fetch S&P 500 (SPY) history for benchmark comparison."""
+    try:
+        import yfinance as yf
+        spy = yf.Ticker("SPY")
+        hist = spy.history(period=period)
+        return hist
+    except:
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=600)
+def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capital: float) -> Dict:
+    """Calculate professional risk metrics for the portfolio."""
+    try:
+        import yfinance as yf
+
+        if not positions:
+            return {}
+
+        # Get historical data for all positions
+        tickers = list(positions.keys())
+        weights = {t: positions[t]["notional"] / capital for t in tickers}
+
+        # Fetch 1 year of daily data
+        hist_data = {}
+        for ticker in tickers:
+            try:
+                stock = yf.Ticker(ticker)
+                hist = stock.history(period="1y")
+                if len(hist) > 20:
+                    hist_data[ticker] = hist['Close']
+            except:
+                continue
+
+        if len(hist_data) < 1:
+            return {}
+
+        # Create returns dataframe
+        prices_df = pd.DataFrame(hist_data)
+        returns_df = prices_df.pct_change().dropna()
+
+        if len(returns_df) < 20:
+            return {}
+
+        # Calculate portfolio returns (weighted)
+        portfolio_returns = pd.Series(0.0, index=returns_df.index)
+        total_weight = 0
+        for ticker in hist_data.keys():
+            if ticker in weights:
+                w = weights[ticker]
+                portfolio_returns += returns_df[ticker] * w
+                total_weight += w
+
+        if total_weight > 0:
+            portfolio_returns = portfolio_returns / total_weight
+
+        # Risk-free rate (approximate)
+        risk_free_rate = 0.05 / 252  # ~5% annual, daily
+
+        # ===== CALCULATE METRICS =====
+
+        # 1. Annualized Return
+        mean_daily_return = portfolio_returns.mean()
+        annualized_return = mean_daily_return * 252
+
+        # 2. Volatility (annualized)
+        daily_volatility = portfolio_returns.std()
+        annualized_volatility = daily_volatility * np.sqrt(252)
+
+        # 3. Sharpe Ratio
+        excess_returns = portfolio_returns - risk_free_rate
+        sharpe_ratio = (excess_returns.mean() / portfolio_returns.std()) * np.sqrt(252) if portfolio_returns.std() > 0 else 0
+
+        # 4. Sortino Ratio (downside deviation)
+        negative_returns = portfolio_returns[portfolio_returns < 0]
+        downside_std = negative_returns.std() if len(negative_returns) > 0 else portfolio_returns.std()
+        sortino_ratio = (excess_returns.mean() / downside_std) * np.sqrt(252) if downside_std > 0 else 0
+
+        # 5. Maximum Drawdown
+        cumulative_returns = (1 + portfolio_returns).cumprod()
+        rolling_max = cumulative_returns.expanding().max()
+        drawdowns = (cumulative_returns - rolling_max) / rolling_max
+        max_drawdown = drawdowns.min()
+
+        # 6. Value at Risk (VaR) - 95% and 99%
+        var_95 = np.percentile(portfolio_returns, 5)
+        var_99 = np.percentile(portfolio_returns, 1)
+
+        # 7. Beta vs S&P 500
+        try:
+            spy = yf.Ticker("SPY")
+            spy_hist = spy.history(period="1y")
+            spy_returns = spy_hist['Close'].pct_change().dropna()
+
+            # Align dates
+            common_dates = portfolio_returns.index.intersection(spy_returns.index)
+            if len(common_dates) > 20:
+                port_aligned = portfolio_returns.loc[common_dates]
+                spy_aligned = spy_returns.loc[common_dates]
+
+                covariance = np.cov(port_aligned, spy_aligned)[0, 1]
+                spy_variance = spy_aligned.var()
+                beta = covariance / spy_variance if spy_variance > 0 else 1.0
+
+                # Alpha (Jensen's Alpha)
+                spy_return = spy_aligned.mean() * 252
+                alpha = annualized_return - (risk_free_rate * 252 + beta * (spy_return - risk_free_rate * 252))
+            else:
+                beta = 1.0
+                alpha = 0.0
+        except:
+            beta = 1.0
+            alpha = 0.0
+
+        # 8. Correlation Matrix
+        correlation_matrix = returns_df.corr() if len(returns_df.columns) > 1 else None
+
+        return {
+            "annualized_return": annualized_return,
+            "annualized_volatility": annualized_volatility,
+            "sharpe_ratio": sharpe_ratio,
+            "sortino_ratio": sortino_ratio,
+            "max_drawdown": max_drawdown,
+            "var_95": var_95,
+            "var_99": var_99,
+            "beta": beta,
+            "alpha": alpha,
+            "correlation_matrix": correlation_matrix,
+            "daily_returns": portfolio_returns,
+            "returns_df": returns_df
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_sector_allocation(positions: Dict, ticker_results: Dict) -> Dict[str, float]:
+    """Calculate sector allocation from positions."""
+    sector_totals = {}
+    total_value = 0
+
+    for ticker, pos in positions.items():
+        tr = ticker_results.get(ticker, {})
+        stock = tr.get("stock", {})
+        sector = stock.get("sector", "Unknown")
+        notional = pos.get("notional", 0)
+
+        if sector not in sector_totals:
+            sector_totals[sector] = 0
+        sector_totals[sector] += notional
+        total_value += notional
+
+    # Convert to percentages
+    if total_value > 0:
+        return {s: (v / total_value * 100) for s, v in sector_totals.items()}
+    return {}
+
+
 # ============== ANALYSIS ENGINE ==============
 def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, capital: float,
                  holdings: Dict[str, int], mode_key: str, allow_fractional: bool = False,
@@ -736,11 +896,11 @@ def get_selected_analysts():
 
 # ============== HEADER ==============
 st.write("# 📊 AI Portfolio Allocator")
-st.caption("v5.3 | Yahoo Finance (15-20 min delayed)")
+st.caption("v5.4 | Yahoo Finance (15-20 min delayed)")
 
 # ============== TABS ==============
-tab_signals, tab_portfolio, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
-    "📈 Signals", "💼 Portfolio", "📋 Trades", "🧠 Analysts", "🔍 Securities", "⚙️ Settings"
+tab_signals, tab_portfolio, tab_analytics, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
+    "📈 Signals", "💼 Portfolio", "📊 Analytics", "📋 Trades", "🧠 Analysts", "🔍 Securities", "⚙️ Settings"
 ])
 
 
@@ -1255,6 +1415,247 @@ with tab_portfolio:
         st.info("Run analysis from Signals tab first.")
 
 
+# ============== ANALYTICS TAB ==============
+with tab_analytics:
+    st.subheader("Risk Analytics")
+
+    if st.session_state.result:
+        r = st.session_state.result
+        s = r["summary"]
+
+        if r["positions"]:
+            # Calculate risk metrics
+            with st.spinner("Calculating risk metrics..."):
+                risk_metrics = calculate_portfolio_risk_metrics(
+                    r["positions"],
+                    r["ticker_results"],
+                    s["capital"]
+                )
+
+            if risk_metrics and "error" not in risk_metrics:
+                # ===== KEY RISK METRICS =====
+                st.write("### Key Risk Metrics")
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
+                    st.write("**Sharpe Ratio**")
+                    sharpe = risk_metrics.get("sharpe_ratio", 0)
+                    color = "green" if sharpe > 1 else "orange" if sharpe > 0 else "red"
+                    st.write(f"### :{color}[{sharpe:.2f}]")
+                    st.caption("Risk-adjusted return")
+
+                with col2:
+                    st.write("**Sortino Ratio**")
+                    sortino = risk_metrics.get("sortino_ratio", 0)
+                    color = "green" if sortino > 1 else "orange" if sortino > 0 else "red"
+                    st.write(f"### :{color}[{sortino:.2f}]")
+                    st.caption("Downside risk-adjusted")
+
+                with col3:
+                    st.write("**Beta (vs S&P 500)**")
+                    beta = risk_metrics.get("beta", 1)
+                    color = "green" if 0.8 <= beta <= 1.2 else "orange"
+                    st.write(f"### :{color}[{beta:.2f}]")
+                    st.caption("Market sensitivity")
+
+                with col4:
+                    st.write("**Max Drawdown**")
+                    mdd = risk_metrics.get("max_drawdown", 0)
+                    color = "green" if mdd > -0.1 else "orange" if mdd > -0.2 else "red"
+                    st.write(f"### :{color}[{mdd:.1%}]")
+                    st.caption("Worst peak-to-trough")
+
+                st.divider()
+
+                # ===== RETURN & VOLATILITY =====
+                st.write("### Return & Volatility")
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
+                    st.write("**Expected Return**")
+                    ret = risk_metrics.get("annualized_return", 0)
+                    color = "green" if ret > 0 else "red"
+                    st.write(f"### :{color}[{ret:.1%}]")
+                    st.caption("Annualized")
+
+                with col2:
+                    st.write("**Volatility**")
+                    vol = risk_metrics.get("annualized_volatility", 0)
+                    color = "green" if vol < 0.15 else "orange" if vol < 0.25 else "red"
+                    st.write(f"### :{color}[{vol:.1%}]")
+                    st.caption("Annualized std dev")
+
+                with col3:
+                    st.write("**Alpha**")
+                    alpha = risk_metrics.get("alpha", 0)
+                    color = "green" if alpha > 0 else "red"
+                    st.write(f"### :{color}[{alpha:.1%}]")
+                    st.caption("Excess return vs benchmark")
+
+                with col4:
+                    st.write("**VaR (95%)**")
+                    var95 = risk_metrics.get("var_95", 0)
+                    daily_var = var95 * s["deployed"]
+                    st.write(f"### ${abs(daily_var):,.0f}")
+                    st.caption(f"Daily loss limit ({var95:.1%})")
+
+                st.divider()
+
+                # ===== VALUE AT RISK DETAIL =====
+                st.write("### Value at Risk (VaR)")
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write("**95% Confidence VaR**")
+                    var95 = risk_metrics.get("var_95", 0)
+                    daily_loss_95 = abs(var95) * s["deployed"]
+                    st.info(f"There is a 5% chance of losing more than **${daily_loss_95:,.0f}** ({abs(var95):.2%}) in a single day.")
+
+                with col2:
+                    st.write("**99% Confidence VaR**")
+                    var99 = risk_metrics.get("var_99", 0)
+                    daily_loss_99 = abs(var99) * s["deployed"]
+                    st.warning(f"There is a 1% chance of losing more than **${daily_loss_99:,.0f}** ({abs(var99):.2%}) in a single day.")
+
+                st.divider()
+
+                # ===== SECTOR ALLOCATION =====
+                st.write("### Sector Allocation")
+                sector_data = get_sector_allocation(r["positions"], r["ticker_results"])
+
+                if sector_data:
+                    col_chart, col_table = st.columns([2, 1])
+
+                    with col_chart:
+                        # Prepare sector pie chart
+                        sector_df = pd.DataFrame([
+                            {"Sector": s, "Allocation": v, "Pct": f"{v:.1f}%"}
+                            for s, v in sorted(sector_data.items(), key=lambda x: -x[1])
+                        ])
+
+                        # Dark theme colors for sectors
+                        sector_colors = ['#238636', '#2ea043', '#3fb950', '#56d364', '#58a6ff', '#79c0ff', '#a5d6ff', '#f0883e', '#d29922', '#8b949e']
+
+                        sector_chart = alt.Chart(sector_df).mark_arc(innerRadius=50, stroke='#0d1117', strokeWidth=2).encode(
+                            theta=alt.Theta(field="Allocation", type="quantitative"),
+                            color=alt.Color(field="Sector", type="nominal",
+                                            scale=alt.Scale(range=sector_colors),
+                                            legend=None),
+                            tooltip=[
+                                alt.Tooltip('Sector:N', title='Sector'),
+                                alt.Tooltip('Pct:N', title='Allocation')
+                            ]
+                        ).properties(height=280).configure_view(strokeWidth=0).configure(background='#161b22')
+
+                        st.altair_chart(sector_chart, use_container_width=True)
+
+                    with col_table:
+                        st.write("**Breakdown**")
+                        for i, (sector, pct) in enumerate(sorted(sector_data.items(), key=lambda x: -x[1])):
+                            color = sector_colors[i % len(sector_colors)]
+                            st.markdown(f"<span style='color:{color}'>●</span> **{sector}**: {pct:.1f}%", unsafe_allow_html=True)
+
+                st.divider()
+
+                # ===== CORRELATION MATRIX =====
+                corr_matrix = risk_metrics.get("correlation_matrix")
+                if corr_matrix is not None and len(corr_matrix) > 1:
+                    st.write("### Correlation Matrix")
+                    st.caption("Shows how positions move together. Low correlation = better diversification.")
+
+                    # Create heatmap with Altair
+                    corr_data = []
+                    for i, row_ticker in enumerate(corr_matrix.index):
+                        for j, col_ticker in enumerate(corr_matrix.columns):
+                            corr_data.append({
+                                "Ticker1": row_ticker,
+                                "Ticker2": col_ticker,
+                                "Correlation": corr_matrix.iloc[i, j]
+                            })
+
+                    corr_df = pd.DataFrame(corr_data)
+
+                    heatmap = alt.Chart(corr_df).mark_rect().encode(
+                        x=alt.X('Ticker1:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
+                        y=alt.Y('Ticker2:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
+                        color=alt.Color('Correlation:Q',
+                                        scale=alt.Scale(scheme='redyellowgreen', domain=[-1, 1]),
+                                        legend=alt.Legend(title="Correlation")),
+                        tooltip=[
+                            alt.Tooltip('Ticker1:N', title=''),
+                            alt.Tooltip('Ticker2:N', title=''),
+                            alt.Tooltip('Correlation:Q', title='Correlation', format='.2f')
+                        ]
+                    ).properties(height=300).configure_view(strokeWidth=0).configure(background='#161b22')
+
+                    st.altair_chart(heatmap, use_container_width=True)
+
+                    # Diversification score
+                    avg_corr = corr_matrix.values[np.triu_indices_from(corr_matrix.values, k=1)].mean()
+                    if avg_corr < 0.3:
+                        st.success(f"**Diversification: Excellent** (Avg correlation: {avg_corr:.2f})")
+                    elif avg_corr < 0.6:
+                        st.info(f"**Diversification: Good** (Avg correlation: {avg_corr:.2f})")
+                    else:
+                        st.warning(f"**Diversification: Low** (Avg correlation: {avg_corr:.2f}) - Consider adding uncorrelated assets")
+
+                st.divider()
+
+                # ===== RISK INTERPRETATION =====
+                st.write("### Risk Interpretation")
+
+                sharpe = risk_metrics.get("sharpe_ratio", 0)
+                beta = risk_metrics.get("beta", 1)
+                mdd = risk_metrics.get("max_drawdown", 0)
+                vol = risk_metrics.get("annualized_volatility", 0)
+
+                # Overall assessment
+                risk_score = 0
+                if sharpe > 1:
+                    risk_score += 2
+                elif sharpe > 0.5:
+                    risk_score += 1
+
+                if 0.8 <= beta <= 1.2:
+                    risk_score += 1
+
+                if mdd > -0.15:
+                    risk_score += 1
+
+                if vol < 0.20:
+                    risk_score += 1
+
+                if risk_score >= 4:
+                    st.success("**Overall Assessment: Strong Risk-Adjusted Profile** - This portfolio shows favorable risk characteristics.")
+                elif risk_score >= 2:
+                    st.info("**Overall Assessment: Moderate Risk Profile** - Consider monitoring volatility and drawdown levels.")
+                else:
+                    st.warning("**Overall Assessment: Higher Risk Profile** - Consider rebalancing or adding defensive positions.")
+
+                # Specific recommendations
+                recommendations = []
+                if sharpe < 0.5:
+                    recommendations.append("- Sharpe ratio is low. Consider higher-quality positions or reducing volatile holdings.")
+                if beta > 1.3:
+                    recommendations.append("- High beta indicates significant market sensitivity. Consider adding low-beta stocks.")
+                if mdd < -0.25:
+                    recommendations.append("- Historical drawdown is significant. Consider tighter stop-losses or position sizing.")
+                if vol > 0.25:
+                    recommendations.append("- Volatility is elevated. Consider diversifying across sectors and asset classes.")
+
+                if recommendations:
+                    st.write("**Recommendations:**")
+                    for rec in recommendations:
+                        st.write(rec)
+
+            else:
+                st.warning("Unable to calculate risk metrics. Ensure positions have sufficient price history.")
+        else:
+            st.info("No positions to analyze. Run analysis with actionable signals first.")
+    else:
+        st.info("Run analysis from Signals tab first.")
+
+
 # ============== TRADES TAB ==============
 with tab_trades:
     st.subheader("Trade Instructions")
@@ -1666,4 +2067,4 @@ with tab_settings:
 
 # ============== FOOTER ==============
 st.divider()
-st.caption("AI Portfolio Allocator v5.3 | Educational Use Only | Not Financial Advice")
+st.caption("AI Portfolio Allocator v5.4 | Educational Use Only | Not Financial Advice")
