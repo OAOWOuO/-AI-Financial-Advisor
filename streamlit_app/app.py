@@ -134,7 +134,7 @@ with col1:
     """, unsafe_allow_html=True)
 
     if st.button("Enter Portfolio Allocator →", key="portfolio_btn"):
-        st.switch_page("pages/1_📊_Portfolio_Allocator.py")
+        st.switch_page("pages/1_Portfolio_Allocator.py")
 
 with col2:
     st.markdown("""
@@ -157,7 +157,7 @@ with col2:
     """, unsafe_allow_html=True)
 
     if st.button("Enter Stock Analyzer →", key="analyzer_btn"):
-        st.switch_page("pages/2_📈_Stock_Analyzer.py")
+        st.switch_page("pages/2_Stock_Analyzer.py")
 
 # ============== FOOTER ==============
 st.markdown("<br><br>", unsafe_allow_html=True)
