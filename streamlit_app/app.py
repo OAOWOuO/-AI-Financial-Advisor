@@ -1,9 +1,9 @@
 """
-AI Portfolio Allocator v5.8
-- Color indicators for allocation breakdowns
-- Improved correlation matrix with blue-white-red color scheme
+AI Portfolio Allocator v5.9
+- Events & Income tab: Dividends, Earnings Calendar, 52-Week Range
 - Performance tab: Portfolio vs S&P 500 benchmark comparison
-- Rebalance section: shows drift from target and recommended trades
+- Rebalance function with one-click and custom weight options
+- Improved correlation matrix with blue-white-red color scheme
 """
 
 import streamlit as st
@@ -392,6 +392,71 @@ def fetch_history(ticker: str, period: str = "1y") -> pd.DataFrame:
         return yf.Ticker(ticker).history(period=period)
     except:
         return pd.DataFrame()
+
+
+@st.cache_data(ttl=600)
+def fetch_events_income(ticker: str) -> dict:
+    """Fetch dividend, earnings, and 52-week range data for a ticker."""
+    try:
+        import yfinance as yf
+        stock = yf.Ticker(ticker)
+        info = stock.info
+
+        # Dividend data
+        dividend_yield = info.get("dividendYield") or 0
+        dividend_rate = info.get("dividendRate") or 0
+        ex_dividend_date = info.get("exDividendDate")
+        if ex_dividend_date:
+            ex_dividend_date = datetime.fromtimestamp(ex_dividend_date)
+
+        # Earnings data
+        earnings_dates = []
+        try:
+            # Try to get earnings calendar
+            cal = stock.calendar
+            if cal is not None:
+                if isinstance(cal, dict):
+                    earnings_date = cal.get("Earnings Date")
+                    if earnings_date:
+                        if isinstance(earnings_date, list):
+                            earnings_dates = [d for d in earnings_date if d]
+                        else:
+                            earnings_dates = [earnings_date]
+                elif isinstance(cal, pd.DataFrame) and not cal.empty:
+                    if "Earnings Date" in cal.index:
+                        ed = cal.loc["Earnings Date"]
+                        if pd.notna(ed).any():
+                            earnings_dates = [ed.iloc[0]] if not isinstance(ed, list) else list(ed)
+        except:
+            pass
+
+        # 52-week range
+        high_52w = info.get("fiftyTwoWeekHigh") or 0
+        low_52w = info.get("fiftyTwoWeekLow") or 0
+        current_price = info.get("currentPrice") or info.get("regularMarketPrice") or 0
+
+        # Calculate position in 52-week range (0% = at low, 100% = at high)
+        range_position = 0
+        if high_52w > low_52w and current_price > 0:
+            range_position = (current_price - low_52w) / (high_52w - low_52w) * 100
+
+        return {
+            "ticker": ticker,
+            "dividend_yield": dividend_yield * 100 if dividend_yield < 1 else dividend_yield,  # Convert to percentage
+            "dividend_rate": dividend_rate,
+            "ex_dividend_date": ex_dividend_date,
+            "earnings_dates": earnings_dates,
+            "high_52w": high_52w,
+            "low_52w": low_52w,
+            "current_price": current_price,
+            "range_position": range_position
+        }
+    except Exception as e:
+        return {
+            "ticker": ticker, "dividend_yield": 0, "dividend_rate": 0,
+            "ex_dividend_date": None, "earnings_dates": [], "high_52w": 0,
+            "low_52w": 0, "current_price": 0, "range_position": 0
+        }
 
 
 @st.cache_data(ttl=600, show_spinner=False)
@@ -899,11 +964,11 @@ def get_selected_analysts():
 
 # ============== HEADER ==============
 st.write("# 📊 AI Portfolio Allocator")
-st.caption("v5.5 | Yahoo Finance (15-20 min delayed)")
+st.caption("v5.9 | Yahoo Finance (15-20 min delayed)")
 
 # ============== TABS ==============
-tab_signals, tab_portfolio, tab_analytics, tab_performance, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
-    "📈 Signals", "💼 Portfolio", "📊 Analytics", "🏆 Performance", "📋 Trades", "🧠 Analysts", "🔍 Securities", "⚙️ Settings"
+tab_signals, tab_portfolio, tab_analytics, tab_performance, tab_events, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
+    "📈 Signals", "💼 Portfolio", "📊 Analytics", "🏆 Performance", "📅 Events & Income", "📋 Trades", "🧠 Analysts", "🔍 Securities", "⚙️ Settings"
 ])
 
 
@@ -1999,6 +2064,211 @@ with tab_performance:
             st.info("No positions to analyze. Run analysis with actionable signals first.")
     else:
         st.info("Run analysis from Signals tab first to see performance comparison.")
+
+
+# ============== EVENTS & INCOME TAB ==============
+with tab_events:
+    st.subheader("Events & Income Analysis")
+
+    if st.session_state.result:
+        r = st.session_state.result
+        positions = r.get("positions", {})
+
+        if positions:
+            # Fetch events data for all positions
+            events_data = {}
+            for ticker in positions.keys():
+                events_data[ticker] = fetch_events_income(ticker)
+
+            # ===== DIVIDEND INCOME SECTION =====
+            st.write("### 💰 Dividend Income")
+            st.caption("Projected annual dividend income based on current holdings.")
+
+            dividend_table = []
+            total_annual_income = 0
+            total_portfolio_value = sum(p['notional'] for p in positions.values())
+
+            for ticker, pos in positions.items():
+                ev = events_data.get(ticker, {})
+                div_yield = ev.get("dividend_yield", 0)
+                div_rate = ev.get("dividend_rate", 0)
+                ex_date = ev.get("ex_dividend_date")
+
+                # Calculate income from this position
+                annual_income = pos['notional'] * (div_yield / 100) if div_yield > 0 else 0
+                total_annual_income += annual_income
+
+                dividend_table.append({
+                    "Ticker": ticker,
+                    "Value": f"${pos['notional']:,.0f}",
+                    "Yield": f"{div_yield:.2f}%" if div_yield > 0 else "-",
+                    "Annual Div/Share": f"${div_rate:.2f}" if div_rate > 0 else "-",
+                    "Annual Income": f"${annual_income:,.0f}" if annual_income > 0 else "-",
+                    "Ex-Dividend": ex_date.strftime("%b %d") if ex_date else "-"
+                })
+
+            # Income metrics
+            col1, col2, col3 = st.columns(3)
+            portfolio_yield = (total_annual_income / total_portfolio_value * 100) if total_portfolio_value > 0 else 0
+
+            with col1:
+                st.metric("Portfolio Yield", f"{portfolio_yield:.2f}%")
+            with col2:
+                st.metric("Annual Income", f"${total_annual_income:,.0f}")
+            with col3:
+                st.metric("Monthly Income", f"${total_annual_income/12:,.0f}")
+
+            # Income assessment
+            if portfolio_yield >= 3:
+                st.success(f"**Strong Income Portfolio** - {portfolio_yield:.1f}% yield provides solid passive income.")
+            elif portfolio_yield >= 1:
+                st.info(f"**Moderate Income** - {portfolio_yield:.1f}% yield. Consider dividend stocks if income is a goal.")
+            elif portfolio_yield > 0:
+                st.warning(f"**Low Income** - {portfolio_yield:.1f}% yield. This is a growth-focused portfolio.")
+            else:
+                st.caption("No dividend-paying stocks in portfolio.")
+
+            st.dataframe(pd.DataFrame(dividend_table), hide_index=True, use_container_width=True)
+
+            st.divider()
+
+            # ===== EARNINGS CALENDAR SECTION =====
+            st.write("### 📅 Earnings Calendar")
+            st.caption("Upcoming earnings announcements - expect higher volatility around these dates.")
+
+            earnings_events = []
+            today = datetime.now()
+
+            for ticker, pos in positions.items():
+                ev = events_data.get(ticker, {})
+                earnings_dates = ev.get("earnings_dates", [])
+
+                for ed in earnings_dates:
+                    if ed:
+                        try:
+                            if isinstance(ed, datetime):
+                                earn_date = ed
+                            elif isinstance(ed, pd.Timestamp):
+                                earn_date = ed.to_pydatetime()
+                            else:
+                                continue
+
+                            days_until = (earn_date.date() - today.date()).days
+
+                            if days_until >= -7:  # Show recent and upcoming
+                                status = "REPORTED" if days_until < 0 else ("THIS WEEK" if days_until <= 7 else "UPCOMING")
+                                earnings_events.append({
+                                    "date": earn_date,
+                                    "Ticker": ticker,
+                                    "Date": earn_date.strftime("%b %d, %Y"),
+                                    "Days": days_until if days_until >= 0 else "Past",
+                                    "Status": status,
+                                    "Position Size": f"${pos['notional']:,.0f}",
+                                    "% of Portfolio": f"{pos['pct']:.1f}%"
+                                })
+                        except:
+                            continue
+
+            if earnings_events:
+                # Sort by date
+                earnings_events.sort(key=lambda x: x["date"])
+
+                # Check for imminent earnings
+                imminent = [e for e in earnings_events if isinstance(e["Days"], int) and e["Days"] <= 7 and e["Days"] >= 0]
+                if imminent:
+                    st.warning(f"⚠️ **{len(imminent)} position(s) reporting earnings within 7 days!** Consider position sizing.")
+
+                # Display table without the date key used for sorting
+                display_events = [{k: v for k, v in e.items() if k != "date"} for e in earnings_events]
+                st.dataframe(pd.DataFrame(display_events), hide_index=True, use_container_width=True)
+            else:
+                st.info("No upcoming earnings dates found for current positions.")
+
+            st.divider()
+
+            # ===== 52-WEEK RANGE SECTION =====
+            st.write("### 📊 52-Week Range Analysis")
+            st.caption("Where each stock trades relative to its yearly high/low. Helps identify if buying near highs or lows.")
+
+            range_data = []
+            for ticker, pos in positions.items():
+                ev = events_data.get(ticker, {})
+                high = ev.get("high_52w", 0)
+                low = ev.get("low_52w", 0)
+                current = ev.get("current_price", 0) or pos.get("price", 0)
+                range_pos = ev.get("range_position", 0)
+
+                # Determine status
+                if range_pos >= 90:
+                    status = "🔴 Near High"
+                    assessment = "Momentum strong, limited upside"
+                elif range_pos >= 70:
+                    status = "🟡 Upper Range"
+                    assessment = "Trading well, watch for pullback"
+                elif range_pos >= 30:
+                    status = "🟢 Mid Range"
+                    assessment = "Balanced entry point"
+                elif range_pos >= 10:
+                    status = "🟡 Lower Range"
+                    assessment = "Potential value or falling"
+                else:
+                    status = "🔴 Near Low"
+                    assessment = "Deep discount or distressed"
+
+                range_data.append({
+                    "Ticker": ticker,
+                    "Current": f"${current:.2f}" if current else "-",
+                    "52W Low": f"${low:.2f}" if low else "-",
+                    "52W High": f"${high:.2f}" if high else "-",
+                    "Range %": f"{range_pos:.0f}%",
+                    "Status": status,
+                    "Assessment": assessment
+                })
+
+            st.dataframe(pd.DataFrame(range_data), hide_index=True, use_container_width=True)
+
+            # Visual range chart
+            range_chart_data = []
+            for ticker, pos in positions.items():
+                ev = events_data.get(ticker, {})
+                range_pos = ev.get("range_position", 0)
+                range_chart_data.append({"Ticker": ticker, "Range Position": range_pos})
+
+            if range_chart_data:
+                range_df = pd.DataFrame(range_chart_data)
+
+                # Color based on position
+                range_chart = alt.Chart(range_df).mark_bar().encode(
+                    x=alt.X('Ticker:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
+                    y=alt.Y('Range Position:Q', title='52-Week Range %', scale=alt.Scale(domain=[0, 100]),
+                           axis=alt.Axis(labelColor='#8b949e')),
+                    color=alt.Color('Range Position:Q',
+                                   scale=alt.Scale(domain=[0, 50, 100], range=['#f85149', '#ffd33d', '#3fb950']),
+                                   legend=None),
+                    tooltip=[
+                        alt.Tooltip('Ticker:N'),
+                        alt.Tooltip('Range Position:Q', title='Range %', format='.0f')
+                    ]
+                ).properties(height=250).configure_view(strokeWidth=0).configure(background='#161b22')
+
+                st.altair_chart(range_chart, use_container_width=True)
+
+                # Add reference lines explanation
+                st.caption("🔴 0-30% = Near 52-week lows | 🟡 30-70% = Mid-range | 🟢 70-100% = Near 52-week highs")
+
+            # Summary insight
+            avg_range = sum(events_data[t].get("range_position", 50) for t in positions.keys()) / len(positions)
+            if avg_range >= 70:
+                st.warning(f"**Portfolio trading near highs** (avg {avg_range:.0f}%). Consider taking profits or tightening stops.")
+            elif avg_range <= 30:
+                st.warning(f"**Portfolio trading near lows** (avg {avg_range:.0f}%). Verify fundamentals before adding.")
+            else:
+                st.success(f"**Portfolio in balanced range** (avg {avg_range:.0f}%). Good entry/exit flexibility.")
+
+        else:
+            st.info("No positions to analyze. Run analysis with actionable signals first.")
+    else:
+        st.info("Run analysis from Signals tab first.")
 
 
 # ============== TRADES TAB ==============
