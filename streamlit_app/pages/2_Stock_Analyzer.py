@@ -325,8 +325,7 @@ def generate_recommendation(data: Dict, tech_df: pd.DataFrame) -> Dict:
 # ============== HEADER ==============
 col_back, col_title = st.columns([1, 11])
 with col_back:
-    if st.button("← Home"):
-        st.switch_page("app.py")
+    st.page_link("app.py", label="← Home")
 with col_title:
     st.write("# 📈 Stock Analyzer")
     st.caption("Technical & Fundamental Analysis with AI Recommendations")

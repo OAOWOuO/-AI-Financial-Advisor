@@ -1007,8 +1007,12 @@ def get_selected_analysts():
 
 
 # ============== HEADER ==============
-st.write("# 📊 AI Portfolio Allocator")
-st.caption("v5.9 | Yahoo Finance (15-20 min delayed)")
+col_back, col_title = st.columns([1, 11])
+with col_back:
+    st.page_link("app.py", label="← Home")
+with col_title:
+    st.write("# 📊 AI Portfolio Allocator")
+    st.caption("v5.9 | Yahoo Finance (15-20 min delayed)")
 
 # ============== TABS ==============
 tab_signals, tab_portfolio, tab_analytics, tab_performance, tab_events, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
