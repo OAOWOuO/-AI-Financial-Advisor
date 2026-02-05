@@ -615,13 +615,13 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
     score_pct = (total_score / max_score * 100) if max_score > 0 else 0
 
     # Determine technical rating
-    if score_pct >= 50:
+    if score_pct >= 35:
         tech_rating = ("STRONG BUY", "#00ff00")
-    elif score_pct >= 25:
+    elif score_pct >= 15:
         tech_rating = ("BUY", "#3fb950")
-    elif score_pct >= -25:
+    elif score_pct >= -10:
         tech_rating = ("HOLD", "#d29922")
-    elif score_pct >= -50:
+    elif score_pct >= -30:
         tech_rating = ("SELL", "#f85149")
     else:
         tech_rating = ("STRONG SELL", "#ff0000")
@@ -1048,13 +1048,13 @@ def analyze_fundamentals(data: Dict) -> Dict:
     score_pct = (total_score / max_score * 100) if max_score > 0 else 0
 
     # Determine fundamental rating
-    if score_pct >= 60:
+    if score_pct >= 45:
         fund_rating = ("STRONG BUY", "#00ff00")
-    elif score_pct >= 40:
+    elif score_pct >= 25:
         fund_rating = ("BUY", "#3fb950")
-    elif score_pct >= 20:
+    elif score_pct >= 5:
         fund_rating = ("HOLD", "#d29922")
-    elif score_pct >= 0:
+    elif score_pct >= -15:
         fund_rating = ("SELL", "#f85149")
     else:
         fund_rating = ("STRONG SELL", "#ff0000")
@@ -1286,16 +1286,16 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
     combined_score = fund_analysis['score_pct'] * 0.6 + tech_analysis['score_pct'] * 0.4
 
     # Determine action
-    if combined_score >= 50:
+    if combined_score >= 35:
         action = "STRONG BUY"
         action_color = "#00ff00"
-    elif combined_score >= 25:
+    elif combined_score >= 15:
         action = "BUY"
         action_color = "#3fb950"
-    elif combined_score >= -10:
+    elif combined_score >= -5:
         action = "HOLD"
         action_color = "#d29922"
-    elif combined_score >= -30:
+    elif combined_score >= -25:
         action = "SELL"
         action_color = "#f85149"
     else:
@@ -1371,6 +1371,121 @@ Current price of ${price:.2f} {'represents an attractive entry point' if upside 
     }
 
 
+# ============== CHAT CONTEXT BUILDER ==============
+def build_analysis_context(data: Dict, tech_analysis: Dict, fund_analysis: Dict,
+                           valuation: Dict, forecasts: Dict, recommendation: Dict) -> str:
+    """Build comprehensive context string for the AI chat."""
+    ctx = f"""STOCK ANALYSIS REPORT - {data['name']} ({data['ticker']})
+Data Source: Yahoo Finance (real-time market data, SEC filings 10-K/10-Q, analyst estimates)
+
+=== PRICE DATA ===
+Current Price: ${data['price']:.2f}
+Previous Close: ${data.get('prev_close', 0):.2f}
+52-Week High: ${data.get('high_52w', 0):.2f}
+52-Week Low: ${data.get('low_52w', 0):.2f}
+Market Cap: ${data.get('market_cap', 0)/1e9:.1f}B
+Enterprise Value: ${data.get('enterprise_value', 0)/1e9:.1f}B
+Beta: {data.get('beta', 'N/A')}
+Sector: {data.get('sector', 'N/A')}
+Industry: {data.get('industry', 'N/A')}
+
+=== TECHNICAL ANALYSIS (Score: {tech_analysis['total_score']}/{tech_analysis['max_score']} = {tech_analysis['score_pct']:.0f}%) ===
+Rating: {tech_analysis['rating']}
+Breakdown:
+- Trend: {tech_analysis['breakdown']['trend']['score']}/{tech_analysis['breakdown']['trend']['max']} (MA alignment, price position, golden/death cross)
+- Momentum: {tech_analysis['breakdown']['momentum']['score']}/{tech_analysis['breakdown']['momentum']['max']} (RSI, MACD)
+- Volatility: {tech_analysis['breakdown']['volatility']['score']}/{tech_analysis['breakdown']['volatility']['max']} (Bollinger Bands, ATR)
+- Volume: {tech_analysis['breakdown']['volume']['score']}/{tech_analysis['breakdown']['volume']['max']} (Volume surge, OBV trend)
+
+Technical Signals:
+"""
+    for s in tech_analysis['signals']:
+        ctx += f"- {s.get('indicator', 'N/A')}: {s['signal']} ({s['score']}) - {s['detail']} [Threshold: {s.get('threshold', 'N/A')}]\n"
+
+    ctx += f"""
+=== FUNDAMENTAL ANALYSIS (Score: {fund_analysis['total_score']}/{fund_analysis['max_score']} = {fund_analysis['score_pct']:.0f}%) ===
+Rating: {fund_analysis['rating']}
+Breakdown:
+- Valuation: {fund_analysis['breakdown']['valuation']['score']}/{fund_analysis['breakdown']['valuation']['max']} (P/E, PEG, EV/EBITDA)
+- Profitability: {fund_analysis['breakdown']['profitability']['score']}/{fund_analysis['breakdown']['profitability']['max']} (Operating margin, ROE, FCF yield)
+- Growth: {fund_analysis['breakdown']['growth']['score']}/{fund_analysis['breakdown']['growth']['max']} (Revenue growth, earnings growth)
+- Health: {fund_analysis['breakdown']['health']['score']}/{fund_analysis['breakdown']['health']['max']} (Debt/equity, current ratio)
+
+Key Metrics (from Yahoo Finance / SEC filings):
+- P/E Ratio: {data.get('pe_ratio', 'N/A')}
+- Forward P/E: {data.get('forward_pe', 'N/A')}
+- PEG Ratio: {data.get('peg_ratio', 'N/A')}
+- P/B Ratio: {data.get('pb_ratio', 'N/A')}
+- EV/EBITDA: {data.get('ev_ebitda', 'N/A')}
+- Gross Margin: {f"{data['gross_margin']*100:.1f}%" if data.get('gross_margin') else 'N/A'}
+- Operating Margin: {f"{data['operating_margin']*100:.1f}%" if data.get('operating_margin') else 'N/A'}
+- Net Margin: {f"{data['profit_margin']*100:.1f}%" if data.get('profit_margin') else 'N/A'}
+- ROE: {f"{data['roe']*100:.1f}%" if data.get('roe') else 'N/A'}
+- ROA: {f"{data['roa']*100:.1f}%" if data.get('roa') else 'N/A'}
+- Revenue Growth: {f"{data['revenue_growth']*100:.1f}%" if data.get('revenue_growth') else 'N/A'}
+- Earnings Growth: {f"{data['earnings_growth']*100:.1f}%" if data.get('earnings_growth') else 'N/A'}
+- EPS: {f"${data['eps']:.2f}" if data.get('eps') else 'N/A'}
+- Forward EPS: {f"${data['forward_eps']:.2f}" if data.get('forward_eps') else 'N/A'}
+- Debt/Equity: {data.get('debt_to_equity', 'N/A')}
+- Current Ratio: {data.get('current_ratio', 'N/A')}
+- Free Cash Flow: {f"${data['free_cash_flow']/1e9:.1f}B" if data.get('free_cash_flow') else 'N/A'}
+- Dividend Yield: {f"{data['dividend_yield']*100:.2f}%" if data.get('dividend_yield') else 'N/A'}
+
+Fundamental Signals:
+"""
+    for s in fund_analysis['signals']:
+        ctx += f"- {s.get('metric', 'N/A')}: {s['value']} - {s['signal']} ({s['score']}) - {s['detail']} [Benchmark: {s.get('benchmark', 'N/A')}]\n"
+
+    ctx += "\n=== VALUATION MODELS ===\n"
+    if 'pe_valuation' in valuation:
+        v = valuation['pe_valuation']
+        ctx += f"P/E Based: Bear ${v['low']:.2f} | Base ${v['mid']:.2f} | Bull ${v['high']:.2f}\n"
+    if 'forward_pe_valuation' in valuation:
+        v = valuation['forward_pe_valuation']
+        ctx += f"Forward P/E: Bear ${v['low']:.2f} | Base ${v['mid']:.2f} | Bull ${v['high']:.2f}\n"
+    if 'analyst_target' in valuation:
+        v = valuation['analyst_target']
+        ctx += f"Analyst Consensus ({v['num_analysts']} analysts): Low ${v['low']:.2f} | Mean ${v['mid']:.2f} | High ${v['high']:.2f}\n"
+    if 'dcf_valuation' in valuation:
+        v = valuation['dcf_valuation']
+        ctx += f"DCF Model (FCF/share ${v['fcf_per_share']:.2f}): Bear ${v['bear']:.2f} | Base ${v['base']:.2f} | Bull ${v['bull']:.2f}\n"
+    if 'composite' in valuation:
+        v = valuation['composite']
+        ctx += f"COMPOSITE TARGET: ${v['target_mid']:.2f} (Range: ${v['target_low']:.2f} - ${v['target_high']:.2f}) | Upside: {v['upside_mid']:+.1f}%\n"
+
+    ctx += f"""
+=== RETURN FORECASTS ===
+"""
+    for period, f in forecasts.items():
+        ctx += f"- {period}: {f['point_estimate']:+.1f}% expected (Range: {f['range_low']:+.1f}% to {f['range_high']:+.1f}%) | Target: ${f['price_target']:.2f} | Confidence: {f['confidence']} ({f['probability']})\n"
+
+    ctx += f"""
+=== FINAL RECOMMENDATION ===
+Action: {recommendation['action']}
+Combined Score: {recommendation['combined_score']:.0f} (60% fundamental + 40% technical)
+Target Price: ${recommendation['target_price']:.2f}
+Upside/Downside: {recommendation['upside']:+.1f}%
+Trade Decision: {recommendation['trade_decision']}
+
+Bullish Factors:
+"""
+    for d in recommendation.get('bullish_drivers', []):
+        ctx += f"- {d}\n"
+    ctx += "\nBearish Risks:\n"
+    for r in recommendation.get('bearish_risks', []):
+        ctx += f"- {r}\n"
+    ctx += f"\nInvalidation: {recommendation['invalidation']}\n"
+
+    ctx += """
+=== SCORING METHODOLOGY ===
+Technical Score (100 points max): 30% Trend + 30% Momentum + 20% Volatility + 20% Volume
+Fundamental Score (100 points max): 30% Valuation + 25% Profitability + 25% Growth + 20% Financial Health
+Combined Score: 60% Fundamental + 40% Technical
+Thresholds: STRONG BUY (>=35) | BUY (>=15) | HOLD (-5 to 15) | SELL (-25 to -5) | STRONG SELL (<-25)
+"""
+    return ctx
+
+
 # ============== MAIN DISPLAY FUNCTION ==============
 def show_stock_analyzer():
     """Main function to display the institutional stock analyzer."""
@@ -1433,7 +1548,7 @@ def show_stock_analyzer():
             """, unsafe_allow_html=True)
 
         # ===== MAIN TABS =====
-        tab_tech, tab_fund, tab_conclusion = st.tabs(["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast"])
+        tab_tech, tab_fund, tab_conclusion, tab_chat = st.tabs(["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast", "💬 AI Chat"])
 
         # ============== TECHNICAL TAB ==============
         with tab_tech:
@@ -1524,6 +1639,8 @@ def show_stock_analyzer():
                     hide_index=True,
                     use_container_width=True
                 )
+
+            st.caption("Source: Price & volume data from Yahoo Finance (real-time market feed, 15-20 min delayed). Technical indicators computed from historical OHLCV data.")
 
         # ============== FUNDAMENTAL TAB ==============
         with tab_fund:
@@ -1635,6 +1752,8 @@ def show_stock_analyzer():
                     use_container_width=True
                 )
 
+            st.caption("Source: Financial data from Yahoo Finance, derived from SEC filings (10-K, 10-Q annual & quarterly reports). Analyst estimates aggregated from major brokerages.")
+
         # ============== CONCLUSION TAB ==============
         with tab_conclusion:
             st.write("### Investment Recommendation")
@@ -1729,6 +1848,118 @@ def show_stock_analyzer():
             financial advisor before making investment decisions. Data provided by Yahoo Finance with 15-20 minute delay.
             </div>
             """, unsafe_allow_html=True)
+
+        # ============== CHAT TAB ==============
+        with tab_chat:
+            st.write("### AI Financial Analyst Chat")
+            st.caption("Ask questions about the analysis, explore scenarios, or request adjustments. All underlying data sourced from Yahoo Finance (SEC filings, market data, analyst estimates).")
+
+            # API key management
+            api_key = ""
+            try:
+                api_key = st.secrets.get("OPENAI_API_KEY", "")
+            except Exception:
+                pass
+
+            if not api_key:
+                api_key = st.text_input(
+                    "Enter OpenAI API Key to enable AI chat",
+                    type="password",
+                    key="chat_api_key_input",
+                    help="Get your key from platform.openai.com. Your key is not stored permanently."
+                )
+
+            if not api_key:
+                st.info("Enter your OpenAI API key above (or add `OPENAI_API_KEY` to your Streamlit secrets) to chat with the AI analyst about this stock.")
+                st.markdown("""
+                **Example questions you can ask:**
+                - Why is this stock rated BUY/HOLD/SELL?
+                - What would change the recommendation?
+                - Explain the DCF valuation assumptions
+                - What are the biggest risks for this stock?
+                - How does the P/E compare to the sector?
+                - What if revenue growth accelerates to 20%?
+                """)
+            else:
+                # Initialize chat history per ticker
+                chat_key = f"chat_history_{data['ticker']}"
+                if chat_key not in st.session_state:
+                    st.session_state[chat_key] = []
+
+                # Display chat history
+                for msg in st.session_state[chat_key]:
+                    with st.chat_message(msg["role"]):
+                        st.markdown(msg["content"])
+
+                # Chat input
+                if prompt := st.chat_input(f"Ask about {data['ticker']} analysis..."):
+                    # Add user message
+                    st.session_state[chat_key].append({"role": "user", "content": prompt})
+                    with st.chat_message("user"):
+                        st.markdown(prompt)
+
+                    # Build context
+                    context = build_analysis_context(data, tech_analysis, fund_analysis, valuation, forecasts, recommendation)
+
+                    system_msg = f"""You are an expert CFA-certified financial analyst assistant. You have access to a comprehensive analysis of {data['name']} ({data['ticker']}).
+
+Answer questions about this stock, explain the analysis methodology, provide financial insights, and explore scenarios when asked. All data comes from Yahoo Finance which aggregates real-time market data, company SEC filings (10-K, 10-Q), and sell-side analyst estimates.
+
+Rules:
+- Be specific and cite numbers from the analysis
+- Explain your reasoning clearly
+- If asked about scenarios ("what if growth is X%"), use the data to give quantitative estimates
+- If asked to compare, use the benchmarks provided in the signals
+- Note limitations (e.g., simplified DCF assumptions, data delays)
+- Keep responses concise but thorough
+- Do NOT provide personal investment advice; frame everything as analysis
+
+Here is the full analysis:
+
+{context}"""
+
+                    try:
+                        from openai import OpenAI
+                        client = OpenAI(api_key=api_key)
+
+                        # Build messages for API
+                        api_messages = [{"role": "system", "content": system_msg}]
+                        for msg in st.session_state[chat_key]:
+                            api_messages.append({"role": msg["role"], "content": msg["content"]})
+
+                        with st.chat_message("assistant"):
+                            stream = client.chat.completions.create(
+                                model="gpt-4o-mini",
+                                messages=api_messages,
+                                max_tokens=1500,
+                                temperature=0.7,
+                                stream=True,
+                            )
+                            # Stream the response
+                            response_text = ""
+                            placeholder = st.empty()
+                            for chunk in stream:
+                                if chunk.choices[0].delta.content is not None:
+                                    response_text += chunk.choices[0].delta.content
+                                    placeholder.markdown(response_text + "▌")
+                            placeholder.markdown(response_text)
+
+                        st.session_state[chat_key].append({"role": "assistant", "content": response_text})
+
+                    except ImportError:
+                        st.error("The `openai` package is not installed. Please add it to your requirements.txt.")
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "api_key" in error_msg.lower() or "auth" in error_msg.lower():
+                            st.error("Invalid API key. Please check your OpenAI API key and try again.")
+                        else:
+                            st.error(f"Chat error: {error_msg}")
+
+                # Clear chat button
+                if st.session_state[chat_key]:
+                    if st.button("Clear Chat History", key="clear_chat"):
+                        st.session_state[chat_key] = []
+                        st.rerun()
 
     else:
         st.info("👈 Enter a ticker symbol and click **Run Full Analysis** to generate an institutional-grade research report.")
