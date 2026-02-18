@@ -60,7 +60,7 @@ def show_home():
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2, gap="large")
+    col1, col2, col3 = st.columns(3, gap="large")
 
     with col1:
         st.markdown("""
@@ -73,9 +73,9 @@ def show_home():
             </p>
             <ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px;">
                 <li>Multi-stock signal analysis</li>
-                <li>Position sizing & allocation</li>
+                <li>Position sizing &amp; allocation</li>
                 <li>Risk metrics (Sharpe, Beta, VaR)</li>
-                <li>Performance vs S&P 500</li>
+                <li>Performance vs S&amp;P 500</li>
                 <li>Dividend income tracking</li>
                 <li>One-click rebalancing</li>
             </ul>
@@ -99,13 +99,36 @@ def show_home():
                 <li>Fundamental scoring (valuation, profitability, growth, health)</li>
                 <li>Multi-model valuation (P/E, DCF, analyst consensus)</li>
                 <li>Return forecasts with confidence intervals</li>
-                <li>Support & resistance levels</li>
+                <li>Support &amp; resistance levels</li>
                 <li>Institutional BUY/HOLD/SELL recommendation</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
         if st.button("Enter Stock Analyzer →", key="btn_analyzer", use_container_width=True):
             st.session_state.current_view = 'analyzer'
+            st.rerun()
+
+    with col3:
+        st.markdown("""
+        <div class="tool-card">
+            <div style="font-size: 48px; margin-bottom: 15px;">📚</div>
+            <div style="font-size: 24px; font-weight: 600; color: #e6edf3 !important;">Case Q&amp;A</div>
+            <p style="color: #8b949e; margin: 15px 0;">
+                Chat with your course materials using RAG-powered AI.
+                Every answer is grounded in your uploaded documents
+                with file and page citations.
+            </p>
+            <ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px;">
+                <li>Drop PDFs into <code>data/raw/</code></li>
+                <li>Run <code>build_index.py</code> once</li>
+                <li>Ask any question about the materials</li>
+                <li>Cited answers: file + page + chunk ID</li>
+                <li>Refuses unsupported questions explicitly</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Enter Case Q&A →", key="btn_caseqa", use_container_width=True):
+            st.session_state.current_view = 'caseqa'
             st.rerun()
 
     st.markdown("""
@@ -122,7 +145,6 @@ elif st.session_state.current_view == 'analyzer':
     from stock_analyzer import show_stock_analyzer
     show_stock_analyzer()
 elif st.session_state.current_view == 'portfolio':
-    # Back button and then run portfolio allocator
     import os
     col_back, col_title = st.columns([1, 11])
     with col_back:
@@ -130,8 +152,13 @@ elif st.session_state.current_view == 'portfolio':
             st.session_state.current_view = 'home'
             st.rerun()
 
-    # Import and run portfolio allocator
     import importlib.util
-    spec = importlib.util.spec_from_file_location("portfolio", os.path.join(os.path.dirname(__file__), "portfolio_allocator.py"))
+    spec = importlib.util.spec_from_file_location(
+        "portfolio",
+        os.path.join(os.path.dirname(__file__), "portfolio_allocator.py")
+    )
     portfolio_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(portfolio_module)
+elif st.session_state.current_view == 'caseqa':
+    from case_qa import show_case_qa
+    show_case_qa()
