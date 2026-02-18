@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install flake8
+        run: pip install flake8
+      - name: Lint streamlit_app/
+        run: flake8 streamlit_app/ --max-line-length=120 --extend-ignore=E501,W503
+      - name: Lint scripts/
+        run: flake8 scripts/ --max-line-length=120 --extend-ignore=E501,W503
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install pytest python-dotenv
+      - name: Run tests
+        run: pytest tests/test_build_index.py -v
