@@ -1,8 +1,3 @@
-"""
-Institutional Stock Analyzer - CFA/Wall Street Style Research
-Technical & Fundamental Analysis with Price Forecasting
-"""
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -1503,8 +1498,20 @@ def show_stock_analyzer():
     if 'inst_data' not in st.session_state:
         st.session_state.inst_data = None
 
-    # ===== MAIN TABS (always visible) =====
-    tab_tech, tab_fund, tab_conclusion, tab_chat = st.tabs(["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast", "💬 AI Chat"])
+    # ── TICKER INPUT (always visible at top) ─────────────────────────────────
+    col_ticker, col_btn = st.columns([3, 1])
+    with col_ticker:
+        ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker",
+                               placeholder="e.g. AAPL, MSFT, NVDA")
+        ticker = ticker.strip().upper()
+    with col_btn:
+        st.write("")  # vertical spacer to align button
+        analyze_btn = st.button("🔍 Run Full Analysis", type="primary", use_container_width=True)
+
+    if analyze_btn and ticker:
+        with st.spinner(f"Analyzing {ticker}..."):
+            st.session_state.inst_data = fetch_comprehensive_data(ticker)
+            st.rerun()
 
     # Pre-compute analysis if data exists
     data = None
@@ -1522,22 +1529,122 @@ def show_stock_analyzer():
         recommendation = generate_recommendation(data, tech_analysis, fund_analysis, valuation, forecasts)
         supports, resistances = identify_support_resistance(hist)
 
+    # ── AI CHAT (always visible, directly below ticker input) ─────────────────
+    _api_key = ""
+    try:
+        _api_key = st.secrets.get("OPENAI_API_KEY", "")
+    except Exception:
+        pass
+    if not _api_key:
+        import os as _os
+        _api_key = _os.getenv("OPENAI_API_KEY", "")
+
+    st.divider()
+    st.write("### 💬 AI Financial Analyst Chat")
+    if not _api_key:
+        st.error(
+            "**OPENAI_API_KEY** not configured. "
+            "Add it to your `.env` file or Streamlit secrets to enable AI chat."
+        )
+    elif not has_data:
+        st.info("Enter a ticker above and click **Run Full Analysis** to enable the AI chat.")
+        st.markdown("""
+**Example questions you can ask after running an analysis:**
+- Why is this stock rated BUY/HOLD/SELL?
+- What would change the recommendation?
+- Explain the DCF valuation assumptions
+- What are the biggest risks for this stock?
+- How does the P/E compare to the sector?
+- What if revenue growth accelerates to 20%?
+        """)
+    else:
+        st.caption(
+            "Ask questions about the analysis, explore scenarios, or request adjustments. "
+            "All underlying data sourced from Yahoo Finance (SEC filings, market data, analyst estimates)."
+        )
+
+        _chat_key = f"chat_history_{data['ticker']}"
+        if _chat_key not in st.session_state:
+            st.session_state[_chat_key] = []
+
+        for _msg in st.session_state[_chat_key]:
+            with st.chat_message(_msg["role"]):
+                st.markdown(_msg["content"])
+
+        if _prompt := st.chat_input(f"Ask about {data['ticker']} analysis..."):
+            st.session_state[_chat_key].append({"role": "user", "content": _prompt})
+            with st.chat_message("user"):
+                st.markdown(_prompt)
+
+            _context = build_analysis_context(
+                data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
+            )
+            _system_msg = (
+                f"You are an expert CFA-certified financial analyst assistant. "
+                f"You have access to a comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
+                "Answer questions about this stock, explain the analysis methodology, provide financial insights, "
+                "and explore scenarios when asked. All data comes from Yahoo Finance which aggregates real-time "
+                "market data, company SEC filings (10-K, 10-Q), and sell-side analyst estimates.\n\n"
+                "Rules:\n"
+                "- Be specific and cite numbers from the analysis\n"
+                "- Explain your reasoning clearly\n"
+                "- If asked about scenarios, use the data to give quantitative estimates\n"
+                "- Note limitations (e.g., simplified DCF assumptions, data delays)\n"
+                "- Keep responses concise but thorough\n"
+                "- Do NOT provide personal investment advice; frame everything as analysis\n\n"
+                f"Here is the full analysis:\n\n{_context}"
+            )
+
+            try:
+                from openai import OpenAI as _OpenAI
+                _client = _OpenAI(api_key=_api_key)
+                _api_msgs = [{"role": "system", "content": _system_msg}]
+                for _m in st.session_state[_chat_key]:
+                    _api_msgs.append({"role": _m["role"], "content": _m["content"]})
+
+                with st.chat_message("assistant"):
+                    _stream = _client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=_api_msgs,
+                        max_tokens=1500,
+                        temperature=0.7,
+                        stream=True,
+                    )
+                    _response_text = ""
+                    _placeholder = st.empty()
+                    for _chunk in _stream:
+                        if _chunk.choices[0].delta.content is not None:
+                            _response_text += _chunk.choices[0].delta.content
+                            _placeholder.markdown(_response_text + "▌")
+                    _placeholder.markdown(_response_text)
+
+                st.session_state[_chat_key].append({"role": "assistant", "content": _response_text})
+
+            except ImportError:
+                st.error("The `openai` package is not installed.")
+            except Exception as _e:
+                _err = str(_e)
+                if "api_key" in _err.lower() or "auth" in _err.lower():
+                    st.error("Invalid API key. Please check your OPENAI_API_KEY.")
+                else:
+                    st.error(f"Chat error: {_err}")
+
+        if st.session_state.get(_chat_key):
+            if st.button("Clear Chat History", key="clear_chat_top"):
+                st.session_state[_chat_key] = []
+                st.rerun()
+
+    st.divider()
+
+    # ===== ANALYSIS TABS =====
+    tab_tech, tab_fund, tab_conclusion = st.tabs(["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast"])
+
     # ============== TECHNICAL TAB ==============
     with tab_tech:
         # Configuration panel + results
         col_config, col_results = st.columns([1, 3])
 
         with col_config:
-            st.write("### Configuration")
-            ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker")
-            ticker = ticker.strip().upper()
-            analyze_btn = st.button("🔍 Run Full Analysis", type="primary", use_container_width=True)
-
-            if analyze_btn and ticker:
-                with st.spinner(f"Analyzing {ticker}..."):
-                    st.session_state.inst_data = fetch_comprehensive_data(ticker)
-                    st.rerun()
-
             # Stock summary sidebar
             if has_data:
                 st.divider()
@@ -1867,126 +1974,3 @@ def show_stock_analyzer():
             </div>
             """, unsafe_allow_html=True)
 
-    # ============== CHAT TAB ==============
-    with tab_chat:
-        if not has_data:
-            st.info("Run an analysis from the **Technical Analysis** tab to enable the AI chat.")
-            st.markdown("""
-            **Example questions you can ask after running an analysis:**
-            - Why is this stock rated BUY/HOLD/SELL?
-            - What would change the recommendation?
-            - Explain the DCF valuation assumptions
-            - What are the biggest risks for this stock?
-            - How does the P/E compare to the sector?
-            - What if revenue growth accelerates to 20%?
-            """)
-        else:
-            st.write("### AI Financial Analyst Chat")
-            st.caption("Ask questions about the analysis, explore scenarios, or request adjustments. All underlying data sourced from Yahoo Finance (SEC filings, market data, analyst estimates).")
-
-            # API key management
-            api_key = ""
-            try:
-                api_key = st.secrets.get("OPENAI_API_KEY", "")
-            except Exception:
-                pass
-
-            if not api_key:
-                api_key = st.text_input(
-                    "Enter OpenAI API Key to enable AI chat",
-                    type="password",
-                    key="chat_api_key_input",
-                    help="Get your key from platform.openai.com. Your key is not stored permanently."
-                )
-
-            if not api_key:
-                st.info("Enter your OpenAI API key above (or add `OPENAI_API_KEY` to your Streamlit secrets) to chat with the AI analyst about this stock.")
-                st.markdown("""
-                **Example questions you can ask:**
-                - Why is this stock rated BUY/HOLD/SELL?
-                - What would change the recommendation?
-                - Explain the DCF valuation assumptions
-                - What are the biggest risks for this stock?
-                - How does the P/E compare to the sector?
-                - What if revenue growth accelerates to 20%?
-                """)
-            else:
-                # Initialize chat history per ticker
-                chat_key = f"chat_history_{data['ticker']}"
-                if chat_key not in st.session_state:
-                    st.session_state[chat_key] = []
-
-                # Display chat history
-                for msg in st.session_state[chat_key]:
-                    with st.chat_message(msg["role"]):
-                        st.markdown(msg["content"])
-
-                # Chat input
-                if prompt := st.chat_input(f"Ask about {data['ticker']} analysis..."):
-                    # Add user message
-                    st.session_state[chat_key].append({"role": "user", "content": prompt})
-                    with st.chat_message("user"):
-                        st.markdown(prompt)
-
-                    # Build context
-                    context = build_analysis_context(data, tech_analysis, fund_analysis, valuation, forecasts, recommendation)
-
-                    system_msg = f"""You are an expert CFA-certified financial analyst assistant. You have access to a comprehensive analysis of {data['name']} ({data['ticker']}).
-
-Answer questions about this stock, explain the analysis methodology, provide financial insights, and explore scenarios when asked. All data comes from Yahoo Finance which aggregates real-time market data, company SEC filings (10-K, 10-Q), and sell-side analyst estimates.
-
-Rules:
-- Be specific and cite numbers from the analysis
-- Explain your reasoning clearly
-- If asked about scenarios ("what if growth is X%"), use the data to give quantitative estimates
-- If asked to compare, use the benchmarks provided in the signals
-- Note limitations (e.g., simplified DCF assumptions, data delays)
-- Keep responses concise but thorough
-- Do NOT provide personal investment advice; frame everything as analysis
-
-Here is the full analysis:
-
-{context}"""
-
-                    try:
-                        from openai import OpenAI
-                        client = OpenAI(api_key=api_key)
-
-                        # Build messages for API
-                        api_messages = [{"role": "system", "content": system_msg}]
-                        for msg in st.session_state[chat_key]:
-                            api_messages.append({"role": msg["role"], "content": msg["content"]})
-
-                        with st.chat_message("assistant"):
-                            stream = client.chat.completions.create(
-                                model="gpt-4o-mini",
-                                messages=api_messages,
-                                max_tokens=1500,
-                                temperature=0.7,
-                                stream=True,
-                            )
-                            # Stream the response
-                            response_text = ""
-                            placeholder = st.empty()
-                            for chunk in stream:
-                                if chunk.choices[0].delta.content is not None:
-                                    response_text += chunk.choices[0].delta.content
-                                    placeholder.markdown(response_text + "▌")
-                            placeholder.markdown(response_text)
-
-                        st.session_state[chat_key].append({"role": "assistant", "content": response_text})
-
-                    except ImportError:
-                        st.error("The `openai` package is not installed. Please add it to your requirements.txt.")
-                    except Exception as e:
-                        error_msg = str(e)
-                        if "api_key" in error_msg.lower() or "auth" in error_msg.lower():
-                            st.error("Invalid API key. Please check your OpenAI API key and try again.")
-                        else:
-                            st.error(f"Chat error: {error_msg}")
-
-                # Clear chat button
-                if st.session_state[chat_key]:
-                    if st.button("Clear Chat History", key="clear_chat"):
-                        st.session_state[chat_key] = []
-                        st.rerun()
