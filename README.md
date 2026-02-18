@@ -63,6 +63,8 @@ Live deployment: <https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamli
 
 ## MGMT 690 – Project 1 (Feb 2, 2026)
 
+**Student:** YuanTeng Fan | **Course:** MGMT 690, Purdue University | **Semester:** Spring 2026
+
 I set up the AI Hedge Fund repo locally, configured `.env` safely (gitignored), and ran the CLI on **AAPL, MSFT, NVDA**.
 
 - **Run command:** `poetry run python src/main.py --tickers AAPL,MSFT,NVDA`
@@ -97,7 +99,7 @@ This system employs several agents working together:
 17. Risk Manager - Calculates risk metrics and sets position limits
 18. Portfolio Manager - Makes final trading decisions and generates orders
 
-<img width="1042" alt="Screenshot 2025-03-22 at 6 19 07 PM" src="https://github.com/user-attachments/assets/cbae3dcf-b571-490d-b0ad-3f0f035ac0d4" />
+[Screenshot of the original multi-agent CLI framework — see virattt/ai-hedge-fund]
 
 Note: the system does not actually make any trades.
 
@@ -118,8 +120,6 @@ By using this software, you agree to use it solely for learning purposes.
 - [How to Run](#how-to-run)
   - [⌨️ Command Line Interface](#️-command-line-interface)
   - [🖥️ Web Application](#️-web-application)
-- [How to Contribute](#how-to-contribute)
-- [Feature Requests](#feature-requests)
 - [License](#license)
 
 ## How to Install
@@ -160,7 +160,7 @@ FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
 
 You can run the AI Hedge Fund directly via terminal. This approach offers more granular control and is useful for automation, scripting, and integration purposes.
 
-<img width="992" alt="Screenshot 2025-01-06 at 5 50 17 PM" src="https://github.com/user-attachments/assets/e8ca04bf-9989-4a7d-a8b4-34e04666663b" />
+[Screenshot of the original multi-agent CLI framework — see virattt/ai-hedge-fund]
 
 #### Quick Start
 
@@ -208,20 +208,6 @@ streamlit run streamlit_app/app.py
 ```
 
 Live: <https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamlit.app/>
-
-## How to Contribute
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-**Important**: Please keep your pull requests small and focused.  This will make it easier to review and merge.
-
-## Feature Requests
-
-If you have a feature request, please open an [issue](https://github.com/OAOWOuO/-AI-Financial-Advisor/issues) and make sure it is tagged with `enhancement`.
 
 ## License
 
