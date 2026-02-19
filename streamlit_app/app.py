@@ -22,20 +22,39 @@ st.markdown("""<style>
 [data-testid="stSidebarNav"] { display: none; }
 h1, h2, h3, h4 { color: #e6edf3 !important; font-weight: 600 !important; }
 p, span, label, li, div { color: #c9d1d9 !important; }
+
+/* ── Entry buttons: institutional blue ── */
 .stButton > button {
-    background: #238636 !important;
-    color: white !important;
-    border: none !important;
+    background: #1d4ed8 !important;
+    color: #e8f0fe !important;
+    border: 1px solid #2563eb !important;
     border-radius: 6px !important;
     padding: 12px 24px !important;
     font-size: 16px !important;
+    font-weight: 500 !important;
     width: 100%;
+    letter-spacing: 0.02em !important;
 }
-.stButton > button:hover { background: #2ea043 !important; }
-.back-btn button {
-    background: #21262d !important;
+.stButton > button:hover {
+    background: #2563eb !important;
+    border-color: #3b82f6 !important;
+    color: #fff !important;
+}
+
+/* Back / secondary buttons */
+.stButton > button[kind="secondary"] {
+    background: #161b22 !important;
     border: 1px solid #30363d !important;
+    color: #c9d1d9 !important;
+    font-size: 14px !important;
+    padding: 8px 16px !important;
 }
+.stButton > button[kind="secondary"]:hover {
+    background: #21262d !important;
+    border-color: #58a6ff !important;
+    color: #e6edf3 !important;
+}
+
 .tool-card {
     background: #161b22;
     border: 1px solid #30363d;
@@ -45,32 +64,65 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 }
 .tool-card:hover { border-color: #58a6ff; }
 
-/* ─── Footer layout ─── */
+/* ─── Footer ─── */
 .ft-accent {
     height: 3px;
     background: linear-gradient(90deg, #0f2a4a 0%, #1d4ed8 40%, #3b82f6 60%, #0f2a4a 100%);
-    margin-top: 40px;
+    margin-top: 48px;
 }
 
-/* Background + dividers on the footer columns row.
-   :has(.ft-nav-section) scopes these rules exclusively to the footer. */
+/* Collapse the default Streamlit spacing between the three footer block elements
+   (accent bar · columns row · copyright strip) so they sit flush together. */
+[data-testid="element-container"]:has(.ft-accent),
+[data-testid="element-container"]:has([data-testid="stHorizontalBlock"]:has(.ft-nav-section)),
+[data-testid="element-container"]:has(.ft-copy) {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Footer columns row */
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) {
     background: #05091a !important;
     border-top: 1px solid #0d1f38;
     gap: 0 !important;
+    align-items: stretch !important;
+}
+[data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"] {
+    padding: 0 !important;
 }
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:not(:last-child) {
     border-right: 1px solid #0d1f38;
 }
+
+/* Column inner padding — uniform 32px, extra horizontal edge padding */
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"] > [data-testid="stVerticalBlock"] {
     padding: 32px 28px !important;
     background: #05091a !important;
+    gap: 0 !important;
 }
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:first-child > [data-testid="stVerticalBlock"] {
     padding-left: 48px !important;
 }
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:last-child > [data-testid="stVerticalBlock"] {
     padding-right: 48px !important;
+}
+
+/* Strip all element-container & markdown margins inside footer */
+[data-testid="stHorizontalBlock"]:has(.ft-nav-section) [data-testid="element-container"] {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+[data-testid="stHorizontalBlock"]:has(.ft-nav-section) .stMarkdownContainer {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Button wrapper in nav column */
+[data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
 }
 
 /* Reset global text-color override inside footer */
@@ -132,36 +184,37 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     font-style: italic;
 }
 
-/* Nav buttons — scoped to the column containing .ft-nav-section */
+/* Nav buttons — scoped to column containing .ft-nav-section */
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button {
     background: transparent !important;
     border: none !important;
     border-left: 2px solid transparent !important;
     color: #7da8c4 !important;
     font-size: 12.5px !important;
+    font-weight: 400 !important;
     text-align: left !important;
     justify-content: flex-start !important;
-    padding: 7px 0 7px 10px !important;
+    padding: 8px 0 8px 10px !important;
     min-height: unset !important;
     height: auto !important;
     line-height: 1 !important;
     border-radius: 0 !important;
     width: 100% !important;
     box-shadow: none !important;
-    font-weight: 400 !important;
     letter-spacing: 0.01em !important;
 }
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button:hover {
+    background: rgba(37, 99, 235, 0.06) !important;
     color: #d0e6f5 !important;
     border-left: 2px solid #2563eb !important;
-    background: transparent !important;
 }
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button:focus:not(:active) {
     box-shadow: none !important;
     border-left: 2px solid transparent !important;
+    background: transparent !important;
 }
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button:active {
-    background: transparent !important;
+    background: rgba(37, 99, 235, 0.1) !important;
     color: #d0e6f5 !important;
 }
 
@@ -169,7 +222,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 .ft-copy {
     background: #030712;
     border-top: 1px solid #0a1628;
-    padding: 10px 48px;
+    padding: 11px 48px;
     display: flex;
     align-items: center;
     gap: 14px;
@@ -284,7 +337,7 @@ with ft_col1:
 <span class="ft-brand-sub">Built for students and practitioners seeking professional-quality financial analysis tools powered by modern AI.</span>""", unsafe_allow_html=True)
 
 with ft_col2:
-    # .ft-nav-section is a CSS marker — it scopes the button styles below to this column only
+    # .ft-nav-section is a CSS marker that scopes button styles to this column only
     st.markdown('<span class="ft-label">Navigation</span><div class="ft-nav-section"></div>', unsafe_allow_html=True)
     if st.button("Home", key="ft_home"):
         st.session_state.current_view = "home"
