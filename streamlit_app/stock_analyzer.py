@@ -1504,22 +1504,7 @@ def show_stock_analyzer():
     if 'inst_data' not in st.session_state:
         st.session_state.inst_data = None
 
-    # ── TICKER INPUT (always visible at top) ─────────────────────────────────
-    col_ticker, col_btn = st.columns([3, 1])
-    with col_ticker:
-        ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker",
-                               placeholder="e.g. AAPL, MSFT, NVDA")
-        ticker = ticker.strip().upper()
-    with col_btn:
-        st.write("")  # vertical spacer to align button
-        analyze_btn = st.button("🔍 Run Full Analysis", type="primary", use_container_width=True)
-
-    if analyze_btn and ticker:
-        with st.spinner(f"Analyzing {ticker}..."):
-            st.session_state.inst_data = fetch_comprehensive_data(ticker)
-            st.rerun()
-
-    # Pre-compute analysis if data exists
+    # ── PRE-COMPUTE (uses session state from previous run) ──────────────────
     data = None
     tech_df = tech_analysis = fund_analysis = valuation = forecasts = recommendation = supports = resistances = None
     has_data = st.session_state.inst_data and st.session_state.inst_data.get("valid")
@@ -1535,127 +1520,53 @@ def show_stock_analyzer():
         recommendation = generate_recommendation(data, tech_analysis, fund_analysis, valuation, forecasts)
         supports, resistances = identify_support_resistance(hist)
 
-    # ── AI CHAT — always visible, directly below ticker input ───────────────
-    st.divider()
-    st.write("### 💬 AI Financial Analyst Chat")
+    # ── TWO-COLUMN LAYOUT: LEFT (input + company info) | RIGHT (analysis tabs) ─
+    col_left, col_right = st.columns([1, 2])
 
-    _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
-    if _chat_key not in st.session_state:
-        st.session_state[_chat_key] = []
+    with col_left:
+        ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker",
+                               placeholder="e.g. AAPL, MSFT, NVDA")
+        ticker = ticker.strip().upper()
+        analyze_btn = st.button("🔍 Run Full Analysis", type="primary", use_container_width=True)
 
-    if has_data:
-        st.caption(
-            f"Chatting about **{data['ticker']} — {data['name']}**. "
-            "Ask anything about the analysis."
-        )
-    else:
-        st.caption("Enter a ticker above and click **Run Full Analysis** to start chatting.")
-
-    # Always render full chat history
-    for _msg in st.session_state[_chat_key]:
-        with st.chat_message(_msg["role"]):
-            st.markdown(_msg["content"])
-
-    # Always render chat input at the bottom
-    if _prompt := st.chat_input("Ask about this stock..."):
-        st.session_state[_chat_key].append({"role": "user", "content": _prompt})
-        with st.chat_message("user"):
-            st.markdown(_prompt)
+        if analyze_btn and ticker:
+            with st.spinner(f"Analyzing {ticker}..."):
+                st.session_state.inst_data = fetch_comprehensive_data(ticker)
+                st.rerun()
 
         if not has_data:
-            _reply = "Please enter a ticker and run an analysis first — then I can answer questions about it."
-            st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
-            with st.chat_message("assistant"):
-                st.markdown(_reply)
+            st.info("Enter a ticker and click **Run Full Analysis**.")
         else:
-            _context = build_analysis_context(
-                data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
-            )
-            _system_msg = (
-                f"You are an expert CFA-certified financial analyst assistant with access to a "
-                f"comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
-                "Answer questions about this stock using the analysis data provided. "
-                "All data is from Yahoo Finance (SEC filings, market data, analyst estimates).\n\n"
-                "Rules: cite specific numbers, explain reasoning clearly, give quantitative scenario "
-                "estimates when asked, note data limitations, do NOT give personal investment advice.\n\n"
-                f"Full analysis:\n\n{_context}"
-            )
-            try:
-                from openai import OpenAI as _OpenAI
-                _client = _OpenAI(api_key=openai_api_key)
-                _api_msgs = [{"role": "system", "content": _system_msg}]
-                for _m in st.session_state[_chat_key]:
-                    _api_msgs.append({"role": _m["role"], "content": _m["content"]})
+            st.divider()
+            st.write(f"### {data['name']}")
+            st.caption(f"{data['sector']} · {data['industry']}")
+            change_pct = ((data['price'] - data.get('prev_close', data['price'])) / data.get('prev_close', data['price']) * 100) if data.get('prev_close') else 0
+            st.metric("Price", f"${data['price']:.2f}", f"{change_pct:+.2f}%")
+            st.write(f"**Market Cap:** ${data['market_cap']/1e9:.1f}B")
+            st.write(f"**52W Range:** ${data['low_52w']:.0f} – ${data['high_52w']:.0f}")
+            if data['high_52w'] > data['low_52w']:
+                pos = (data['price'] - data['low_52w']) / (data['high_52w'] - data['low_52w'])
+                st.progress(min(1.0, max(0.0, pos)), text=f"{pos*100:.0f}% of range")
+            st.divider()
+            st.markdown(f"""
+<div style="background:{recommendation['action_color']}22;border:2px solid {recommendation['action_color']};border-radius:8px;padding:12px;text-align:center;">
+  <div style="font-size:22px;font-weight:700;color:{recommendation['action_color']};">{recommendation['action']}</div>
+  <div style="font-size:13px;color:#c9d1d9;">Target: ${recommendation['target_price']:.2f} ({recommendation['upside']:+.1f}%)</div>
+  <div style="font-size:11px;color:#8b949e;">Score: {recommendation['combined_score']:.0f}</div>
+</div>
+""", unsafe_allow_html=True)
 
-                with st.chat_message("assistant"):
-                    _stream = _client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=_api_msgs,
-                        max_tokens=1500,
-                        temperature=0.7,
-                        stream=True,
-                    )
-                    _response_text = ""
-                    _placeholder = st.empty()
-                    for _chunk in _stream:
-                        if _chunk.choices[0].delta.content is not None:
-                            _response_text += _chunk.choices[0].delta.content
-                            _placeholder.markdown(_response_text + "▌")
-                    _placeholder.markdown(_response_text)
+    with col_right:
+        tab_tech, tab_fund, tab_conclusion = st.tabs(
+            ["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast"]
+        )
 
-                st.session_state[_chat_key].append({"role": "assistant", "content": _response_text})
-
-            except Exception as _e:
-                _reply = f"Chat error: {_e}"
-                st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
-                with st.chat_message("assistant"):
-                    st.markdown(_reply)
-
-    if st.session_state.get(_chat_key):
-        if st.button("Clear Chat History", key="clear_chat_top"):
-            st.session_state[_chat_key] = []
-            st.rerun()
-
-    st.divider()
-
-    # ===== ANALYSIS TABS =====
-    tab_tech, tab_fund, tab_conclusion = st.tabs(["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast"])
-
-    # ============== TECHNICAL TAB ==============
-    with tab_tech:
-        # Configuration panel + results
-        col_config, col_results = st.columns([1, 3])
-
-        with col_config:
-            # Stock summary sidebar
-            if has_data:
-                st.divider()
-                st.write(f"### {data['name']}")
-                st.caption(f"{data['sector']} · {data['industry']}")
-                change_pct = ((data['price'] - data.get('prev_close', data['price'])) / data.get('prev_close', data['price']) * 100) if data.get('prev_close') else 0
-                st.metric("Price", f"${data['price']:.2f}", f"{change_pct:+.2f}%")
-                st.write(f"**Market Cap:** ${data['market_cap']/1e9:.1f}B")
-                st.write(f"**52W Range:** ${data['low_52w']:.0f} - ${data['high_52w']:.0f}")
-                if data['high_52w'] > data['low_52w']:
-                    pos = (data['price'] - data['low_52w']) / (data['high_52w'] - data['low_52w'])
-                    st.progress(min(1.0, max(0.0, pos)), text=f"{pos*100:.0f}% of range")
-
-                st.divider()
-                st.markdown(f"""
-                <div style="background:{recommendation['action_color']}22; border:2px solid {recommendation['action_color']}; border-radius:8px; padding:12px; text-align:center;">
-                    <div style="font-size:22px; font-weight:700; color:{recommendation['action_color']};">{recommendation['action']}</div>
-                    <div style="font-size:13px; color:#c9d1d9;">Target: ${recommendation['target_price']:.2f} ({recommendation['upside']:+.1f}%)</div>
-                    <div style="font-size:11px; color:#8b949e;">Score: {recommendation['combined_score']:.0f}</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        with col_results:
+        # ── TECHNICAL TAB ──────────────────────────────────────────────────────
+        with tab_tech:
             if not has_data:
-                st.info("Enter a ticker symbol and click **Run Full Analysis** to generate an institutional-grade research report.")
+                st.info("Enter a ticker and click **Run Full Analysis** to generate the report.")
             else:
                 st.write("### Technical Analysis Summary")
-
-                # Score breakdown
                 col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     st.metric("Overall", f"{tech_analysis['score_pct']:.0f}%", tech_analysis['rating'])
@@ -1669,8 +1580,6 @@ def show_stock_analyzer():
                     st.metric("Volume", f"{tech_analysis['breakdown']['volume']['score']}/{tech_analysis['breakdown']['volume']['max']}")
 
                 st.divider()
-
-                # Price Chart
                 st.write("### Price Chart with Moving Averages")
                 chart_data = tech_df.reset_index()
                 chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_localize(None)
@@ -1680,25 +1589,18 @@ def show_stock_analyzer():
                     y=alt.Y('Close:Q', title='Price ($)', scale=alt.Scale(zero=False)),
                     tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Close:Q', format='$.2f', title='Price')]
                 )
-                ma50 = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[5,5]).encode(x='Date:T', y='SMA_50:Q')
+                ma50  = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[5,5]).encode(x='Date:T', y='SMA_50:Q')
                 ma200 = alt.Chart(chart_data).mark_line(color='#a371f7', strokeWidth=1.5, strokeDash=[5,5]).encode(x='Date:T', y='SMA_200:Q')
-
-                # Support/Resistance lines
                 if supports:
                     support_df = pd.DataFrame({'y': [supports[-1]]})
-                    support_line = alt.Chart(support_df).mark_rule(color='#3fb950', strokeDash=[3,3]).encode(y='y:Q')
-                    price_chart = price_chart + support_line
+                    price_chart = price_chart + alt.Chart(support_df).mark_rule(color='#3fb950', strokeDash=[3,3]).encode(y='y:Q')
                 if resistances:
                     resist_df = pd.DataFrame({'y': [resistances[-1]]})
-                    resist_line = alt.Chart(resist_df).mark_rule(color='#f85149', strokeDash=[3,3]).encode(y='y:Q')
-                    price_chart = price_chart + resist_line
-
-                st.altair_chart((price_chart + ma50 + ma200).properties(height=350).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
+                    price_chart = price_chart + alt.Chart(resist_df).mark_rule(color='#f85149', strokeDash=[3,3]).encode(y='y:Q')
+                st.altair_chart((price_chart + ma50 + ma200).properties(height=300).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
                 st.caption("🔵 Price  🟠 SMA50  🟣 SMA200  🟢 Support  🔴 Resistance")
 
-                # RSI and MACD
                 col_rsi, col_macd = st.columns(2)
-
                 with col_rsi:
                     st.write("### RSI (14)")
                     rsi_chart = alt.Chart(chart_data.tail(100)).mark_line(color='#58a6ff').encode(
@@ -1706,253 +1608,298 @@ def show_stock_analyzer():
                         y=alt.Y('RSI:Q', scale=alt.Scale(domain=[0, 100]), title='RSI')
                     )
                     rules = alt.Chart(pd.DataFrame({'y': [30, 70]})).mark_rule(strokeDash=[3,3], color='#6e7681').encode(y='y:Q')
-                    st.altair_chart((rsi_chart + rules).properties(height=200).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
-
+                    st.altair_chart((rsi_chart + rules).properties(height=180).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
                     rsi_val = tech_df['RSI'].iloc[-1]
                     if rsi_val > 70:
-                        st.error(f"RSI: {rsi_val:.1f} - OVERBOUGHT")
+                        st.error(f"RSI: {rsi_val:.1f} — OVERBOUGHT")
                     elif rsi_val < 30:
-                        st.success(f"RSI: {rsi_val:.1f} - OVERSOLD")
+                        st.success(f"RSI: {rsi_val:.1f} — OVERSOLD")
                     else:
-                        st.info(f"RSI: {rsi_val:.1f} - Neutral")
+                        st.info(f"RSI: {rsi_val:.1f} — Neutral")
 
                 with col_macd:
                     st.write("### MACD")
                     macd_c = alt.Chart(chart_data.tail(100)).mark_line(color='#58a6ff').encode(x='Date:T', y='MACD:Q')
-                    sig_c = alt.Chart(chart_data.tail(100)).mark_line(color='#f0883e').encode(x='Date:T', y='MACD_Signal:Q')
+                    sig_c  = alt.Chart(chart_data.tail(100)).mark_line(color='#f0883e').encode(x='Date:T', y='MACD_Signal:Q')
                     hist_c = alt.Chart(chart_data.tail(100)).mark_bar(opacity=0.5).encode(
                         x='Date:T', y='MACD_Hist:Q',
                         color=alt.condition(alt.datum.MACD_Hist > 0, alt.value('#3fb950'), alt.value('#f85149'))
                     )
-                    st.altair_chart((hist_c + macd_c + sig_c).properties(height=200).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
-
+                    st.altair_chart((hist_c + macd_c + sig_c).properties(height=180).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
                     if tech_df['MACD'].iloc[-1] > tech_df['MACD_Signal'].iloc[-1]:
                         st.success("MACD: Bullish (above signal)")
                     else:
                         st.warning("MACD: Bearish (below signal)")
 
-                # Technical Signals Table
                 st.write("### Technical Signal Details")
                 tech_signals_df = pd.DataFrame(tech_analysis['signals'])
                 if not tech_signals_df.empty:
                     st.dataframe(
                         tech_signals_df[['category', 'indicator', 'signal', 'score', 'detail', 'threshold']],
-                        hide_index=True,
-                        use_container_width=True
+                        hide_index=True, use_container_width=True
                     )
+                st.caption("Source: Yahoo Finance (real-time market feed, 15-20 min delayed).")
 
-                st.caption("Source: Price & volume data from Yahoo Finance (real-time market feed, 15-20 min delayed). Technical indicators computed from historical OHLCV data.")
+        # ── FUNDAMENTAL TAB ────────────────────────────────────────────────────
+        with tab_fund:
+            if not has_data:
+                st.info("Run an analysis to see fundamental data.")
+            else:
+                st.write("### Fundamental Analysis Summary")
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    st.metric("Overall", f"{fund_analysis['score_pct']:.0f}%", fund_analysis['rating'])
+                with col2:
+                    st.metric("Valuation", f"{fund_analysis['breakdown']['valuation']['score']}/{fund_analysis['breakdown']['valuation']['max']}")
+                with col3:
+                    st.metric("Profitability", f"{fund_analysis['breakdown']['profitability']['score']}/{fund_analysis['breakdown']['profitability']['max']}")
+                with col4:
+                    st.metric("Growth", f"{fund_analysis['breakdown']['growth']['score']}/{fund_analysis['breakdown']['growth']['max']}")
+                with col5:
+                    st.metric("Health", f"{fund_analysis['breakdown']['health']['score']}/{fund_analysis['breakdown']['health']['max']}")
 
-    # ============== FUNDAMENTAL TAB ==============
-    with tab_fund:
+                st.divider()
+                st.write("### Key Financial Metrics")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.write("**Valuation**")
+                    st.write(f"P/E: {data.get('pe_ratio', 'N/A'):.1f}x" if data.get('pe_ratio') else "P/E: N/A")
+                    st.write(f"Fwd P/E: {data.get('forward_pe', 'N/A'):.1f}x" if data.get('forward_pe') else "Fwd P/E: N/A")
+                    st.write(f"PEG: {data.get('peg_ratio', 'N/A'):.2f}" if data.get('peg_ratio') else "PEG: N/A")
+                    st.write(f"EV/EBITDA: {data.get('ev_ebitda', 'N/A'):.1f}x" if data.get('ev_ebitda') else "EV/EBITDA: N/A")
+                with col2:
+                    st.write("**Profitability**")
+                    st.write(f"Op Margin: {data.get('operating_margin', 0)*100:.1f}%" if data.get('operating_margin') else "Op Margin: N/A")
+                    st.write(f"Net Margin: {data.get('profit_margin', 0)*100:.1f}%" if data.get('profit_margin') else "Net Margin: N/A")
+                    st.write(f"ROE: {data.get('roe', 0)*100:.1f}%" if data.get('roe') else "ROE: N/A")
+                    st.write(f"ROA: {data.get('roa', 0)*100:.1f}%" if data.get('roa') else "ROA: N/A")
+                with col3:
+                    st.write("**Growth**")
+                    st.write(f"Rev Growth: {data.get('revenue_growth', 0)*100:.1f}%" if data.get('revenue_growth') else "Rev Growth: N/A")
+                    st.write(f"EPS Growth: {data.get('earnings_growth', 0)*100:.1f}%" if data.get('earnings_growth') else "EPS Growth: N/A")
+                    st.write(f"EPS: ${data.get('eps', 0):.2f}" if data.get('eps') else "EPS: N/A")
+                    st.write(f"Fwd EPS: ${data.get('forward_eps', 0):.2f}" if data.get('forward_eps') else "Fwd EPS: N/A")
+                with col4:
+                    st.write("**Financial Health**")
+                    st.write(f"D/E: {data.get('debt_to_equity', 0):.2f}" if data.get('debt_to_equity') is not None else "D/E: N/A")
+                    st.write(f"Current: {data.get('current_ratio', 0):.2f}" if data.get('current_ratio') else "Current: N/A")
+                    fcf = data.get('free_cash_flow', 0)
+                    st.write(f"FCF: ${fcf/1e9:.1f}B" if fcf else "FCF: N/A")
+                    st.write(f"Cash: ${data.get('total_cash', 0)/1e9:.1f}B" if data.get('total_cash') else "Cash: N/A")
+
+                st.divider()
+                st.write("### Valuation Analysis")
+                if valuation:
+                    val_cols = st.columns(4)
+                    if 'pe_valuation' in valuation:
+                        with val_cols[0]:
+                            st.write("**P/E Based**")
+                            st.write(f"Bear: ${valuation['pe_valuation']['low']:.2f}")
+                            st.write(f"Base: ${valuation['pe_valuation']['mid']:.2f}")
+                            st.write(f"Bull: ${valuation['pe_valuation']['high']:.2f}")
+                    if 'forward_pe_valuation' in valuation:
+                        with val_cols[1]:
+                            st.write("**Forward P/E**")
+                            st.write(f"Bear: ${valuation['forward_pe_valuation']['low']:.2f}")
+                            st.write(f"Base: ${valuation['forward_pe_valuation']['mid']:.2f}")
+                            st.write(f"Bull: ${valuation['forward_pe_valuation']['high']:.2f}")
+                    if 'analyst_target' in valuation:
+                        with val_cols[2]:
+                            st.write("**Analyst Consensus**")
+                            st.write(f"Low: ${valuation['analyst_target']['low']:.2f}")
+                            st.write(f"Mean: ${valuation['analyst_target']['mid']:.2f}")
+                            st.write(f"High: ${valuation['analyst_target']['high']:.2f}")
+                    if 'dcf_valuation' in valuation:
+                        with val_cols[3]:
+                            st.write("**DCF Model**")
+                            st.write(f"Bear: ${valuation['dcf_valuation']['bear']:.2f}")
+                            st.write(f"Base: ${valuation['dcf_valuation']['base']:.2f}")
+                            st.write(f"Bull: ${valuation['dcf_valuation']['bull']:.2f}")
+                    if 'composite' in valuation:
+                        st.divider()
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Target (Bear)", f"${valuation['composite']['target_low']:.2f}", f"{valuation['composite']['upside_low']:+.1f}%")
+                        with col2:
+                            st.metric("Target (Base)", f"${valuation['composite']['target_mid']:.2f}", f"{valuation['composite']['upside_mid']:+.1f}%")
+                        with col3:
+                            st.metric("Target (Bull)", f"${valuation['composite']['target_high']:.2f}", f"{valuation['composite']['upside_high']:+.1f}%")
+
+                st.divider()
+                st.write("### Fundamental Signal Details")
+                fund_signals_df = pd.DataFrame(fund_analysis['signals'])
+                if not fund_signals_df.empty:
+                    st.dataframe(
+                        fund_signals_df[['category', 'metric', 'value', 'signal', 'score', 'detail', 'benchmark']],
+                        hide_index=True, use_container_width=True
+                    )
+                st.caption("Source: Yahoo Finance — SEC filings (10-K, 10-Q). Analyst estimates aggregated from major brokerages.")
+
+        # ── CONCLUSION TAB ─────────────────────────────────────────────────────
+        with tab_conclusion:
+            if not has_data:
+                st.info("Run an analysis to see the conclusion and forecast.")
+            else:
+                st.write("### Investment Recommendation")
+                st.markdown(f"""
+<div style="background:{recommendation['action_color']}22;border:2px solid {recommendation['action_color']};border-radius:12px;padding:25px;margin:10px 0;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:36px;font-weight:700;color:{recommendation['action_color']};">{recommendation['action']}</div>
+      <div style="font-size:16px;color:#c9d1d9;margin-top:5px;">{recommendation['trade_decision']}</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:13px;color:#8b949e;">12-Month Target</div>
+      <div style="font-size:28px;font-weight:600;color:#e6edf3;">${recommendation['target_price']:.2f}</div>
+      <div style="font-size:15px;color:{recommendation['action_color']};">{recommendation['upside']:+.1f}% Potential</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+                st.write("### Price Target Range")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    upside_low = (recommendation['target_low'] - data['price']) / data['price'] * 100
+                    st.metric("Downside Case", f"${recommendation['target_low']:.2f}", f"{upside_low:+.1f}%")
+                with col2:
+                    st.metric("Base Case", f"${recommendation['target_price']:.2f}", f"{recommendation['upside']:+.1f}%")
+                with col3:
+                    upside_high = (recommendation['target_high'] - data['price']) / data['price'] * 100
+                    st.metric("Upside Case", f"${recommendation['target_high']:.2f}", f"{upside_high:+.1f}%")
+
+                st.divider()
+                st.write("### Expected Returns by Time Horizon")
+                returns_data = []
+                for period, forecast in forecasts.items():
+                    returns_data.append({
+                        "Period": period,
+                        "Expected Return": f"{forecast['point_estimate']:+.1f}%",
+                        "Range": f"{forecast['range_low']:+.1f}% to {forecast['range_high']:+.1f}%",
+                        "Price Target": f"${forecast['price_target']:.2f}",
+                        "Confidence": forecast['confidence'],
+                        "Probability": forecast['probability']
+                    })
+                st.dataframe(pd.DataFrame(returns_data), hide_index=True, use_container_width=True)
+
+                st.divider()
+                st.write("### Investment Rationale")
+                st.markdown(recommendation['rationale'])
+
+                st.divider()
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("### 🟢 Bullish Factors")
+                    if recommendation['bullish_drivers']:
+                        for driver in recommendation['bullish_drivers']:
+                            st.success(f"• {driver}")
+                    else:
+                        st.info("No significant bullish factors identified")
+                with col2:
+                    st.write("### 🔴 Key Risks")
+                    if recommendation['bearish_risks']:
+                        for risk in recommendation['bearish_risks']:
+                            st.error(f"• {risk}")
+                    else:
+                        st.info("No significant risk factors identified")
+
+                st.divider()
+                st.write("### ⚠️ Trade Invalidation")
+                st.warning(recommendation['invalidation'])
+                st.markdown("""
+---
+<div style="font-size:11px;color:#6e7681;text-align:center;padding:10px 0;">
+<strong>Disclaimer:</strong> Educational purposes only. Not financial advice.
+Data from Yahoo Finance with 15-20 min delay.
+</div>
+""", unsafe_allow_html=True)
+
+    # ── COMPACT AI CHAT — below both columns ─────────────────────────────────
+    st.divider()
+    st.write("### 💬 AI Financial Analyst Chat")
+
+    _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
+    if _chat_key not in st.session_state:
+        st.session_state[_chat_key] = []
+
+    if has_data:
+        st.caption(f"Chatting about **{data['ticker']} — {data['name']}**. Ask anything about the analysis.")
+    else:
+        st.caption("Run an analysis above to start chatting.")
+
+    # Compact scrollable chat history
+    _chat_box = st.container(height=320)
+    with _chat_box:
+        if not st.session_state[_chat_key]:
+            st.markdown(
+                "<p style='color:#6e7681;font-size:13px;text-align:center;padding-top:30px;'>"
+                "No messages yet — ask a question below.</p>",
+                unsafe_allow_html=True
+            )
+        for _msg in st.session_state[_chat_key]:
+            with st.chat_message(_msg["role"]):
+                st.markdown(_msg["content"])
+
+    # Input bar always at bottom
+    if _prompt := st.chat_input("Ask about this stock..."):
+        st.session_state[_chat_key].append({"role": "user", "content": _prompt})
+        with _chat_box:
+            with st.chat_message("user"):
+                st.markdown(_prompt)
+
         if not has_data:
-            st.info("Run an analysis from the **Technical Analysis** tab to see fundamental data.")
+            _reply = "Please enter a ticker and run an analysis first."
+            st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
+            with _chat_box:
+                with st.chat_message("assistant"):
+                    st.markdown(_reply)
         else:
-            st.write("### Fundamental Analysis Summary")
+            _context = build_analysis_context(
+                data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
+            )
+            _system_msg = (
+                f"You are an expert CFA-certified financial analyst assistant with access to a "
+                f"comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
+                "Answer questions using the provided analysis data from Yahoo Finance. "
+                "Rules: cite specific numbers, explain reasoning, give quantitative estimates for "
+                "scenarios, note data limitations, do NOT give personal investment advice.\n\n"
+                f"Full analysis:\n\n{_context}"
+            )
+            try:
+                from openai import OpenAI as _OpenAI
+                _client = _OpenAI(api_key=openai_api_key)
+                _api_msgs = [{"role": "system", "content": _system_msg}]
+                for _m in st.session_state[_chat_key]:
+                    _api_msgs.append({"role": _m["role"], "content": _m["content"]})
 
-            # Score breakdown
-            col1, col2, col3, col4, col5 = st.columns(5)
-            with col1:
-                st.metric("Overall", f"{fund_analysis['score_pct']:.0f}%", fund_analysis['rating'])
-            with col2:
-                st.metric("Valuation", f"{fund_analysis['breakdown']['valuation']['score']}/{fund_analysis['breakdown']['valuation']['max']}")
-            with col3:
-                st.metric("Profitability", f"{fund_analysis['breakdown']['profitability']['score']}/{fund_analysis['breakdown']['profitability']['max']}")
-            with col4:
-                st.metric("Growth", f"{fund_analysis['breakdown']['growth']['score']}/{fund_analysis['breakdown']['growth']['max']}")
-            with col5:
-                st.metric("Health", f"{fund_analysis['breakdown']['health']['score']}/{fund_analysis['breakdown']['health']['max']}")
+                _response_text = ""
+                with _chat_box:
+                    with st.chat_message("assistant"):
+                        _stream = _client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=_api_msgs,
+                            max_tokens=1500,
+                            temperature=0.7,
+                            stream=True,
+                        )
+                        _placeholder = st.empty()
+                        for _chunk in _stream:
+                            if _chunk.choices[0].delta.content is not None:
+                                _response_text += _chunk.choices[0].delta.content
+                                _placeholder.markdown(_response_text + "▌")
+                        _placeholder.markdown(_response_text)
 
-            st.divider()
+                st.session_state[_chat_key].append({"role": "assistant", "content": _response_text})
 
-            # Key Metrics
-            st.write("### Key Financial Metrics")
-            col1, col2, col3, col4 = st.columns(4)
+            except Exception as _e:
+                _reply = f"Chat error: {_e}"
+                st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
+                with _chat_box:
+                    with st.chat_message("assistant"):
+                        st.markdown(_reply)
 
-            with col1:
-                st.write("**Valuation**")
-                st.write(f"P/E: {data.get('pe_ratio', 'N/A'):.1f}x" if data.get('pe_ratio') else "P/E: N/A")
-                st.write(f"Fwd P/E: {data.get('forward_pe', 'N/A'):.1f}x" if data.get('forward_pe') else "Fwd P/E: N/A")
-                st.write(f"PEG: {data.get('peg_ratio', 'N/A'):.2f}" if data.get('peg_ratio') else "PEG: N/A")
-                st.write(f"EV/EBITDA: {data.get('ev_ebitda', 'N/A'):.1f}x" if data.get('ev_ebitda') else "EV/EBITDA: N/A")
-
-            with col2:
-                st.write("**Profitability**")
-                st.write(f"Op Margin: {data.get('operating_margin', 0)*100:.1f}%" if data.get('operating_margin') else "Op Margin: N/A")
-                st.write(f"Net Margin: {data.get('profit_margin', 0)*100:.1f}%" if data.get('profit_margin') else "Net Margin: N/A")
-                st.write(f"ROE: {data.get('roe', 0)*100:.1f}%" if data.get('roe') else "ROE: N/A")
-                st.write(f"ROA: {data.get('roa', 0)*100:.1f}%" if data.get('roa') else "ROA: N/A")
-
-            with col3:
-                st.write("**Growth**")
-                st.write(f"Rev Growth: {data.get('revenue_growth', 0)*100:.1f}%" if data.get('revenue_growth') else "Rev Growth: N/A")
-                st.write(f"EPS Growth: {data.get('earnings_growth', 0)*100:.1f}%" if data.get('earnings_growth') else "EPS Growth: N/A")
-                st.write(f"EPS: ${data.get('eps', 0):.2f}" if data.get('eps') else "EPS: N/A")
-                st.write(f"Fwd EPS: ${data.get('forward_eps', 0):.2f}" if data.get('forward_eps') else "Fwd EPS: N/A")
-
-            with col4:
-                st.write("**Financial Health**")
-                st.write(f"D/E: {data.get('debt_to_equity', 0):.2f}" if data.get('debt_to_equity') is not None else "D/E: N/A")
-                st.write(f"Current: {data.get('current_ratio', 0):.2f}" if data.get('current_ratio') else "Current: N/A")
-                fcf = data.get('free_cash_flow', 0)
-                st.write(f"FCF: ${fcf/1e9:.1f}B" if fcf else "FCF: N/A")
-                st.write(f"Cash: ${data.get('total_cash', 0)/1e9:.1f}B" if data.get('total_cash') else "Cash: N/A")
-
-            st.divider()
-
-            # Valuation Analysis
-            st.write("### Valuation Analysis")
-
-            if valuation:
-                val_cols = st.columns(4)
-
-                if 'pe_valuation' in valuation:
-                    with val_cols[0]:
-                        st.write("**P/E Based**")
-                        st.write(f"Bear: ${valuation['pe_valuation']['low']:.2f}")
-                        st.write(f"Base: ${valuation['pe_valuation']['mid']:.2f}")
-                        st.write(f"Bull: ${valuation['pe_valuation']['high']:.2f}")
-
-                if 'forward_pe_valuation' in valuation:
-                    with val_cols[1]:
-                        st.write("**Forward P/E**")
-                        st.write(f"Bear: ${valuation['forward_pe_valuation']['low']:.2f}")
-                        st.write(f"Base: ${valuation['forward_pe_valuation']['mid']:.2f}")
-                        st.write(f"Bull: ${valuation['forward_pe_valuation']['high']:.2f}")
-
-                if 'analyst_target' in valuation:
-                    with val_cols[2]:
-                        st.write("**Analyst Consensus**")
-                        st.write(f"Low: ${valuation['analyst_target']['low']:.2f}")
-                        st.write(f"Mean: ${valuation['analyst_target']['mid']:.2f}")
-                        st.write(f"High: ${valuation['analyst_target']['high']:.2f}")
-
-                if 'dcf_valuation' in valuation:
-                    with val_cols[3]:
-                        st.write("**DCF Model**")
-                        st.write(f"Bear: ${valuation['dcf_valuation']['bear']:.2f}")
-                        st.write(f"Base: ${valuation['dcf_valuation']['base']:.2f}")
-                        st.write(f"Bull: ${valuation['dcf_valuation']['bull']:.2f}")
-
-                if 'composite' in valuation:
-                    st.divider()
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Target (Bear)", f"${valuation['composite']['target_low']:.2f}", f"{valuation['composite']['upside_low']:+.1f}%")
-                    with col2:
-                        st.metric("Target (Base)", f"${valuation['composite']['target_mid']:.2f}", f"{valuation['composite']['upside_mid']:+.1f}%")
-                    with col3:
-                        st.metric("Target (Bull)", f"${valuation['composite']['target_high']:.2f}", f"{valuation['composite']['upside_high']:+.1f}%")
-
-            st.divider()
-
-            # Fundamental Signals Table
-            st.write("### Fundamental Signal Details")
-            fund_signals_df = pd.DataFrame(fund_analysis['signals'])
-            if not fund_signals_df.empty:
-                st.dataframe(
-                    fund_signals_df[['category', 'metric', 'value', 'signal', 'score', 'detail', 'benchmark']],
-                    hide_index=True,
-                    use_container_width=True
-                )
-
-            st.caption("Source: Financial data from Yahoo Finance, derived from SEC filings (10-K, 10-Q annual & quarterly reports). Analyst estimates aggregated from major brokerages.")
-
-    # ============== CONCLUSION TAB ==============
-    with tab_conclusion:
-        if not has_data:
-            st.info("Run an analysis from the **Technical Analysis** tab to see the conclusion and forecast.")
-        else:
-            st.write("### Investment Recommendation")
-
-            # Main recommendation box
-            st.markdown(f"""
-            <div style="background:{recommendation['action_color']}22; border:2px solid {recommendation['action_color']}; border-radius:12px; padding:25px; margin:20px 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div style="font-size:36px; font-weight:700; color:{recommendation['action_color']};">{recommendation['action']}</div>
-                        <div style="font-size:18px; color:#c9d1d9; margin-top:5px;">{recommendation['trade_decision']}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-size:14px; color:#8b949e;">12-Month Target</div>
-                        <div style="font-size:28px; font-weight:600; color:#e6edf3;">${recommendation['target_price']:.2f}</div>
-                        <div style="font-size:16px; color:{recommendation['action_color']};">{recommendation['upside']:+.1f}% Potential</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Price Target Range
-            st.write("### Price Target Range")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                upside_low = (recommendation['target_low'] - data['price']) / data['price'] * 100
-                st.metric("Downside Case", f"${recommendation['target_low']:.2f}", f"{upside_low:+.1f}%")
-            with col2:
-                st.metric("Base Case", f"${recommendation['target_price']:.2f}", f"{recommendation['upside']:+.1f}%")
-            with col3:
-                upside_high = (recommendation['target_high'] - data['price']) / data['price'] * 100
-                st.metric("Upside Case", f"${recommendation['target_high']:.2f}", f"{upside_high:+.1f}%")
-
-            st.divider()
-
-            # Expected Returns Table
-            st.write("### Expected Returns by Time Horizon")
-
-            returns_data = []
-            for period, forecast in forecasts.items():
-                returns_data.append({
-                    "Period": period,
-                    "Expected Return": f"{forecast['point_estimate']:+.1f}%",
-                    "Range": f"{forecast['range_low']:+.1f}% to {forecast['range_high']:+.1f}%",
-                    "Price Target": f"${forecast['price_target']:.2f}",
-                    "Price Range": f"${forecast['price_low']:.2f} - ${forecast['price_high']:.2f}",
-                    "Confidence": forecast['confidence'],
-                    "Probability": forecast['probability']
-                })
-
-            st.dataframe(pd.DataFrame(returns_data), hide_index=True, use_container_width=True)
-
-            st.divider()
-
-            # Investment Rationale
-            st.write("### Investment Rationale")
-            st.markdown(recommendation['rationale'])
-
-            st.divider()
-
-            # Key Drivers and Risks
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.write("### 🟢 Bullish Factors")
-                if recommendation['bullish_drivers']:
-                    for driver in recommendation['bullish_drivers']:
-                        st.success(f"• {driver}")
-                else:
-                    st.info("No significant bullish factors identified")
-
-            with col2:
-                st.write("### 🔴 Key Risks")
-                if recommendation['bearish_risks']:
-                    for risk in recommendation['bearish_risks']:
-                        st.error(f"• {risk}")
-                else:
-                    st.info("No significant risk factors identified")
-
-            st.divider()
-
-            # Invalidation
-            st.write("### ⚠️ Trade Invalidation")
-            st.warning(recommendation['invalidation'])
-
-            # Disclaimer
-            st.markdown("""
-            ---
-            <div style="font-size:11px; color:#6e7681; text-align:center; padding:20px;">
-            <strong>Disclaimer:</strong> This analysis is for educational purposes only and does not constitute financial advice.
-            Past performance is not indicative of future results. Always conduct your own research and consult with a qualified
-            financial advisor before making investment decisions. Data provided by Yahoo Finance with 15-20 minute delay.
-            </div>
-            """, unsafe_allow_html=True)
+    if st.session_state.get(_chat_key):
+        if st.button("Clear Chat History", key="clear_chat_top"):
+            st.session_state[_chat_key] = []
+            st.rerun()
 
