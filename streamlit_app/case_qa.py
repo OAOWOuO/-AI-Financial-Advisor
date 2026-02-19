@@ -14,7 +14,7 @@ import streamlit as st
 
 EMBED_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
-TOP_K = 5
+TOP_K = 8          # more chunks = better coverage for broad / summary questions
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
@@ -23,17 +23,26 @@ NOT_FOUND_MSG = (
     "Please consult your course materials directly."
 )
 
-SYSTEM_PROMPT = (
-    "You are a teaching assistant. Answer the question using ONLY the context "
-    "provided below. Do not use any prior knowledge or information outside the "
-    "context. If the context does not sufficiently support an answer, respond "
-    f'with exactly: "{NOT_FOUND_MSG}"'
-)
+# Permissive enough for summary/general questions while still refusing
+# truly off-topic ones.
+SYSTEM_PROMPT = f"""You are a teaching assistant. Students ask questions about their uploaded course materials.
+
+You are given excerpts from those materials below. Use them to answer the student's question.
+
+Rules:
+1. Base your answer ONLY on the provided excerpts — do not use outside knowledge.
+2. For general questions such as "summarize", "what is this about", "explain this document", \
+"tell me about the file", or similar — synthesize an answer from the excerpts even if no single \
+excerpt says "this document is about X".
+3. Answer specific questions about facts, concepts, or topics if the excerpts cover them.
+4. ONLY if the excerpts are completely unrelated to the question (e.g. the student asks about \
+the weather or a topic not mentioned anywhere in the excerpts), respond with exactly:
+"{NOT_FOUND_MSG}"
+"""
 
 
 # ────────────────────────  In-memory store (no ChromaDB)  ────────────────────────
-# Stored as plain Python lists in st.session_state so they survive
-# Streamlit reruns without any SQLite / ChromaDB internals.
+# Plain Python lists in st.session_state — survives Streamlit reruns reliably.
 
 def _get_store() -> dict:
     if "cqa_store" not in st.session_state:
@@ -139,13 +148,11 @@ def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> 
         )
         return 0
 
-    # Filter out already-indexed chunks
     existing_ids = set(_get_store()["ids"])
     new_chunks = [c for c in all_chunks if c["chunk_id"] not in existing_ids]
     if not new_chunks:
         return 0
 
-    # Embed in batches
     total_added = 0
     batch_size = 100
     for i in range(0, len(new_chunks), batch_size):
@@ -173,7 +180,7 @@ def _embed(text: str, openai_client) -> list[float]:
 
 
 def _retrieve(question: str, openai_client) -> tuple[list[str], list[str]]:
-    """Return (top-k doc texts, citation strings). No distance threshold — all top-k are sent to the LLM."""
+    """Return (top-k doc texts, citation strings)."""
     query_vec = _embed(question, openai_client)
     n = min(TOP_K, _store_count())
     if n == 0:
