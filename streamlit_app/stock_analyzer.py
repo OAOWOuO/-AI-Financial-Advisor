@@ -1652,23 +1652,46 @@ def show_stock_analyzer():
             if not has_data:
                 st.info("Enter a ticker and click **Run Full Analysis** to see the profile.")
             else:
-                st.write(f"### {data['name']}")
-                st.caption(f"{data['sector']} · {data['industry']}")
                 change_pct = ((data['price'] - data.get('prev_close', data['price'])) / data.get('prev_close', data['price']) * 100) if data.get('prev_close') else 0
-                st.metric("Price", f"${data['price']:.2f}", f"{change_pct:+.2f}%")
-                st.write(f"**Market Cap:** ${data['market_cap']/1e9:.1f}B")
-                st.write(f"**52W Range:** ${data['low_52w']:.0f} – ${data['high_52w']:.0f}")
-                if data['high_52w'] > data['low_52w']:
-                    pos = (data['price'] - data['low_52w']) / (data['high_52w'] - data['low_52w'])
-                    st.progress(min(1.0, max(0.0, pos)), text=f"{pos*100:.0f}% of range")
-                st.divider()
+                price_arrow = "\u25b2" if change_pct >= 0 else "\u25bc"
+                price_c = "#3fb950" if change_pct >= 0 else "#f85149"
+                pos = (data['price'] - data['low_52w']) / (data['high_52w'] - data['low_52w']) if data['high_52w'] > data['low_52w'] else 0.5
+                pos_pct = min(100, max(0, pos * 100))
+                ac = recommendation['action_color']
                 st.markdown(f"""
-<div style="background:{recommendation['action_color']}22;border:2px solid {recommendation['action_color']};border-radius:8px;padding:12px;text-align:center;">
-  <div style="font-size:22px;font-weight:700;color:{recommendation['action_color']};">{recommendation['action']}</div>
-  <div style="font-size:13px;color:#c9d1d9;">Target: ${recommendation['target_price']:.2f} ({recommendation['upside']:+.1f}%)</div>
-  <div style="font-size:11px;color:#8b949e;">Score: {recommendation['combined_score']:.0f}</div>
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:20px 18px;margin-bottom:10px;">
+  <div style="font-size:20px;font-weight:700;color:#e6edf3 !important;">{data['name']}</div>
+  <div style="font-size:12px;color:#8b949e !important;margin-top:2px;">{data['sector']} &middot; {data['industry']}</div>
+  <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:100px;">
+      <div style="font-size:11px;color:#8b949e !important;text-transform:uppercase;letter-spacing:.5px;">Price</div>
+      <div style="font-size:26px;font-weight:700;color:#e6edf3 !important;">${data['price']:.2f}</div>
+      <div style="font-size:13px;color:{price_c} !important;font-weight:600;">{price_arrow} {change_pct:+.2f}%</div>
+    </div>
+    <div style="flex:1;min-width:100px;">
+      <div style="font-size:11px;color:#8b949e !important;text-transform:uppercase;letter-spacing:.5px;">Market Cap</div>
+      <div style="font-size:20px;font-weight:600;color:#e6edf3 !important;">${data['market_cap']/1e9:.1f}B</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#8b949e !important;margin-bottom:6px;">
+      <span style="color:#8b949e !important;">${data['low_52w']:.0f} low</span>
+      <span style="color:#c9d1d9 !important;font-weight:600;">52-Week Range</span>
+      <span style="color:#8b949e !important;">${data['high_52w']:.0f} high</span>
+    </div>
+    <div style="background:#21262d;border-radius:4px;height:8px;position:relative;">
+      <div style="background:#58a6ff;width:{pos_pct:.0f}%;height:8px;border-radius:4px;"></div>
+    </div>
+    <div style="text-align:center;font-size:11px;color:#6e7681 !important;margin-top:4px;">{pos_pct:.0f}% of annual range</div>
+  </div>
 </div>
-""", unsafe_allow_html=True)
+<div style="background:#0d1117;border:2px solid {ac};border-radius:10px;padding:16px 18px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e !important;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Recommendation</div>
+  <div style="font-size:32px;font-weight:800;color:{ac} !important;letter-spacing:-1px;">{recommendation['action']}</div>
+  <div style="font-size:13px;color:#c9d1d9 !important;margin-top:6px;">Target: <strong style="color:{ac} !important;">${recommendation['target_price']:.2f}</strong> &nbsp;|&nbsp; {recommendation['upside']:+.1f}% upside</div>
+  <div style="font-size:11px;color:#8b949e !important;margin-top:4px;">Score: {recommendation['combined_score']:.0f} / 100</div>
+</div>""", unsafe_allow_html=True)
+
 
         # ── TECHNICAL TAB ──────────────────────────────────────────────────────
         with tab_tech:
@@ -1880,7 +1903,7 @@ with the histogram <strong>{macd_trend}</strong> — suggesting {'building' if m
                         _rows += (f"<tr style='border-bottom:1px solid #21262d;'>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#8b949e;text-transform:uppercase;white-space:nowrap;'>{_r.get('category','')}</td>"
                             f"<td style='padding:8px 10px;font-size:13px;color:#e6edf3;font-weight:500;'>{_r.get('indicator','')}</td>"
-                            f"<td style='padding:8px 10px;'><span style='background:{_bg};color:{_fg};border:1px solid {_fg}66;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
+                            f"<td style='padding:8px 10px;'><span style='background:#0d1117;border:1px solid {_fg};color:{_fg} !important;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
                             f"<td style='padding:8px 10px;font-size:14px;color:{_fg};font-weight:700;text-align:center;'>{_r.get('score','')}</td>"
                             f"<td style='padding:8px 10px;font-size:12px;color:#8b949e;'>{_r.get('detail','')}</td>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#6e7681;text-align:center;'>{_r.get('threshold','')}</td>"
@@ -2184,7 +2207,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                             f"<td style='padding:8px 10px;font-size:11px;color:#8b949e;text-transform:uppercase;white-space:nowrap;'>{_r.get('category','')}</td>"
                             f"<td style='padding:8px 10px;font-size:13px;color:#e6edf3;font-weight:500;'>{_r.get('metric','')}</td>"
                             f"<td style='padding:8px 10px;font-size:13px;color:#58a6ff;font-weight:600;text-align:right;white-space:nowrap;'>{_r.get('value','')}</td>"
-                            f"<td style='padding:8px 10px;'><span style='background:{_bg};color:{_fg};border:1px solid {_fg}66;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
+                            f"<td style='padding:8px 10px;'><span style='background:#0d1117;border:1px solid {_fg};color:{_fg} !important;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
                             f"<td style='padding:8px 10px;font-size:14px;color:{_fg};font-weight:700;text-align:center;'>{_r.get('score','')}</td>"
                             f"<td style='padding:8px 10px;font-size:12px;color:#8b949e;'>{_r.get('detail','')}</td>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#6e7681;text-align:center;white-space:nowrap;'>{_r.get('benchmark','')}</td>"
@@ -2215,14 +2238,14 @@ also most assumption-dependent approach. A convergence of models above the curre
 
                 # ── 1. HEADLINE RECOMMENDATION CARD ──────────────────────────
                 st.markdown(f"""
-<div style="background:{ac}18;border:2px solid {ac};border-radius:14px;padding:28px 30px;margin-bottom:18px;">
+<div style="background:#0d1117;border:2px solid {ac};border-radius:14px;padding:28px 30px;margin-bottom:18px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
     <div>
       <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Investment Rating</div>
       <div style="font-size:48px;font-weight:800;color:{ac};letter-spacing:-1px;line-height:1;">{recommendation['action']}</div>
       <div style="font-size:15px;color:#c9d1d9;margin-top:10px;">{recommendation['trade_decision']}</div>
       <div style="margin-top:14px;">
-        <span style="background:{ac}28;border:1px solid {ac}66;border-radius:20px;padding:5px 16px;font-size:12px;color:{ac};font-weight:600;">
+        <span style="background:#0d1117;border:1px solid {ac};border-radius:20px;padding:5px 16px;font-size:12px;color:{ac};font-weight:600;">
           Composite Score: {recommendation['combined_score']:.0f} / 100
         </span>
       </div>
@@ -2249,7 +2272,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                 ):
                     with col:
                         st.markdown(f"""
-<div style="background:{color}15;border:1px solid {color}55;border-radius:10px;padding:18px 14px;text-align:center;">
+<div style="background:#0d1117;border:1px solid {color};border-radius:10px;padding:18px 14px;text-align:center;">
   <div style="font-size:22px;margin-bottom:4px;">{icon}</div>
   <div style="font-size:12px;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:26px;font-weight:700;color:{color};">${price:.2f}</div>
@@ -2317,7 +2340,7 @@ long-horizon estimates weight intrinsic fundamental value more heavily.
                             f"<span style='color:#3fb950;margin-right:6px;'>\u2713</span>{d}</div>"
                             for d in recommendation['bullish_drivers']
                         )
-                        st.markdown(f"<div style='background:#0d1117;border:1px solid #3fb95040;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='background:#0d1117;border:1px solid #3fb95099;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
                     else:
                         st.info("No significant bullish factors identified.")
                 with b_col2:
@@ -2328,14 +2351,14 @@ long-horizon estimates weight intrinsic fundamental value more heavily.
                             f"<span style='color:#f85149;margin-right:6px;'>\u26a0</span>{r}</div>"
                             for r in recommendation['bearish_risks']
                         )
-                        st.markdown(f"<div style='background:#0d1117;border:1px solid #f8514940;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='background:#0d1117;border:1px solid #f8514999;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
                     else:
                         st.info("No significant risk factors identified.")
 
                 # ── 6. TRADE INVALIDATION ─────────────────────────────────────
                 st.markdown("---")
                 st.markdown(f"""
-<div style="background:#d2992212;border:1px solid #d2992255;border-radius:8px;padding:16px 18px;">
+<div style="background:#0d1117;border:1px solid #d29922;border-radius:8px;padding:16px 18px;">
   <div style="font-size:11px;color:#d29922;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">\u26a0\ufe0f Trade Invalidation Criteria</div>
   <div style="font-size:13px;color:#c9d1d9;line-height:1.8;">{recommendation['invalidation']}</div>
 </div>""", unsafe_allow_html=True)
