@@ -23,8 +23,6 @@ NOT_FOUND_MSG = (
     "Please consult your course materials directly."
 )
 
-# Permissive enough for summary/general questions while still refusing
-# truly off-topic ones.
 SYSTEM_PROMPT = f"""You are a teaching assistant. Students ask questions about their uploaded course materials.
 
 You are given excerpts from those materials below. Use them to answer the student's question.
@@ -42,15 +40,14 @@ the weather or a topic not mentioned anywhere in the excerpts), respond with exa
 
 
 # ────────────────────────  In-memory store (no ChromaDB)  ────────────────────────
-# Plain Python lists in st.session_state — survives Streamlit reruns reliably.
 
 def _get_store() -> dict:
     if "cqa_store" not in st.session_state:
         st.session_state.cqa_store = {
             "ids": [],
             "documents": [],
-            "embeddings": [],   # list of list[float]
-            "metadatas": [],    # list of {"source", "page", "chunk_id"}
+            "embeddings": [],
+            "metadatas": [],
         }
     return st.session_state.cqa_store
 
@@ -75,7 +72,6 @@ def _add_chunks(ids: list, documents: list, embeddings: list, metadatas: list) -
 
 
 def _top_k(query_embedding: list[float], n: int) -> tuple[list[str], list[dict]]:
-    """Return the n most similar (documents, metadatas) by cosine similarity."""
     import numpy as np
     store = _get_store()
     if not store["embeddings"]:
@@ -119,7 +115,6 @@ def _chunk_text(text: str, source: str, page: int = 0) -> list[dict]:
 # ────────────────────────  indexing  ────────────────────────
 
 def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> int:
-    """Extract text → chunk → embed → store in session_state. Returns chunks added."""
     all_chunks: list[dict] = []
 
     if filename.lower().endswith(".pdf"):
@@ -180,7 +175,6 @@ def _embed(text: str, openai_client) -> list[float]:
 
 
 def _retrieve(question: str, openai_client) -> tuple[list[str], list[str]]:
-    """Return (top-k doc texts, citation strings)."""
     query_vec = _embed(question, openai_client)
     n = min(TOP_K, _store_count())
     if n == 0:
@@ -294,6 +288,12 @@ def show_case_qa() -> None:
     st.divider()
     st.caption(f"Index ready — {doc_count} chunks from your uploaded documents.")
 
+    st.info(
+        "**Tip:** Ask specific questions about topics, concepts, or facts covered in your documents — "
+        "e.g. *\"What is the definition of X?\"*, *\"Explain how Y works\"*, or *\"What does the document say about Z?\"* "
+        "Vague questions like \"tell me about the file\" may not return useful answers."
+    )
+
     if "qa_messages" not in st.session_state:
         st.session_state.qa_messages = []
 
@@ -301,7 +301,7 @@ def show_case_qa() -> None:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    question = st.chat_input("Ask a question about the case materials…")
+    question = st.chat_input("Ask a specific question about your course materials…")
     if question:
         st.session_state.qa_messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
