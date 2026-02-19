@@ -9,11 +9,9 @@ from __future__ import annotations
 
 import io
 import os
-from pathlib import Path
 
 import streamlit as st
 
-COLLECTION_NAME = "case_materials"
 EMBED_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
 TOP_K = 5
@@ -33,60 +31,77 @@ SYSTEM_PROMPT = (
 )
 
 
-# ────────────────────────  ChromaDB client  ────────────────────────
+# ────────────────────────  In-memory store (no ChromaDB)  ────────────────────────
+# Stored as plain Python lists in st.session_state so they survive
+# Streamlit reruns without any SQLite / ChromaDB internals.
 
-def _get_chroma_client():
-    """Return an ephemeral ChromaDB client stored in session state.
-
-    Using EphemeralClient (in-memory) avoids all disk-path and SQLite-version
-    issues on Streamlit Cloud. The client survives Streamlit reruns because
-    it lives in st.session_state for the lifetime of the browser session.
-    """
-    if "cqa_chroma_client" not in st.session_state:
-        import chromadb
-        st.session_state.cqa_chroma_client = chromadb.EphemeralClient()
-    return st.session_state.cqa_chroma_client
-
-
-def _get_or_create_collection():
-    """Get (or create) the ChromaDB collection from the session-state client."""
-    client = _get_chroma_client()
-    try:
-        return client.get_collection(COLLECTION_NAME)
-    except Exception:
-        return client.create_collection(
-            COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"},
-        )
+def _get_store() -> dict:
+    if "cqa_store" not in st.session_state:
+        st.session_state.cqa_store = {
+            "ids": [],
+            "documents": [],
+            "embeddings": [],   # list of list[float]
+            "metadatas": [],    # list of {"source", "page", "chunk_id"}
+        }
+    return st.session_state.cqa_store
 
 
-def _get_collection():
-    """Return the collection if it has chunks, else None."""
-    try:
-        col = _get_or_create_collection()
-        return col if col.count() > 0 else None
-    except Exception:
-        return None
+def _store_count() -> int:
+    return len(_get_store()["ids"])
+
+
+def _add_chunks(ids: list, documents: list, embeddings: list, metadatas: list) -> int:
+    store = _get_store()
+    existing = set(store["ids"])
+    added = 0
+    for i, id_ in enumerate(ids):
+        if id_ not in existing:
+            store["ids"].append(id_)
+            store["documents"].append(documents[i])
+            store["embeddings"].append(embeddings[i])
+            store["metadatas"].append(metadatas[i])
+            existing.add(id_)
+            added += 1
+    return added
+
+
+def _top_k(query_embedding: list[float], n: int) -> tuple[list[str], list[dict]]:
+    """Return the n most similar (documents, metadatas) by cosine similarity."""
+    import numpy as np
+    store = _get_store()
+    if not store["embeddings"]:
+        return [], []
+
+    q = np.array(query_embedding, dtype="float32")
+    q /= np.linalg.norm(q) + 1e-10
+
+    scores = []
+    for i, emb in enumerate(store["embeddings"]):
+        e = np.array(emb, dtype="float32")
+        e /= np.linalg.norm(e) + 1e-10
+        scores.append(float(q @ e))
+
+    top_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:n]
+    docs = [store["documents"][i] for i in top_idx]
+    metas = [store["metadatas"][i] for i in top_idx]
+    return docs, metas
 
 
 # ────────────────────────  chunking  ────────────────────────
 
-def chunk_text(text: str, source: str, page: int = 0) -> list[dict]:
-    """Split text into overlapping word-window chunks."""
+def _chunk_text(text: str, source: str, page: int = 0) -> list[dict]:
     words = text.split()
     chunks: list[dict] = []
     i = 0
     while i < len(words):
-        chunk_words = words[i: i + CHUNK_SIZE]
-        chunk_text_str = " ".join(chunk_words)
-        chunk_id = f"{source}_p{page}_c{i}"
+        window = words[i: i + CHUNK_SIZE]
         chunks.append({
-            "text": chunk_text_str,
+            "text": " ".join(window),
             "source": source,
             "page": page,
-            "chunk_id": chunk_id,
+            "chunk_id": f"{source}_p{page}_c{i}",
         })
-        if len(chunk_words) < CHUNK_SIZE:
+        if len(window) < CHUNK_SIZE:
             break
         i += CHUNK_SIZE - CHUNK_OVERLAP
     return chunks
@@ -95,8 +110,9 @@ def chunk_text(text: str, source: str, page: int = 0) -> list[dict]:
 # ────────────────────────  indexing  ────────────────────────
 
 def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> int:
-    """Extract text, chunk, embed, and store in ChromaDB. Returns chunk count added."""
+    """Extract text → chunk → embed → store in session_state. Returns chunks added."""
     all_chunks: list[dict] = []
+
     if filename.lower().endswith(".pdf"):
         try:
             from pypdf import PdfReader
@@ -104,13 +120,13 @@ def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> 
             for page_num, page in enumerate(reader.pages, start=1):
                 page_text = page.extract_text() or ""
                 if page_text.strip():
-                    all_chunks.extend(chunk_text(page_text, filename, page_num))
+                    all_chunks.extend(_chunk_text(page_text, filename, page_num))
         except Exception as e:
             st.error(f"Failed to read PDF '{filename}': {e}")
             return 0
     elif filename.lower().endswith((".md", ".txt")):
         text = file_bytes.decode("utf-8", errors="replace")
-        all_chunks.extend(chunk_text(text, filename, 0))
+        all_chunks.extend(_chunk_text(text, filename, 0))
     else:
         st.warning(f"Unsupported file type: '{filename}'. Only PDF, MD, and TXT are supported.")
         return 0
@@ -119,40 +135,34 @@ def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> 
         st.warning(
             f"No text could be extracted from '{filename}'. "
             "If this is a scanned PDF, text extraction is not supported — "
-            "please use a PDF with selectable text."
+            "please use a PDF with selectable (digital) text."
         )
         return 0
 
-    collection = _get_or_create_collection()
+    # Filter out already-indexed chunks
+    existing_ids = set(_get_store()["ids"])
+    new_chunks = [c for c in all_chunks if c["chunk_id"] not in existing_ids]
+    if not new_chunks:
+        return 0
 
+    # Embed in batches
+    total_added = 0
     batch_size = 100
-    added = 0
-    for i in range(0, len(all_chunks), batch_size):
-        batch = all_chunks[i: i + batch_size]
+    for i in range(0, len(new_chunks), batch_size):
+        batch = new_chunks[i: i + batch_size]
         texts = [c["text"] for c in batch]
         try:
             resp = openai_client.embeddings.create(model=EMBED_MODEL, input=texts)
             embeddings = [r.embedding for r in resp.data]
         except Exception as e:
             st.error(f"Embedding failed: {e}")
-            return added
+            return total_added
 
         ids = [c["chunk_id"] for c in batch]
         metas = [{"source": c["source"], "page": c["page"], "chunk_id": c["chunk_id"]} for c in batch]
+        total_added += _add_chunks(ids, texts, embeddings, metas)
 
-        # Skip duplicate IDs
-        existing = set(collection.get(ids=ids)["ids"])
-        new_idx = [j for j, cid in enumerate(ids) if cid not in existing]
-        if new_idx:
-            collection.add(
-                ids=[ids[j] for j in new_idx],
-                documents=[texts[j] for j in new_idx],
-                embeddings=[embeddings[j] for j in new_idx],
-                metadatas=[metas[j] for j in new_idx],
-            )
-            added += len(new_idx)
-
-    return added
+    return total_added
 
 
 # ────────────────────────  retrieval  ────────────────────────
@@ -162,35 +172,18 @@ def _embed(text: str, openai_client) -> list[float]:
     return resp.data[0].embedding
 
 
-def _retrieve(question: str, collection, openai_client) -> tuple[list[str], list[str]]:
-    """Return (top-k doc texts, citation strings).
-
-    No distance threshold is applied — all top-k chunks are returned and the
-    LLM decides whether the context is sufficient.  A strict distance cutoff
-    breaks on vague / meta queries (e.g. "tell me about this file") whose
-    embeddings sit far from any specific passage even when the document is
-    clearly relevant.
-    """
+def _retrieve(question: str, openai_client) -> tuple[list[str], list[str]]:
+    """Return (top-k doc texts, citation strings). No distance threshold — all top-k are sent to the LLM."""
     query_vec = _embed(question, openai_client)
-    n = min(TOP_K, collection.count())
+    n = min(TOP_K, _store_count())
     if n == 0:
         return [], []
 
-    results = collection.query(
-        query_embeddings=[query_vec],
-        n_results=n,
-        include=["documents", "metadatas", "distances"],
-    )
-    docs = results["documents"][0]
-    metas = results["metadatas"][0]
-
-    citations = []
-    for meta in metas:
-        source = meta.get("source", "unknown")
-        page = meta.get("page", "?")
-        chunk_id = meta.get("chunk_id", "?")
-        citations.append(f"`{source}` — page {page} (chunk `{chunk_id}`)")
-
+    docs, metas = _top_k(query_vec, n)
+    citations = [
+        f"`{m.get('source','?')}` — page {m.get('page','?')} (chunk `{m.get('chunk_id','?')}`)"
+        for m in metas
+    ]
     return docs, citations
 
 
@@ -212,7 +205,6 @@ def _answer(question: str, context_docs: list[str], openai_client) -> str:
 # ────────────────────────  UI  ────────────────────────
 
 def show_case_qa() -> None:
-    # Back button
     col_back, _ = st.columns([1, 11])
     with col_back:
         if st.button("← Back", key="back_caseqa"):
@@ -262,18 +254,16 @@ def show_case_qa() -> None:
     )
 
     if uploaded_files:
-        files_to_index = []
-        for uf in uploaded_files:
-            indexed_key = f"cqa_indexed_{uf.name}_{uf.size}"
-            if not st.session_state.get(indexed_key):
-                files_to_index.append(uf)
+        files_to_index = [
+            uf for uf in uploaded_files
+            if not st.session_state.get(f"cqa_indexed_{uf.name}_{uf.size}")
+        ]
 
         if files_to_index:
             with st.spinner(f"Indexing {len(files_to_index)} file(s)… this may take a moment."):
                 total_added = 0
                 for uf in files_to_index:
-                    file_bytes = uf.read()
-                    n = _build_index_from_bytes(file_bytes, uf.name, openai_client)
+                    n = _build_index_from_bytes(uf.read(), uf.name, openai_client)
                     total_added += n
                     st.session_state[f"cqa_indexed_{uf.name}_{uf.size}"] = True
 
@@ -285,8 +275,8 @@ def show_case_qa() -> None:
             st.info(f"{len(uploaded_files)} file(s) already indexed this session.")
 
     # ── CHAT INTERFACE ────────────────────────────────────────────────────────
-    collection = _get_collection()
-    if collection is None or collection.count() == 0:
+    doc_count = _store_count()
+    if doc_count == 0:
         st.divider()
         st.warning(
             "**No documents indexed yet.**\n\n"
@@ -295,9 +285,8 @@ def show_case_qa() -> None:
         return
 
     st.divider()
-    st.caption(f"Index ready — {collection.count()} chunks from your uploaded documents.")
+    st.caption(f"Index ready — {doc_count} chunks from your uploaded documents.")
 
-    # Render chat history
     if "qa_messages" not in st.session_state:
         st.session_state.qa_messages = []
 
@@ -305,7 +294,6 @@ def show_case_qa() -> None:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # New question
     question = st.chat_input("Ask a question about the case materials…")
     if question:
         st.session_state.qa_messages.append({"role": "user", "content": question})
@@ -314,7 +302,7 @@ def show_case_qa() -> None:
 
         with st.chat_message("assistant"):
             with st.spinner("Searching documents…"):
-                docs, citations = _retrieve(question, collection, openai_client)
+                docs, citations = _retrieve(question, openai_client)
                 answer = _answer(question, docs, openai_client)
 
             response = answer
