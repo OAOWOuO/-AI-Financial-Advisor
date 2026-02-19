@@ -6,7 +6,6 @@ import altair as alt
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 
-# Load OpenAI API key once at module level (env var takes priority over Streamlit secrets)
 try:
     openai_api_key = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "")
 except Exception:
@@ -1536,60 +1535,51 @@ def show_stock_analyzer():
         recommendation = generate_recommendation(data, tech_analysis, fund_analysis, valuation, forecasts)
         supports, resistances = identify_support_resistance(hist)
 
-    # ── AI CHAT (always visible, directly below ticker input) ─────────────────
+    # ── AI CHAT — always visible, directly below ticker input ───────────────
     st.divider()
     st.write("### 💬 AI Financial Analyst Chat")
-    if not openai_api_key:
-        st.error("OPENAI_API_KEY not configured on server.")
-    elif not has_data:
-        st.info("Enter a ticker above and click **Run Full Analysis** to enable the AI chat.")
-        st.markdown("""
-**Example questions you can ask after running an analysis:**
-- Why is this stock rated BUY/HOLD/SELL?
-- What would change the recommendation?
-- Explain the DCF valuation assumptions
-- What are the biggest risks for this stock?
-- How does the P/E compare to the sector?
-- What if revenue growth accelerates to 20%?
-        """)
-    else:
+
+    _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
+    if _chat_key not in st.session_state:
+        st.session_state[_chat_key] = []
+
+    if has_data:
         st.caption(
-            "Ask questions about the analysis, explore scenarios, or request adjustments. "
-            "All underlying data sourced from Yahoo Finance (SEC filings, market data, analyst estimates)."
+            f"Chatting about **{data['ticker']} — {data['name']}**. "
+            "Ask anything about the analysis."
         )
+    else:
+        st.caption("Enter a ticker above and click **Run Full Analysis** to start chatting.")
 
-        _chat_key = f"chat_history_{data['ticker']}"
-        if _chat_key not in st.session_state:
-            st.session_state[_chat_key] = []
+    # Always render full chat history
+    for _msg in st.session_state[_chat_key]:
+        with st.chat_message(_msg["role"]):
+            st.markdown(_msg["content"])
 
-        for _msg in st.session_state[_chat_key]:
-            with st.chat_message(_msg["role"]):
-                st.markdown(_msg["content"])
+    # Always render chat input at the bottom
+    if _prompt := st.chat_input("Ask about this stock..."):
+        st.session_state[_chat_key].append({"role": "user", "content": _prompt})
+        with st.chat_message("user"):
+            st.markdown(_prompt)
 
-        if _prompt := st.chat_input(f"Ask about {data['ticker']} analysis..."):
-            st.session_state[_chat_key].append({"role": "user", "content": _prompt})
-            with st.chat_message("user"):
-                st.markdown(_prompt)
-
+        if not has_data:
+            _reply = "Please enter a ticker and run an analysis first — then I can answer questions about it."
+            st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
+            with st.chat_message("assistant"):
+                st.markdown(_reply)
+        else:
             _context = build_analysis_context(
                 data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
             )
             _system_msg = (
-                f"You are an expert CFA-certified financial analyst assistant. "
-                f"You have access to a comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
-                "Answer questions about this stock, explain the analysis methodology, provide financial insights, "
-                "and explore scenarios when asked. All data comes from Yahoo Finance which aggregates real-time "
-                "market data, company SEC filings (10-K, 10-Q), and sell-side analyst estimates.\n\n"
-                "Rules:\n"
-                "- Be specific and cite numbers from the analysis\n"
-                "- Explain your reasoning clearly\n"
-                "- If asked about scenarios, use the data to give quantitative estimates\n"
-                "- Note limitations (e.g., simplified DCF assumptions, data delays)\n"
-                "- Keep responses concise but thorough\n"
-                "- Do NOT provide personal investment advice; frame everything as analysis\n\n"
-                f"Here is the full analysis:\n\n{_context}"
+                f"You are an expert CFA-certified financial analyst assistant with access to a "
+                f"comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
+                "Answer questions about this stock using the analysis data provided. "
+                "All data is from Yahoo Finance (SEC filings, market data, analyst estimates).\n\n"
+                "Rules: cite specific numbers, explain reasoning clearly, give quantitative scenario "
+                "estimates when asked, note data limitations, do NOT give personal investment advice.\n\n"
+                f"Full analysis:\n\n{_context}"
             )
-
             try:
                 from openai import OpenAI as _OpenAI
                 _client = _OpenAI(api_key=openai_api_key)
@@ -1615,19 +1605,16 @@ def show_stock_analyzer():
 
                 st.session_state[_chat_key].append({"role": "assistant", "content": _response_text})
 
-            except ImportError:
-                st.error("The `openai` package is not installed.")
             except Exception as _e:
-                _err = str(_e)
-                if "api_key" in _err.lower() or "auth" in _err.lower():
-                    st.error("Invalid API key. Please check your OPENAI_API_KEY.")
-                else:
-                    st.error(f"Chat error: {_err}")
+                _reply = f"Chat error: {_e}"
+                st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
+                with st.chat_message("assistant"):
+                    st.markdown(_reply)
 
-        if st.session_state.get(_chat_key):
-            if st.button("Clear Chat History", key="clear_chat_top"):
-                st.session_state[_chat_key] = []
-                st.rerun()
+    if st.session_state.get(_chat_key):
+        if st.button("Clear Chat History", key="clear_chat_top"):
+            st.session_state[_chat_key] = []
+            st.rerun()
 
     st.divider()
 
@@ -1968,3 +1955,4 @@ def show_stock_analyzer():
             financial advisor before making investment decisions. Data provided by Yahoo Finance with 15-20 minute delay.
             </div>
             """, unsafe_allow_html=True)
+
