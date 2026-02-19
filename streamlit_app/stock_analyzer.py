@@ -1524,39 +1524,53 @@ def show_stock_analyzer():
     col_left, col_right = st.columns([1, 2])
 
     with col_left:
+        st.markdown("""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px 14px 10px 14px;margin-bottom:12px;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px;">Stock Ticker</div>""",
+            unsafe_allow_html=True)
         ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker",
-                               placeholder="e.g. AAPL, MSFT, NVDA")
+                               placeholder="e.g. AAPL, MSFT, NVDA", label_visibility="collapsed")
         ticker = ticker.strip().upper()
-        analyze_btn = st.button("🔍 Run Full Analysis", type="primary", use_container_width=True)
+        analyze_btn = st.button("Run Full Analysis", type="primary", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
         if analyze_btn and ticker:
-            with st.spinner(f"Analyzing {ticker}..."):
+            with st.spinner(f"Fetching institutional data for {ticker}\u2026"):
                 st.session_state.inst_data = fetch_comprehensive_data(ticker)
                 st.rerun()
 
-        # ── AI CHAT FORM — directly under Run Analysis ──────────────────────────
+        # ── AI CHAT FORM ─────────────────────────────────────────────────────────
         _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
         if _chat_key not in st.session_state:
             st.session_state[_chat_key] = []
 
+        st.markdown("""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px 14px 10px 14px;margin-bottom:10px;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px;">Ask the AI Analyst</div>""",
+            unsafe_allow_html=True)
         with st.form("chat_form", clear_on_submit=True):
-            _prompt = st.text_input("Question", label_visibility="collapsed",
-                                    placeholder="Ask about this stock\u2026")
+            _prompt = st.text_input("q", label_visibility="collapsed",
+                                    placeholder="e.g. What\u2019s the risk/reward here?")
             _submitted = st.form_submit_button("Send \u2192", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        # ── AI CHAT TITLE + HISTORY ──────────────────────────────────────────────
-        st.write("#### \U0001f4ac AI Financial Analyst")
+        # ── AI CHAT HISTORY ──────────────────────────────────────────────────────
         if has_data:
-            st.caption(f"Chatting about **{data['ticker']} \u2014 {data['name']}**. Ask anything about the analysis.")
+            _chat_sub = f"<span style='font-size:11px;color:#6e7681;'>Chatting about <strong style='color:#58a6ff;'>{data['ticker']} \u2014 {data['name']}</strong></span>"
         else:
-            st.caption("Run an analysis above to start chatting.")
+            _chat_sub = "<span style='font-size:11px;color:#6e7681;'>Run an analysis to start chatting.</span>"
+        st.markdown(f"""
+<div style="font-size:13px;font-weight:600;color:#e6edf3;margin:6px 0 6px 0;">
+  \U0001f4ac AI Financial Analyst<br>{_chat_sub}
+</div>""", unsafe_allow_html=True)
 
         _chat_box = st.container(height=320)
         with _chat_box:
             if not st.session_state[_chat_key]:
                 st.markdown(
-                    "<p style='color:#6e7681;font-size:13px;text-align:center;padding-top:30px;'>"
-                    "No messages yet \u2014 ask a question below.</p>",
+                    "<div style='color:#6e7681;font-size:12px;text-align:center;padding-top:36px;'>"
+                    "No messages yet<br>"
+                    "<span style='font-size:11px;'>Ask a question above to get started.</span></div>",
                     unsafe_allow_html=True
                 )
             for _msg in st.session_state[_chat_key]:
@@ -1564,9 +1578,10 @@ def show_stock_analyzer():
                     st.markdown(_msg["content"])
 
         if st.session_state.get(_chat_key):
-            if st.button("Clear Chat History", key="clear_chat_top"):
+            if st.button("Clear Chat", key="clear_chat_top", use_container_width=True):
                 st.session_state[_chat_key] = []
                 st.rerun()
+
 
         # ── FORM SUBMISSION PROCESSING ───────────────────────────────────────────
         if _submitted and _prompt:
@@ -1857,11 +1872,32 @@ with the histogram <strong>{macd_trend}</strong> — suggesting {'building' if m
                 st.markdown("##### Full Signal Detail")
                 tech_signals_df = pd.DataFrame(tech_analysis['signals'])
                 if not tech_signals_df.empty:
-                    st.dataframe(
-                        tech_signals_df[['category', 'indicator', 'signal', 'score', 'detail', 'threshold']],
-                        hide_index=True, use_container_width=True
-                    )
-                st.caption("Data: Yahoo Finance real-time feed (15–20 min delayed). Scores are proprietary CFA-style composite ratings.")
+                    _rows = ""
+                    for _, _r in tech_signals_df.iterrows():
+                        _s = str(_r.get('signal', '')).upper()
+                        _fg = "#3fb950" if any(x in _s for x in ['BULLISH','BUY','STRONG','ABOVE']) else "#f85149" if any(x in _s for x in ['BEARISH','SELL','WEAK','BELOW']) else "#d29922"
+                        _bg = _fg + "18"
+                        _rows += (f"<tr style='border-bottom:1px solid #21262d;'>"
+                            f"<td style='padding:8px 10px;font-size:11px;color:#8b949e;text-transform:uppercase;white-space:nowrap;'>{_r.get('category','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:13px;color:#e6edf3;font-weight:500;'>{_r.get('indicator','')}</td>"
+                            f"<td style='padding:8px 10px;'><span style='background:{_bg};color:{_fg};border:1px solid {_fg}66;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
+                            f"<td style='padding:8px 10px;font-size:14px;color:{_fg};font-weight:700;text-align:center;'>{_r.get('score','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:12px;color:#8b949e;'>{_r.get('detail','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:11px;color:#6e7681;text-align:center;'>{_r.get('threshold','')}</td>"
+                            f"</tr>")
+                    st.markdown(
+                        "<div style='background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;'>"
+                        "<table style='width:100%;border-collapse:collapse;'>"
+                        "<thead><tr style='background:#161b22;border-bottom:2px solid #30363d;'>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Category</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Indicator</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Signal</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Score</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Detail</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Threshold</th>"
+                        f"</tr></thead><tbody>{_rows}</tbody></table></div>",
+                        unsafe_allow_html=True)
+                st.caption("Data: Yahoo Finance real-time feed (15\u201320 min delayed). Scores are proprietary CFA-style composite ratings.")
 
         # ── FUNDAMENTAL TAB ────────────────────────────────────────────────────
         with tab_fund:
@@ -2139,87 +2175,174 @@ also most assumption-dependent approach. A convergence of models above the curre
                 st.markdown("##### Full Signal Detail")
                 fund_signals_df = pd.DataFrame(fund_analysis['signals'])
                 if not fund_signals_df.empty:
-                    st.dataframe(
-                        fund_signals_df[['category', 'metric', 'value', 'signal', 'score', 'detail', 'benchmark']],
-                        hide_index=True, use_container_width=True
-                    )
-                st.caption("Source: Yahoo Finance — SEC filings (10-K, 10-Q). Analyst estimates aggregated from major sell-side brokerages.")
+                    _rows = ""
+                    for _, _r in fund_signals_df.iterrows():
+                        _s = str(_r.get('signal', '')).upper()
+                        _fg = "#3fb950" if any(x in _s for x in ['BULLISH','BUY','STRONG','POSITIVE','HEALTHY','GOOD','HIGH']) else "#f85149" if any(x in _s for x in ['BEARISH','SELL','WEAK','NEGATIVE','POOR','RISKY']) else "#d29922"
+                        _bg = _fg + "18"
+                        _rows += (f"<tr style='border-bottom:1px solid #21262d;'>"
+                            f"<td style='padding:8px 10px;font-size:11px;color:#8b949e;text-transform:uppercase;white-space:nowrap;'>{_r.get('category','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:13px;color:#e6edf3;font-weight:500;'>{_r.get('metric','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:13px;color:#58a6ff;font-weight:600;text-align:right;white-space:nowrap;'>{_r.get('value','')}</td>"
+                            f"<td style='padding:8px 10px;'><span style='background:{_bg};color:{_fg};border:1px solid {_fg}66;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
+                            f"<td style='padding:8px 10px;font-size:14px;color:{_fg};font-weight:700;text-align:center;'>{_r.get('score','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:12px;color:#8b949e;'>{_r.get('detail','')}</td>"
+                            f"<td style='padding:8px 10px;font-size:11px;color:#6e7681;text-align:center;white-space:nowrap;'>{_r.get('benchmark','')}</td>"
+                            f"</tr>")
+                    st.markdown(
+                        "<div style='background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;'>"
+                        "<table style='width:100%;border-collapse:collapse;'>"
+                        "<thead><tr style='background:#161b22;border-bottom:2px solid #30363d;'>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Category</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Metric</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:right;text-transform:uppercase;'>Value</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Signal</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Score</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Detail</th>"
+                        "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Benchmark</th>"
+                        f"</tr></thead><tbody>{_rows}</tbody></table></div>",
+                        unsafe_allow_html=True)
+                st.caption("Source: Yahoo Finance \u2014 SEC filings (10-K, 10-Q). Analyst estimates aggregated from major sell-side brokerages.")
 
         # ── CONCLUSION TAB ─────────────────────────────────────────────────────
         with tab_conclusion:
             if not has_data:
                 st.info("Run an analysis to see the conclusion and forecast.")
             else:
-                st.write("### Investment Recommendation")
+                ac = recommendation['action_color']
+                upside_low  = (recommendation['target_low']  - data['price']) / data['price'] * 100
+                upside_high = (recommendation['target_high'] - data['price']) / data['price'] * 100
+
+                # ── 1. HEADLINE RECOMMENDATION CARD ──────────────────────────
                 st.markdown(f"""
-<div style="background:{recommendation['action_color']}22;border:2px solid {recommendation['action_color']};border-radius:12px;padding:25px;margin:10px 0;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
+<div style="background:{ac}18;border:2px solid {ac};border-radius:14px;padding:28px 30px;margin-bottom:18px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
     <div>
-      <div style="font-size:36px;font-weight:700;color:{recommendation['action_color']};">{recommendation['action']}</div>
-      <div style="font-size:16px;color:#c9d1d9;margin-top:5px;">{recommendation['trade_decision']}</div>
+      <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Investment Rating</div>
+      <div style="font-size:48px;font-weight:800;color:{ac};letter-spacing:-1px;line-height:1;">{recommendation['action']}</div>
+      <div style="font-size:15px;color:#c9d1d9;margin-top:10px;">{recommendation['trade_decision']}</div>
+      <div style="margin-top:14px;">
+        <span style="background:{ac}28;border:1px solid {ac}66;border-radius:20px;padding:5px 16px;font-size:12px;color:{ac};font-weight:600;">
+          Composite Score: {recommendation['combined_score']:.0f} / 100
+        </span>
+      </div>
     </div>
     <div style="text-align:right;">
-      <div style="font-size:13px;color:#8b949e;">12-Month Target</div>
-      <div style="font-size:28px;font-weight:600;color:#e6edf3;">${recommendation['target_price']:.2f}</div>
-      <div style="font-size:15px;color:{recommendation['action_color']};">{recommendation['upside']:+.1f}% Potential</div>
+      <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">12-Month Price Target</div>
+      <div style="font-size:40px;font-weight:700;color:#e6edf3;line-height:1;">${recommendation['target_price']:.2f}</div>
+      <div style="font-size:17px;color:{ac};font-weight:600;margin-top:4px;">{recommendation['upside']:+.1f}% potential upside</div>
+      <div style="font-size:12px;color:#6e7681;margin-top:8px;">Current price: ${data['price']:.2f}</div>
     </div>
   </div>
-</div>
-""", unsafe_allow_html=True)
+</div>""", unsafe_allow_html=True)
 
-                st.write("### Price Target Range")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    upside_low = (recommendation['target_low'] - data['price']) / data['price'] * 100
-                    st.metric("Downside Case", f"${recommendation['target_low']:.2f}", f"{upside_low:+.1f}%")
-                with col2:
-                    st.metric("Base Case", f"${recommendation['target_price']:.2f}", f"{recommendation['upside']:+.1f}%")
-                with col3:
-                    upside_high = (recommendation['target_high'] - data['price']) / data['price'] * 100
-                    st.metric("Upside Case", f"${recommendation['target_high']:.2f}", f"{upside_high:+.1f}%")
+                # ── 2. PRICE TARGET SCENARIOS ─────────────────────────────────
+                st.markdown("##### Price Target Scenarios")
+                pt_col1, pt_col2, pt_col3 = st.columns(3)
+                for col, (label, icon, price, upside, color) in zip(
+                    [pt_col1, pt_col2, pt_col3],
+                    [
+                        ("Bear Case",  "\U0001f43b", recommendation['target_low'],   upside_low,                   "#f85149"),
+                        ("Base Case",  "\u2696\ufe0f",  recommendation['target_price'], recommendation['upside'],     "#d29922"),
+                        ("Bull Case",  "\U0001f402", recommendation['target_high'],  upside_high,                  "#3fb950"),
+                    ]
+                ):
+                    with col:
+                        st.markdown(f"""
+<div style="background:{color}15;border:1px solid {color}55;border-radius:10px;padding:18px 14px;text-align:center;">
+  <div style="font-size:22px;margin-bottom:4px;">{icon}</div>
+  <div style="font-size:12px;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:26px;font-weight:700;color:{color};">${price:.2f}</div>
+  <div style="font-size:14px;color:{color};font-weight:600;margin-top:2px;">{upside:+.1f}%</div>
+</div>""", unsafe_allow_html=True)
 
-                st.divider()
-                st.write("### Expected Returns by Time Horizon")
-                returns_data = []
-                for period, forecast in forecasts.items():
-                    returns_data.append({
-                        "Period": period,
-                        "Expected Return": f"{forecast['point_estimate']:+.1f}%",
-                        "Range": f"{forecast['range_low']:+.1f}% to {forecast['range_high']:+.1f}%",
-                        "Price Target": f"${forecast['price_target']:.2f}",
-                        "Confidence": forecast['confidence'],
-                        "Probability": forecast['probability']
-                    })
-                st.dataframe(pd.DataFrame(returns_data), hide_index=True, use_container_width=True)
-
-                st.divider()
-                st.write("### Investment Rationale")
-                st.markdown(recommendation['rationale'])
-
-                st.divider()
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("### 🟢 Bullish Factors")
-                    if recommendation['bullish_drivers']:
-                        for driver in recommendation['bullish_drivers']:
-                            st.success(f"• {driver}")
-                    else:
-                        st.info("No significant bullish factors identified")
-                with col2:
-                    st.write("### 🔴 Key Risks")
-                    if recommendation['bearish_risks']:
-                        for risk in recommendation['bearish_risks']:
-                            st.error(f"• {risk}")
-                    else:
-                        st.info("No significant risk factors identified")
-
-                st.divider()
-                st.write("### ⚠️ Trade Invalidation")
-                st.warning(recommendation['invalidation'])
+                # ── 3. EXPECTED RETURNS TABLE ─────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Expected Returns by Time Horizon")
                 st.markdown("""
----
-<div style="font-size:11px;color:#6e7681;text-align:center;padding:10px 0;">
-<strong>Disclaimer:</strong> Educational purposes only. Not financial advice.
-Data from Yahoo Finance with 15-20 min delay.
-</div>
-""", unsafe_allow_html=True)
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+Forecasted returns are derived from a multi-factor model integrating technical momentum scores, fundamental
+valuation gaps, analyst consensus price targets, and historical mean-reversion patterns.
+<strong>Point Estimate</strong> is the probability-weighted expected return.
+<strong>80% Range</strong> is the confidence interval. <strong>Confidence</strong> reflects signal convergence
+across independent analytical frameworks — short-horizon estimates are more technically driven while
+long-horizon estimates weight intrinsic fundamental value more heavily.
+</div>""", unsafe_allow_html=True)
+
+                _ret_rows = ""
+                for _period, _fc in forecasts.items():
+                    _ret  = _fc['point_estimate']
+                    _rc   = "#3fb950" if _ret > 5 else "#d29922" if _ret > 0 else "#f85149"
+                    _conf = _fc['confidence']
+                    _cc   = "#3fb950" if _conf == "High" else "#d29922" if _conf == "Medium" else "#f85149"
+                    _ret_rows += (
+                        f"<tr style='border-bottom:1px solid #21262d;'>"
+                        f"<td style='padding:10px 12px;font-size:13px;color:#e6edf3;font-weight:600;'>{_period}</td>"
+                        f"<td style='padding:10px 12px;font-size:16px;color:{_rc};font-weight:700;text-align:center;'>{_ret:+.1f}%</td>"
+                        f"<td style='padding:10px 12px;font-size:12px;color:#8b949e;text-align:center;'>{_fc['range_low']:+.1f}% \u2192 {_fc['range_high']:+.1f}%</td>"
+                        f"<td style='padding:10px 12px;font-size:13px;color:#58a6ff;font-weight:600;text-align:center;'>${_fc['price_target']:.2f}</td>"
+                        f"<td style='padding:10px 12px;text-align:center;'><span style='background:{_cc}22;border:1px solid {_cc};color:{_cc};border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700;'>{_conf}</span></td>"
+                        f"<td style='padding:10px 12px;font-size:12px;color:#8b949e;text-align:center;'>{_fc['probability']}</td>"
+                        f"</tr>"
+                    )
+                st.markdown(
+                    "<div style='background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;margin-bottom:8px;'>"
+                    "<table style='width:100%;border-collapse:collapse;'>"
+                    "<thead><tr style='background:#161b22;border-bottom:2px solid #30363d;'>"
+                    "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Period</th>"
+                    "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Expected Return</th>"
+                    "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>80% Range</th>"
+                    "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Price Target</th>"
+                    "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Confidence</th>"
+                    "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Probability</th>"
+                    f"</tr></thead><tbody>{_ret_rows}</tbody></table></div>",
+                    unsafe_allow_html=True)
+
+                # ── 4. INVESTMENT RATIONALE ───────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Investment Rationale")
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:18px 20px;font-size:14px;color:#c9d1d9;line-height:1.9;">
+{recommendation['rationale']}
+</div>""", unsafe_allow_html=True)
+
+                # ── 5. CATALYSTS & RISKS ──────────────────────────────────────
+                st.markdown("---")
+                b_col1, b_col2 = st.columns(2)
+                with b_col1:
+                    st.markdown("##### \U0001f7e2 Bullish Catalysts")
+                    if recommendation.get('bullish_drivers'):
+                        _items = "".join(
+                            f"<div style='padding:7px 0;border-bottom:1px solid #21262d;font-size:13px;color:#c9d1d9;'>"
+                            f"<span style='color:#3fb950;margin-right:6px;'>\u2713</span>{d}</div>"
+                            for d in recommendation['bullish_drivers']
+                        )
+                        st.markdown(f"<div style='background:#0d1117;border:1px solid #3fb95040;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
+                    else:
+                        st.info("No significant bullish factors identified.")
+                with b_col2:
+                    st.markdown("##### \U0001f534 Key Risks")
+                    if recommendation.get('bearish_risks'):
+                        _items = "".join(
+                            f"<div style='padding:7px 0;border-bottom:1px solid #21262d;font-size:13px;color:#c9d1d9;'>"
+                            f"<span style='color:#f85149;margin-right:6px;'>\u26a0</span>{r}</div>"
+                            for r in recommendation['bearish_risks']
+                        )
+                        st.markdown(f"<div style='background:#0d1117;border:1px solid #f8514940;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
+                    else:
+                        st.info("No significant risk factors identified.")
+
+                # ── 6. TRADE INVALIDATION ─────────────────────────────────────
+                st.markdown("---")
+                st.markdown(f"""
+<div style="background:#d2992212;border:1px solid #d2992255;border-radius:8px;padding:16px 18px;">
+  <div style="font-size:11px;color:#d29922;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">\u26a0\ufe0f Trade Invalidation Criteria</div>
+  <div style="font-size:13px;color:#c9d1d9;line-height:1.8;">{recommendation['invalidation']}</div>
+</div>""", unsafe_allow_html=True)
+
+                st.markdown("""
+<div style="font-size:11px;color:#6e7681;text-align:center;padding:18px 0 4px 0;border-top:1px solid #21262d;margin-top:18px;">
+  <strong>Disclaimer:</strong> Educational purposes only. Not financial or investment advice.
+  Data sourced from Yahoo Finance with a 15\u201320 minute delay.
+</div>""", unsafe_allow_html=True)
+
