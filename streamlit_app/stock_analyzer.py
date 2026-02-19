@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -1556,6 +1555,103 @@ def show_stock_analyzer():
 </div>
 """, unsafe_allow_html=True)
 
+
+        # ── AI CHAT — inside left column ────────────────────────────────────────
+        st.divider()
+        st.write("#### 💬 AI Financial Analyst")
+
+        _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
+        if _chat_key not in st.session_state:
+            st.session_state[_chat_key] = []
+
+        if has_data:
+            st.caption(f"Chatting about **{data['ticker']} — {data['name']}**. Ask anything about the analysis.")
+        else:
+            st.caption("Run an analysis above to start chatting.")
+
+        # Compact scrollable chat history
+        _chat_box = st.container(height=320)
+        with _chat_box:
+            if not st.session_state[_chat_key]:
+                st.markdown(
+                    "<p style='color:#6e7681;font-size:13px;text-align:center;padding-top:30px;'>"
+                    "No messages yet — ask a question below.</p>",
+                    unsafe_allow_html=True
+                )
+            for _msg in st.session_state[_chat_key]:
+                with st.chat_message(_msg["role"]):
+                    st.markdown(_msg["content"])
+
+        # Input bar always at bottom
+
+        # Form-based input stays inside the column (unlike st.chat_input which floats)
+        with st.form("chat_form", clear_on_submit=True):
+            _prompt = st.text_input("Question", label_visibility="collapsed",
+                                    placeholder="Ask about this stock…")
+            _submitted = st.form_submit_button("Send →", use_container_width=True)
+
+        if _submitted and _prompt:
+            st.session_state[_chat_key].append({"role": "user", "content": _prompt})
+            with _chat_box:
+                with st.chat_message("user"):
+                    st.markdown(_prompt)
+
+            if not has_data:
+                _reply = "Please enter a ticker and run an analysis first."
+                st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
+                with _chat_box:
+                    with st.chat_message("assistant"):
+                        st.markdown(_reply)
+            else:
+                _context = build_analysis_context(
+                    data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
+                )
+                _system_msg = (
+                    f"You are an expert CFA-certified financial analyst assistant with access to a "
+                    f"comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
+                    "Answer questions using the provided analysis data from Yahoo Finance. "
+                    "Rules: cite specific numbers, explain reasoning, give quantitative estimates for "
+                    "scenarios, note data limitations, do NOT give personal investment advice.\n\n"
+                    f"Full analysis:\n\n{_context}"
+                )
+                try:
+                    from openai import OpenAI as _OpenAI
+                    _client = _OpenAI(api_key=openai_api_key)
+                    _api_msgs = [{"role": "system", "content": _system_msg}]
+                    for _m in st.session_state[_chat_key]:
+                        _api_msgs.append({"role": _m["role"], "content": _m["content"]})
+
+                    _response_text = ""
+                    with _chat_box:
+                        with st.chat_message("assistant"):
+                            _stream = _client.chat.completions.create(
+                                model="gpt-4o-mini",
+                                messages=_api_msgs,
+                                max_tokens=1500,
+                                temperature=0.7,
+                                stream=True,
+                            )
+                            _placeholder = st.empty()
+                            for _chunk in _stream:
+                                if _chunk.choices[0].delta.content is not None:
+                                    _response_text += _chunk.choices[0].delta.content
+                                    _placeholder.markdown(_response_text + "▌")
+                            _placeholder.markdown(_response_text)
+
+                    st.session_state[_chat_key].append({"role": "assistant", "content": _response_text})
+
+                except Exception as _e:
+                    _reply = f"Chat error: {_e}"
+                    st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
+                    with _chat_box:
+                        with st.chat_message("assistant"):
+                            st.markdown(_reply)
+
+        if st.session_state.get(_chat_key):
+            if st.button("Clear Chat History", key="clear_chat_top"):
+                st.session_state[_chat_key] = []
+                st.rerun()
+
     with col_right:
         tab_tech, tab_fund, tab_conclusion = st.tabs(
             ["📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast"]
@@ -1813,93 +1909,3 @@ def show_stock_analyzer():
 Data from Yahoo Finance with 15-20 min delay.
 </div>
 """, unsafe_allow_html=True)
-
-    # ── COMPACT AI CHAT — below both columns ─────────────────────────────────
-    st.divider()
-    st.write("### 💬 AI Financial Analyst Chat")
-
-    _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
-    if _chat_key not in st.session_state:
-        st.session_state[_chat_key] = []
-
-    if has_data:
-        st.caption(f"Chatting about **{data['ticker']} — {data['name']}**. Ask anything about the analysis.")
-    else:
-        st.caption("Run an analysis above to start chatting.")
-
-    # Compact scrollable chat history
-    _chat_box = st.container(height=320)
-    with _chat_box:
-        if not st.session_state[_chat_key]:
-            st.markdown(
-                "<p style='color:#6e7681;font-size:13px;text-align:center;padding-top:30px;'>"
-                "No messages yet — ask a question below.</p>",
-                unsafe_allow_html=True
-            )
-        for _msg in st.session_state[_chat_key]:
-            with st.chat_message(_msg["role"]):
-                st.markdown(_msg["content"])
-
-    # Input bar always at bottom
-    if _prompt := st.chat_input("Ask about this stock..."):
-        st.session_state[_chat_key].append({"role": "user", "content": _prompt})
-        with _chat_box:
-            with st.chat_message("user"):
-                st.markdown(_prompt)
-
-        if not has_data:
-            _reply = "Please enter a ticker and run an analysis first."
-            st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
-            with _chat_box:
-                with st.chat_message("assistant"):
-                    st.markdown(_reply)
-        else:
-            _context = build_analysis_context(
-                data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
-            )
-            _system_msg = (
-                f"You are an expert CFA-certified financial analyst assistant with access to a "
-                f"comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
-                "Answer questions using the provided analysis data from Yahoo Finance. "
-                "Rules: cite specific numbers, explain reasoning, give quantitative estimates for "
-                "scenarios, note data limitations, do NOT give personal investment advice.\n\n"
-                f"Full analysis:\n\n{_context}"
-            )
-            try:
-                from openai import OpenAI as _OpenAI
-                _client = _OpenAI(api_key=openai_api_key)
-                _api_msgs = [{"role": "system", "content": _system_msg}]
-                for _m in st.session_state[_chat_key]:
-                    _api_msgs.append({"role": _m["role"], "content": _m["content"]})
-
-                _response_text = ""
-                with _chat_box:
-                    with st.chat_message("assistant"):
-                        _stream = _client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=_api_msgs,
-                            max_tokens=1500,
-                            temperature=0.7,
-                            stream=True,
-                        )
-                        _placeholder = st.empty()
-                        for _chunk in _stream:
-                            if _chunk.choices[0].delta.content is not None:
-                                _response_text += _chunk.choices[0].delta.content
-                                _placeholder.markdown(_response_text + "▌")
-                        _placeholder.markdown(_response_text)
-
-                st.session_state[_chat_key].append({"role": "assistant", "content": _response_text})
-
-            except Exception as _e:
-                _reply = f"Chat error: {_e}"
-                st.session_state[_chat_key].append({"role": "assistant", "content": _reply})
-                with _chat_box:
-                    with st.chat_message("assistant"):
-                        st.markdown(_reply)
-
-    if st.session_state.get(_chat_key):
-        if st.button("Clear Chat History", key="clear_chat_top"):
-            st.session_state[_chat_key] = []
-            st.rerun()
-
