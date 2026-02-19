@@ -1660,174 +1660,490 @@ def show_stock_analyzer():
             if not has_data:
                 st.info("Enter a ticker and click **Run Full Analysis** to generate the report.")
             else:
-                st.write("### Technical Analysis Summary")
-                col1, col2, col3, col4, col5 = st.columns(5)
-                with col1:
-                    st.metric("Overall", f"{tech_analysis['score_pct']:.0f}%", tech_analysis['rating'])
-                with col2:
-                    st.metric("Trend", f"{tech_analysis['breakdown']['trend']['score']}/{tech_analysis['breakdown']['trend']['max']}")
-                with col3:
-                    st.metric("Momentum", f"{tech_analysis['breakdown']['momentum']['score']}/{tech_analysis['breakdown']['momentum']['max']}")
-                with col4:
-                    st.metric("Volatility", f"{tech_analysis['breakdown']['volatility']['score']}/{tech_analysis['breakdown']['volatility']['max']}")
-                with col5:
-                    st.metric("Volume", f"{tech_analysis['breakdown']['volume']['score']}/{tech_analysis['breakdown']['volume']['max']}")
-
-                st.divider()
-                st.write("### Price Chart with Moving Averages")
                 chart_data = tech_df.reset_index()
                 chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_localize(None)
 
-                price_chart = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
-                    x=alt.X('Date:T', title=None),
-                    y=alt.Y('Close:Q', title='Price ($)', scale=alt.Scale(zero=False)),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Close:Q', format='$.2f', title='Price')]
+                # ── 1. PROFESSIONAL OVERVIEW ─────────────────────────────────
+                tech_score  = tech_analysis['score_pct']
+                rsi_val     = tech_df['RSI'].iloc[-1]
+                macd_val    = tech_df['MACD'].iloc[-1]
+                macd_sig    = tech_df['MACD_Signal'].iloc[-1]
+                sma50_val   = tech_df['SMA_50'].iloc[-1]
+                sma200_val  = tech_df['SMA_200'].iloc[-1]
+                close_val   = tech_df['Close'].iloc[-1]
+                vs50  = (close_val / sma50_val  - 1) * 100 if sma50_val  and not pd.isna(sma50_val)  else 0
+                vs200 = (close_val / sma200_val - 1) * 100 if sma200_val and not pd.isna(sma200_val) else 0
+
+                if tech_score >= 70:
+                    stance = "**bullish technical setup**"; s_color = "#3fb950"
+                    outlook = "Price action shows sustained buying pressure. Trend indicators align positively, supporting continuation of the uptrend barring macro disruptions."
+                elif tech_score >= 50:
+                    stance = "**moderately constructive posture**"; s_color = "#d29922"
+                    outlook = "Mixed signals characterise a transitional phase. Confirmation above key resistance would validate bullish continuation; a break below support would flip the bias."
+                else:
+                    stance = "**bearish technical deterioration**"; s_color = "#f85149"
+                    outlook = "Selling pressure dominates price discovery. Traders should exercise caution; wait for a confirmed technical base before re-entering long positions."
+
+                rsi_desc  = (f"overbought at {rsi_val:.1f} — near-term exhaustion risk" if rsi_val > 70
+                             else f"oversold at {rsi_val:.1f} — potential mean-reversion setup" if rsi_val < 30
+                             else f"neutral at {rsi_val:.1f} — no directional bias from momentum")
+                macd_desc = "MACD has crossed above its signal line, generating a bullish momentum signal" if macd_val > macd_sig else "MACD sits below its signal line, flagging negative momentum"
+                sma_desc  = (f"{abs(vs50):.1f}% {'above' if vs50 >= 0 else 'below'} the 50-day SMA "
+                             f"and {abs(vs200):.1f}% {'above' if vs200 >= 0 else 'below'} the 200-day SMA")
+
+                st.markdown(f"""
+<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px 22px;margin-bottom:6px;">
+<p style="color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">Technical Analysis Overview</p>
+<p style="color:#c9d1d9;line-height:1.8;margin:0;font-size:14px;">
+<strong>{data['name']} ({data['ticker']})</strong> presents a {stance.replace("**","<strong>").replace("**","</strong>")}
+ with a composite technical score of <strong style="color:{s_color};">{tech_score:.0f}/100</strong>.
+The stock is currently {sma_desc}, a key barometer of trend health — sustained trading above both moving averages 
+signals an intact primary uptrend, while a cross below the 200-day SMA would indicate structural deterioration.
+The RSI(14) reads {rsi_desc}.
+{macd_desc}. {outlook}
+</p></div>""", unsafe_allow_html=True)
+
+                # ── 2. DIMENSION SCORE CARDS ─────────────────────────────────
+                st.markdown("##### Dimensional Breakdown")
+                bd = tech_analysis['breakdown']
+                dim_cols = st.columns(5)
+                dims = [
+                    ("Overall",    tech_score,              100, tech_analysis['rating']),
+                    ("Trend",      bd['trend']['score'],     bd['trend']['max'],      ""),
+                    ("Momentum",   bd['momentum']['score'],  bd['momentum']['max'],   ""),
+                    ("Volatility", bd['volatility']['score'],bd['volatility']['max'], ""),
+                    ("Volume",     bd['volume']['score'],    bd['volume']['max'],     ""),
+                ]
+                for col, (label, score, mx, sub) in zip(dim_cols, dims):
+                    pct = score / mx * 100 if mx else 0
+                    bar_color = "#3fb950" if pct >= 65 else "#d29922" if pct >= 40 else "#f85149"
+                    with col:
+                        st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:22px;font-weight:700;color:{bar_color};margin:4px 0;">{score:.0f}<span style="font-size:13px;color:#6e7681;">/{mx}</span></div>
+  <div style="background:#21262d;border-radius:4px;height:5px;margin:4px 0;">
+    <div style="background:{bar_color};width:{pct:.0f}%;height:5px;border-radius:4px;"></div>
+  </div>
+  <div style="font-size:11px;color:#6e7681;">{sub if sub else f'{pct:.0f}%'}</div>
+</div>""", unsafe_allow_html=True)
+
+                # ── 3. PRICE + VOLUME CHART ───────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Price Action & Volume (1 Year)")
+                st.markdown("""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+<strong>How to read this chart:</strong> The price line (blue) represents daily closing prices over the past 12 months. 
+The <span style="color:#f0883e"><strong>SMA 50</strong></span> (50-day Simple Moving Average) captures intermediate trend direction — 
+a rising SMA 50 with price above it confirms a healthy uptrend. The <span style="color:#a371f7"><strong>SMA 200</strong></span> 
+is the institutional benchmark for long-term trend health; a "Golden Cross" (SMA 50 crossing above SMA 200) is a classic 
+bullish signal, while a "Death Cross" (SMA 50 crossing below SMA 200) flags long-term deterioration. 
+<span style="color:#3fb950"><strong>Support</strong></span> and <span style="color:#f85149"><strong>Resistance</strong></span> 
+levels mark price zones where supply/demand historically interacted. Volume bars at the bottom confirm price moves — 
+high volume on up-days signals conviction buying; high volume on down-days signals distribution.
+</div>""", unsafe_allow_html=True)
+
+                price_layer = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
+                    x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
+                    y=alt.Y('Close:Q', title='Price (USD)', scale=alt.Scale(zero=False),
+                            axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', format='$.0f')),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Close:Q', format='$.2f', title='Close')]
                 )
-                ma50  = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[5,5]).encode(x='Date:T', y='SMA_50:Q')
-                ma200 = alt.Chart(chart_data).mark_line(color='#a371f7', strokeWidth=1.5, strokeDash=[5,5]).encode(x='Date:T', y='SMA_200:Q')
+                ma50_layer  = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[4,4]).encode(
+                    x='Date:T', y=alt.Y('SMA_50:Q', title=''),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_50:Q', format='$.2f', title='SMA 50')]
+                )
+                ma200_layer = alt.Chart(chart_data).mark_line(color='#a371f7', strokeWidth=1.5, strokeDash=[4,4]).encode(
+                    x='Date:T', y=alt.Y('SMA_200:Q', title=''),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_200:Q', format='$.2f', title='SMA 200')]
+                )
+                price_combined = price_layer + ma50_layer + ma200_layer
                 if supports:
-                    support_df = pd.DataFrame({'y': [supports[-1]]})
-                    price_chart = price_chart + alt.Chart(support_df).mark_rule(color='#3fb950', strokeDash=[3,3]).encode(y='y:Q')
+                    sup_df = pd.DataFrame({'y': [supports[-1]]})
+                    price_combined = price_combined + alt.Chart(sup_df).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
                 if resistances:
-                    resist_df = pd.DataFrame({'y': [resistances[-1]]})
-                    price_chart = price_chart + alt.Chart(resist_df).mark_rule(color='#f85149', strokeDash=[3,3]).encode(y='y:Q')
-                st.altair_chart((price_chart + ma50 + ma200).properties(height=300).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
-                st.caption("🔵 Price  🟠 SMA50  🟣 SMA200  🟢 Support  🔴 Resistance")
+                    res_df = pd.DataFrame({'y': [resistances[-1]]})
+                    price_combined = price_combined + alt.Chart(res_df).mark_rule(color='#f85149', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
 
-                col_rsi, col_macd = st.columns(2)
-                with col_rsi:
-                    st.write("### RSI (14)")
-                    rsi_chart = alt.Chart(chart_data.tail(100)).mark_line(color='#58a6ff').encode(
-                        x=alt.X('Date:T', title=None),
-                        y=alt.Y('RSI:Q', scale=alt.Scale(domain=[0, 100]), title='RSI')
-                    )
-                    rules = alt.Chart(pd.DataFrame({'y': [30, 70]})).mark_rule(strokeDash=[3,3], color='#6e7681').encode(y='y:Q')
-                    st.altair_chart((rsi_chart + rules).properties(height=180).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
-                    rsi_val = tech_df['RSI'].iloc[-1]
-                    if rsi_val > 70:
-                        st.error(f"RSI: {rsi_val:.1f} — OVERBOUGHT")
-                    elif rsi_val < 30:
-                        st.success(f"RSI: {rsi_val:.1f} — OVERSOLD")
-                    else:
-                        st.info(f"RSI: {rsi_val:.1f} — Neutral")
+                vol_layer = alt.Chart(chart_data).mark_bar(opacity=0.6).encode(
+                    x=alt.X('Date:T', title=None),
+                    y=alt.Y('Volume:Q', title='Volume', axis=alt.Axis(labelColor='#8b949e', format='~s', gridColor='#21262d')),
+                    color=alt.condition(
+                        alt.datum.Close >= alt.datum.Open if 'Open' in chart_data.columns else alt.value('#3fb950'),
+                        alt.value('#3fb950'), alt.value('#f85149')
+                    ),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Volume:Q', format=',', title='Volume')]
+                )
 
-                with col_macd:
-                    st.write("### MACD")
-                    macd_c = alt.Chart(chart_data.tail(100)).mark_line(color='#58a6ff').encode(x='Date:T', y='MACD:Q')
-                    sig_c  = alt.Chart(chart_data.tail(100)).mark_line(color='#f0883e').encode(x='Date:T', y='MACD_Signal:Q')
-                    hist_c = alt.Chart(chart_data.tail(100)).mark_bar(opacity=0.5).encode(
-                        x='Date:T', y='MACD_Hist:Q',
-                        color=alt.condition(alt.datum.MACD_Hist > 0, alt.value('#3fb950'), alt.value('#f85149'))
-                    )
-                    st.altair_chart((hist_c + macd_c + sig_c).properties(height=180).configure_view(strokeWidth=0).configure(background='#161b22'), use_container_width=True)
-                    if tech_df['MACD'].iloc[-1] > tech_df['MACD_Signal'].iloc[-1]:
-                        st.success("MACD: Bullish (above signal)")
-                    else:
-                        st.warning("MACD: Bearish (below signal)")
+                combined_chart = alt.vconcat(
+                    price_combined.properties(height=280, title=''),
+                    vol_layer.properties(height=80, title=''),
+                ).resolve_scale(x='shared').configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(
+                    labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d'
+                )
+                st.altair_chart(combined_chart, use_container_width=True)
+                st.caption("🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume")
 
-                st.write("### Technical Signal Details")
+                # ── 4. RSI SECTION ────────────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Momentum Oscillator: RSI (14-Period)")
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+The <strong>Relative Strength Index (RSI)</strong>, developed by J. Welles Wilder, is a momentum oscillator ranging 0–100 
+that measures the speed and magnitude of recent price changes. It compares average gains to average losses over a 14-period 
+rolling window. <strong style="color:#f85149;">RSI &gt; 70</strong> signals overbought conditions — the asset may be due for a 
+consolidation or reversal. <strong style="color:#3fb950;">RSI &lt; 30</strong> signals oversold conditions — historically a 
+mean-reversion opportunity. The 50 midline acts as a trend filter: sustained readings above 50 confirm bullish momentum, 
+below 50 confirm bearish momentum. Currently, {data['ticker']}'s RSI(14) is 
+<strong style="color={'#f85149' if rsi_val > 70 else '#3fb950' if rsi_val < 30 else '#d29922'};">{rsi_val:.1f}</strong> — {rsi_desc}.
+</div>""", unsafe_allow_html=True)
+
+                rsi_data = chart_data.tail(120).copy()
+                rsi_line = alt.Chart(rsi_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
+                    x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
+                    y=alt.Y('RSI:Q', scale=alt.Scale(domain=[0, 100]), title='RSI',
+                            axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', values=[20,30,50,70,80])),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('RSI:Q', format='.1f', title='RSI')]
+                )
+                ob_rule = alt.Chart(pd.DataFrame({'y': [70]})).mark_rule(color='#f85149', strokeWidth=1.5, strokeDash=[4,4]).encode(y='y:Q')
+                os_rule = alt.Chart(pd.DataFrame({'y': [30]})).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[4,4]).encode(y='y:Q')
+                mid_rule = alt.Chart(pd.DataFrame({'y': [50]})).mark_rule(color='#6e7681', strokeWidth=1, strokeDash=[2,4]).encode(y='y:Q')
+                rsi_chart = (rsi_line + ob_rule + os_rule + mid_rule).properties(height=200).configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d')
+                st.altair_chart(rsi_chart, use_container_width=True)
+                rsi_box_color = "#f85149" if rsi_val > 70 else "#3fb950" if rsi_val < 30 else "#d29922"
+                st.markdown(f"<div style='background:{rsi_box_color}22;border:1px solid {rsi_box_color};border-radius:6px;padding:8px 14px;font-size:13px;color:#c9d1d9;'>RSI(14): <strong style='color:{rsi_box_color};'>{rsi_val:.1f}</strong> — {'🔴 Overbought — consider tightening stops or reducing exposure' if rsi_val > 70 else '🟢 Oversold — watch for reversal confirmation before entering' if rsi_val < 30 else '🟡 Neutral — momentum provides no strong directional edge'}</div>", unsafe_allow_html=True)
+
+                # ── 5. MACD SECTION ───────────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Trend Momentum: MACD (12, 26, 9)")
+                macd_diff   = macd_val - macd_sig
+                macd_trend  = "expanding" if abs(chart_data['MACD_Hist'].iloc[-1]) > abs(chart_data['MACD_Hist'].iloc[-5]) else "contracting"
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+The <strong>MACD (Moving Average Convergence Divergence)</strong> indicator, created by Gerald Appel, measures 
+the relationship between two exponential moving averages — the 12-period EMA minus the 26-period EMA — to identify 
+trend direction and momentum shifts. The <strong>Signal Line</strong> (9-period EMA of MACD) acts as a trigger: 
+when the MACD line crosses above it, a bullish signal is generated; a cross below is bearish. The 
+<strong>Histogram</strong> (the difference between MACD and Signal) provides a visual representation of momentum 
+— widening green bars indicate strengthening bullish momentum, narrowing or red bars signal distribution.
+Currently, MACD is <strong style="color={'#58a6ff'};">{macd_val:.3f}</strong> vs Signal <strong>{macd_sig:.3f}</strong> 
+(spread: <strong style="color={'#3fb950' if macd_diff >= 0 else '#f85149'};">{macd_diff:+.3f}</strong>), 
+with the histogram <strong>{macd_trend}</strong> — suggesting {'building' if macd_trend == 'expanding' and macd_diff > 0 else 'fading' if macd_trend == 'contracting' else 'intensifying'} momentum.
+</div>""", unsafe_allow_html=True)
+
+                macd_data  = chart_data.tail(120).copy()
+                macd_line  = alt.Chart(macd_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
+                    x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
+                    y=alt.Y('MACD:Q', title='MACD', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d')),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('MACD:Q', format='.3f', title='MACD')]
+                )
+                sig_line   = alt.Chart(macd_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[4,4]).encode(
+                    x='Date:T', y=alt.Y('MACD_Signal:Q', title=''),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('MACD_Signal:Q', format='.3f', title='Signal')]
+                )
+                hist_bars  = alt.Chart(macd_data).mark_bar(opacity=0.65).encode(
+                    x='Date:T',
+                    y=alt.Y('MACD_Hist:Q', title=''),
+                    color=alt.condition(alt.datum.MACD_Hist >= 0, alt.value('#3fb950'), alt.value('#f85149')),
+                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('MACD_Hist:Q', format='.3f', title='Histogram')]
+                )
+                zero_rule  = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule(color='#6e7681', strokeWidth=1).encode(y='y:Q')
+                macd_chart = (hist_bars + macd_line + sig_line + zero_rule).properties(height=220).configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d')
+                st.altair_chart(macd_chart, use_container_width=True)
+                st.caption("🔵 MACD Line  |  🟠 Signal Line  |  🟢/🔴 Histogram (momentum bars)")
+
+                # ── 6. SIGNAL DETAIL TABLE ────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Full Signal Detail")
                 tech_signals_df = pd.DataFrame(tech_analysis['signals'])
                 if not tech_signals_df.empty:
                     st.dataframe(
                         tech_signals_df[['category', 'indicator', 'signal', 'score', 'detail', 'threshold']],
                         hide_index=True, use_container_width=True
                     )
-                st.caption("Source: Yahoo Finance (real-time market feed, 15-20 min delayed).")
+                st.caption("Data: Yahoo Finance real-time feed (15–20 min delayed). Scores are proprietary CFA-style composite ratings.")
 
         # ── FUNDAMENTAL TAB ────────────────────────────────────────────────────
         with tab_fund:
             if not has_data:
                 st.info("Run an analysis to see fundamental data.")
             else:
-                st.write("### Fundamental Analysis Summary")
-                col1, col2, col3, col4, col5 = st.columns(5)
-                with col1:
-                    st.metric("Overall", f"{fund_analysis['score_pct']:.0f}%", fund_analysis['rating'])
-                with col2:
-                    st.metric("Valuation", f"{fund_analysis['breakdown']['valuation']['score']}/{fund_analysis['breakdown']['valuation']['max']}")
-                with col3:
-                    st.metric("Profitability", f"{fund_analysis['breakdown']['profitability']['score']}/{fund_analysis['breakdown']['profitability']['max']}")
-                with col4:
-                    st.metric("Growth", f"{fund_analysis['breakdown']['growth']['score']}/{fund_analysis['breakdown']['growth']['max']}")
-                with col5:
-                    st.metric("Health", f"{fund_analysis['breakdown']['health']['score']}/{fund_analysis['breakdown']['health']['max']}")
+                # ── 1. PROFESSIONAL OVERVIEW ─────────────────────────────────
+                fund_score = fund_analysis['score_pct']
+                pe    = data.get('pe_ratio')
+                fpe   = data.get('forward_pe')
+                peg   = data.get('peg_ratio')
+                roe   = data.get('roe', 0) or 0
+                npm   = data.get('profit_margin', 0) or 0
+                opm   = data.get('operating_margin', 0) or 0
+                rev_g = data.get('revenue_growth', 0) or 0
+                eps_g = data.get('earnings_growth', 0) or 0
+                de    = data.get('debt_to_equity', 0) or 0
+                cr    = data.get('current_ratio', 0) or 0
+                fcf   = data.get('free_cash_flow', 0) or 0
 
-                st.divider()
-                st.write("### Key Financial Metrics")
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.write("**Valuation**")
-                    st.write(f"P/E: {data.get('pe_ratio', 'N/A'):.1f}x" if data.get('pe_ratio') else "P/E: N/A")
-                    st.write(f"Fwd P/E: {data.get('forward_pe', 'N/A'):.1f}x" if data.get('forward_pe') else "Fwd P/E: N/A")
-                    st.write(f"PEG: {data.get('peg_ratio', 'N/A'):.2f}" if data.get('peg_ratio') else "PEG: N/A")
-                    st.write(f"EV/EBITDA: {data.get('ev_ebitda', 'N/A'):.1f}x" if data.get('ev_ebitda') else "EV/EBITDA: N/A")
-                with col2:
-                    st.write("**Profitability**")
-                    st.write(f"Op Margin: {data.get('operating_margin', 0)*100:.1f}%" if data.get('operating_margin') else "Op Margin: N/A")
-                    st.write(f"Net Margin: {data.get('profit_margin', 0)*100:.1f}%" if data.get('profit_margin') else "Net Margin: N/A")
-                    st.write(f"ROE: {data.get('roe', 0)*100:.1f}%" if data.get('roe') else "ROE: N/A")
-                    st.write(f"ROA: {data.get('roa', 0)*100:.1f}%" if data.get('roa') else "ROA: N/A")
-                with col3:
-                    st.write("**Growth**")
-                    st.write(f"Rev Growth: {data.get('revenue_growth', 0)*100:.1f}%" if data.get('revenue_growth') else "Rev Growth: N/A")
-                    st.write(f"EPS Growth: {data.get('earnings_growth', 0)*100:.1f}%" if data.get('earnings_growth') else "EPS Growth: N/A")
-                    st.write(f"EPS: ${data.get('eps', 0):.2f}" if data.get('eps') else "EPS: N/A")
-                    st.write(f"Fwd EPS: ${data.get('forward_eps', 0):.2f}" if data.get('forward_eps') else "Fwd EPS: N/A")
-                with col4:
-                    st.write("**Financial Health**")
-                    st.write(f"D/E: {data.get('debt_to_equity', 0):.2f}" if data.get('debt_to_equity') is not None else "D/E: N/A")
-                    st.write(f"Current: {data.get('current_ratio', 0):.2f}" if data.get('current_ratio') else "Current: N/A")
-                    fcf = data.get('free_cash_flow', 0)
-                    st.write(f"FCF: ${fcf/1e9:.1f}B" if fcf else "FCF: N/A")
-                    st.write(f"Cash: ${data.get('total_cash', 0)/1e9:.1f}B" if data.get('total_cash') else "Cash: N/A")
+                if fund_score >= 70:
+                    f_stance = "**fundamentally strong**"; f_color = "#3fb950"
+                    f_outlook = "The business demonstrates durable competitive advantages with solid earnings quality, manageable leverage, and a growth trajectory that justifies current valuation."
+                elif fund_score >= 50:
+                    f_stance = "**fundamentally adequate**"; f_color = "#d29922"
+                    f_outlook = "Core financials are sound but exhibit pockets of weakness. Investors should monitor margin trends and balance sheet developments before expanding positions."
+                else:
+                    f_stance = "**fundamentally challenged**"; f_color = "#f85149"
+                    f_outlook = "Financial metrics lag sector benchmarks across multiple dimensions. Valuation may reflect distress; thorough due diligence is essential."
 
-                st.divider()
-                st.write("### Valuation Analysis")
+                val_comment = (f"trading at {pe:.1f}x trailing earnings" if pe else "P/E not available")
+                roe_comment = (f"return on equity of {roe*100:.1f}%" if roe else "ROE not available")
+                fcf_comment = (f"free cash flow of ${fcf/1e9:.1f}B — a direct measure of capital generation capacity" if fcf else "FCF not disclosed")
+
+                st.markdown(f"""
+<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px 22px;margin-bottom:6px;">
+<p style="color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">Fundamental Analysis Overview</p>
+<p style="color:#c9d1d9;line-height:1.8;margin:0;font-size:14px;">
+<strong>{data['name']} ({data['ticker']})</strong> is assessed as 
+{f_stance.replace("**","<strong>").replace("**","</strong>")}
+ with a composite fundamental score of <strong style="color:{f_color};">{fund_score:.0f}/100</strong> 
+across valuation, profitability, growth, and financial health dimensions.
+The stock is currently {val_comment}, 
+posting a {roe_comment}, and generating {fcf_comment}.
+{f_outlook}
+</p></div>""", unsafe_allow_html=True)
+
+                # ── 2. DIMENSION SCORE CARDS ─────────────────────────────────
+                st.markdown("##### Dimensional Breakdown")
+                bd = fund_analysis['breakdown']
+                dim_cols = st.columns(5)
+                dims = [
+                    ("Overall",       fund_score,                      100, fund_analysis['rating']),
+                    ("Valuation",     bd['valuation']['score'],         bd['valuation']['max'],     ""),
+                    ("Profitability", bd['profitability']['score'],     bd['profitability']['max'], ""),
+                    ("Growth",        bd['growth']['score'],            bd['growth']['max'],        ""),
+                    ("Health",        bd['health']['score'],            bd['health']['max'],        ""),
+                ]
+                for col, (label, score, mx, sub) in zip(dim_cols, dims):
+                    pct = score / mx * 100 if mx else 0
+                    bar_color = "#3fb950" if pct >= 65 else "#d29922" if pct >= 40 else "#f85149"
+                    with col:
+                        st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:22px;font-weight:700;color:{bar_color};margin:4px 0;">{score:.0f}<span style="font-size:13px;color:#6e7681;">/{mx}</span></div>
+  <div style="background:#21262d;border-radius:4px;height:5px;margin:4px 0;">
+    <div style="background:{bar_color};width:{pct:.0f}%;height:5px;border-radius:4px;"></div>
+  </div>
+  <div style="font-size:11px;color:#6e7681;">{sub if sub else f'{pct:.0f}%'}</div>
+</div>""", unsafe_allow_html=True)
+
+                # ── 3. VALUATION ──────────────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Valuation Multiples")
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+<strong>Valuation multiples</strong> benchmark a stock's market price against its fundamental earnings and cash flow 
+metrics to assess whether it trades at a premium or discount. The <strong>Price-to-Earnings (P/E)</strong> ratio divides 
+market price by trailing twelve-month EPS — historically, S&P 500 averages ~16–18x. <strong>Forward P/E</strong> uses 
+consensus EPS estimates, reflecting market expectations for earnings growth. The 
+<strong>PEG Ratio</strong> (P/E divided by earnings growth rate) adjusts valuation for growth; values below 1.0x 
+suggest undervaluation relative to growth. <strong>EV/EBITDA</strong> is an enterprise-level metric preferred by 
+credit analysts and M&A practitioners for cross-capital-structure comparisons — sub-10x typically indicates 
+relative value.{f" Currently, {data['ticker']} trades at {pe:.1f}x trailing P/E and {fpe:.1f}x forward P/E, implying {'earnings growth expectations are priced in' if fpe and pe and fpe < pe else 'the market anticipates margin compression or earnings decline' if fpe and pe and fpe > pe else ''}." if pe else ""}
+</div>""", unsafe_allow_html=True)
+
+                v_col1, v_col2, v_col3, v_col4 = st.columns(4)
+                metrics_val = [
+                    ("P/E Ratio", f"{pe:.1f}x" if pe else "N/A", "Trailing TTM", 18, pe),
+                    ("Forward P/E", f"{fpe:.1f}x" if fpe else "N/A", "Next 12M est.", 16, fpe),
+                    ("PEG Ratio", f"{peg:.2f}" if peg else "N/A", "<1.0 = value", 1, peg),
+                    ("EV/EBITDA", f"{data.get('ev_ebitda',0):.1f}x" if data.get('ev_ebitda') else "N/A", "Enterprise value", 12, data.get('ev_ebitda')),
+                ]
+                for col, (label, val, sub, bench, raw) in zip([v_col1,v_col2,v_col3,v_col4], metrics_val):
+                    if raw:
+                        is_high = (raw > bench * 1.5) if label != "PEG Ratio" else (raw > 1.5)
+                        is_ok   = (raw > bench * 0.8) if label != "PEG Ratio" else (raw > 0.8)
+                        dot_c   = "#f85149" if is_high else "#3fb950" if not is_ok else "#d29922"
+                    else:
+                        dot_c = "#6e7681"
+                    with col:
+                        st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:20px;font-weight:700;color:{dot_c};margin:6px 0;">{val}</div>
+  <div style="font-size:11px;color:#6e7681;">{sub}</div>
+</div>""", unsafe_allow_html=True)
+
+                # ── 4. PROFITABILITY ──────────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Profitability & Returns")
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+<strong>Profitability metrics</strong> quantify management's efficiency in converting revenue into earnings and the 
+quality of returns generated on invested capital. <strong>Operating Margin</strong> measures core business profitability 
+before interest and taxes — consistently expanding margins signal pricing power and operating leverage. 
+<strong>Net Profit Margin</strong> captures the bottom-line percentage retained after all costs. 
+<strong>Return on Equity (ROE)</strong> is the primary measure of shareholder capital efficiency; Buffett's benchmark 
+is consistently above 15%. <strong>Return on Assets (ROA)</strong> measures asset utilisation efficiency — 
+particularly relevant for capital-intensive industries. {data['ticker']} posts an operating margin of 
+<strong>{opm*100:.1f}%</strong>, net margin of <strong>{npm*100:.1f}%</strong>, and ROE of 
+<strong>{roe*100:.1f}%</strong>.
+</div>""", unsafe_allow_html=True)
+
+                p_col1, p_col2, p_col3, p_col4 = st.columns(4)
+                prof_metrics = [
+                    ("Op. Margin",  f"{opm*100:.1f}%",  "≥15% strong",  opm*100,  15),
+                    ("Net Margin",  f"{npm*100:.1f}%",  "≥10% strong",  npm*100,  10),
+                    ("ROE",         f"{roe*100:.1f}%",  "≥15% Buffett", roe*100,  15),
+                    ("ROA",         f"{(data.get('roa',0) or 0)*100:.1f}%", "≥5% solid", (data.get('roa',0) or 0)*100, 5),
+                ]
+                for col, (label, val, sub, raw_pct, bench) in zip([p_col1,p_col2,p_col3,p_col4], prof_metrics):
+                    c = "#3fb950" if raw_pct >= bench else "#d29922" if raw_pct >= bench * 0.5 else "#f85149"
+                    with col:
+                        st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
+  <div style="font-size:11px;color:#6e7681;">{sub}</div>
+</div>""", unsafe_allow_html=True)
+
+                # ── 5. GROWTH ─────────────────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Growth Trajectory")
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+<strong>Growth metrics</strong> are the primary drivers of intrinsic value in DCF models and determine whether a 
+premium valuation multiple is justified. <strong>Revenue Growth</strong> reflects market share gains and pricing power; 
+secular growth companies consistently compound revenues at 15–25%+ annually. <strong>EPS Growth</strong> tracks 
+earnings power expansion — companies growing EPS faster than revenue are expanding margins or buying back shares 
+aggressively. Forward EPS estimates reveal consensus expectations, acting as the anchor for price target models. 
+{data['ticker']} is growing revenue at <strong>{rev_g*100:.1f}%</strong> YoY with EPS growth of 
+<strong>{eps_g*100:.1f}%</strong>, implying {'earnings growing faster than revenues — margin expansion or buybacks at work' if eps_g > rev_g else 'margin dilution or elevated opex outpacing revenue growth'}.
+</div>""", unsafe_allow_html=True)
+
+                g_col1, g_col2, g_col3, g_col4 = st.columns(4)
+                eps_val = data.get('eps', 0) or 0
+                feps_val = data.get('forward_eps', 0) or 0
+                growth_metrics = [
+                    ("Revenue Growth", f"{rev_g*100:.1f}%", "YoY",        rev_g*100,  10),
+                    ("EPS Growth",     f"{eps_g*100:.1f}%", "YoY",        eps_g*100,  10),
+                    ("EPS (TTM)",      f"${eps_val:.2f}",   "Trailing",   eps_val,    0),
+                    ("Fwd EPS",        f"${feps_val:.2f}",  "Consensus",  feps_val,   0),
+                ]
+                for col, (label, val, sub, raw, bench) in zip([g_col1,g_col2,g_col3,g_col4], growth_metrics):
+                    c = "#3fb950" if raw > bench else "#d29922" if raw > 0 else "#f85149"
+                    if label in ("EPS (TTM)", "Fwd EPS"):
+                        c = "#3fb950" if raw > 0 else "#f85149"
+                    with col:
+                        st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
+  <div style="font-size:11px;color:#6e7681;">{sub}</div>
+</div>""", unsafe_allow_html=True)
+
+                # ── 6. FINANCIAL HEALTH ───────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Balance Sheet & Financial Health")
+                cash_val = data.get('total_cash', 0) or 0
+                st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+<strong>Financial health metrics</strong> assess balance sheet resilience, liquidity, and capital structure risk. 
+<strong>Debt/Equity (D/E)</strong> measures financial leverage — ratios above 2.0x raise solvency concerns in 
+rising-rate environments, though capital-light businesses (software, platforms) often carry more debt responsibly. 
+<strong>Current Ratio</strong> (current assets ÷ current liabilities) is the primary short-term liquidity gauge; 
+values above 1.5x indicate a comfortable buffer, below 1.0x signals potential near-term cash pressure. 
+<strong>Free Cash Flow (FCF)</strong> — operating cash flow minus capex — is Warren Buffett's preferred measure of 
+intrinsic earnings quality; FCF-generative businesses can self-fund growth, pay dividends, and execute buybacks 
+without diluting shareholders. {data['ticker']} carries a D/E of <strong>{de:.2f}x</strong>, 
+current ratio of <strong>{cr:.2f}x</strong>, and generates <strong>{'${:,.1f}B'.format(fcf/1e9) if fcf else 'N/A'}</strong> in FCF.
+</div>""", unsafe_allow_html=True)
+
+                h_col1, h_col2, h_col3, h_col4 = st.columns(4)
+                health_metrics = [
+                    ("Debt / Equity",   f"{de:.2f}x",              "≤2.0 safe",    de,       2.0,  True),
+                    ("Current Ratio",   f"{cr:.2f}x",              "≥1.5 liquid",  cr,       1.5,  False),
+                    ("Free Cash Flow",  f"${fcf/1e9:.1f}B" if fcf else "N/A", "Cash generation", fcf/1e9 if fcf else 0, 0, False),
+                    ("Total Cash",      f"${cash_val/1e9:.1f}B" if cash_val else "N/A", "Liquidity buffer", cash_val/1e9 if cash_val else 0, 0, False),
+                ]
+                for col, (label, val, sub, raw, bench, invert) in zip([h_col1,h_col2,h_col3,h_col4], health_metrics):
+                    if invert:
+                        c = "#f85149" if raw > bench * 1.5 else "#d29922" if raw > bench else "#3fb950"
+                    else:
+                        c = "#3fb950" if raw >= bench else "#d29922" if raw > 0 else "#f85149"
+                    with col:
+                        st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
+  <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
+  <div style="font-size:11px;color:#6e7681;">{sub}</div>
+</div>""", unsafe_allow_html=True)
+
+                # ── 7. VALUATION MODEL COMPARISON CHART ──────────────────────
                 if valuation:
-                    val_cols = st.columns(4)
-                    if 'pe_valuation' in valuation:
-                        with val_cols[0]:
-                            st.write("**P/E Based**")
-                            st.write(f"Bear: ${valuation['pe_valuation']['low']:.2f}")
-                            st.write(f"Base: ${valuation['pe_valuation']['mid']:.2f}")
-                            st.write(f"Bull: ${valuation['pe_valuation']['high']:.2f}")
-                    if 'forward_pe_valuation' in valuation:
-                        with val_cols[1]:
-                            st.write("**Forward P/E**")
-                            st.write(f"Bear: ${valuation['forward_pe_valuation']['low']:.2f}")
-                            st.write(f"Base: ${valuation['forward_pe_valuation']['mid']:.2f}")
-                            st.write(f"Bull: ${valuation['forward_pe_valuation']['high']:.2f}")
-                    if 'analyst_target' in valuation:
-                        with val_cols[2]:
-                            st.write("**Analyst Consensus**")
-                            st.write(f"Low: ${valuation['analyst_target']['low']:.2f}")
-                            st.write(f"Mean: ${valuation['analyst_target']['mid']:.2f}")
-                            st.write(f"High: ${valuation['analyst_target']['high']:.2f}")
-                    if 'dcf_valuation' in valuation:
-                        with val_cols[3]:
-                            st.write("**DCF Model**")
-                            st.write(f"Bear: ${valuation['dcf_valuation']['bear']:.2f}")
-                            st.write(f"Base: ${valuation['dcf_valuation']['base']:.2f}")
-                            st.write(f"Bull: ${valuation['dcf_valuation']['bull']:.2f}")
+                    st.markdown("---")
+                    st.markdown("##### Valuation Model Price Targets")
+                    st.markdown("""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
+The chart below plots bear / base / bull price targets from four independent valuation models alongside the 
+current market price. <strong>P/E Based</strong> uses historical earnings multiples applied to trailing EPS. 
+<strong>Forward P/E</strong> applies consensus future earnings estimates. <strong>Analyst Consensus</strong> 
+aggregates price targets from major sell-side brokerages. <strong>DCF</strong> (Discounted Cash Flow) models 
+intrinsic value based on projected free cash flows discounted at WACC — the most theoretically rigorous but 
+also most assumption-dependent approach. A convergence of models above the current price signals a margin of safety.
+</div>""", unsafe_allow_html=True)
+
+                    val_rows = []
+                    current_price = data['price']
+                    model_map = [
+                        ('pe_valuation',      'P/E Based'),
+                        ('forward_pe_valuation','Forward P/E'),
+                        ('analyst_target',    'Analyst Consensus'),
+                        ('dcf_valuation',     'DCF Model'),
+                    ]
+                    for key, model_name in model_map:
+                        if key in valuation:
+                            v = valuation[key]
+                            low  = v.get('low')  or v.get('bear')
+                            mid  = v.get('mid')  or v.get('base')
+                            high = v.get('high') or v.get('bull')
+                            if low  is not None: val_rows.append({'Model': model_name, 'Scenario': 'Bear', 'Price': low})
+                            if mid  is not None: val_rows.append({'Model': model_name, 'Scenario': 'Base', 'Price': mid})
+                            if high is not None: val_rows.append({'Model': model_name, 'Scenario': 'Bull', 'Price': high})
+
+                    if val_rows:
+                        val_df = pd.DataFrame(val_rows)
+                        color_scale = alt.Scale(domain=['Bear','Base','Bull'], range=['#f85149','#d29922','#3fb950'])
+                        bars = alt.Chart(val_df).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                            x=alt.X('Model:N', title=None, axis=alt.Axis(labelColor='#8b949e', labelAngle=0)),
+                            y=alt.Y('Price:Q', title='Price (USD)', scale=alt.Scale(zero=False),
+                                    axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', format='$.0f')),
+                            color=alt.Color('Scenario:N', scale=color_scale, legend=alt.Legend(orient='top', labelColor='#c9d1d9', titleColor='#8b949e')),
+                            xOffset='Scenario:N',
+                            tooltip=[alt.Tooltip('Model:N'), alt.Tooltip('Scenario:N'), alt.Tooltip('Price:Q', format='$.2f')]
+                        )
+                        price_line = alt.Chart(pd.DataFrame({'y': [current_price]})).mark_rule(color='#58a6ff', strokeWidth=2, strokeDash=[5,4]).encode(y='y:Q')
+                        val_chart = (bars + price_line).properties(height=260).configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d')
+                        st.altair_chart(val_chart, use_container_width=True)
+                        st.caption(f"🔵 Dashed line = current price (${current_price:.2f})  |  🔴 Bear  |  🟡 Base  |  🟢 Bull")
+
                     if 'composite' in valuation:
                         st.divider()
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Target (Bear)", f"${valuation['composite']['target_low']:.2f}", f"{valuation['composite']['upside_low']:+.1f}%")
+                            st.metric("Composite Bear", f"${valuation['composite']['target_low']:.2f}", f"{valuation['composite']['upside_low']:+.1f}%")
                         with col2:
-                            st.metric("Target (Base)", f"${valuation['composite']['target_mid']:.2f}", f"{valuation['composite']['upside_mid']:+.1f}%")
+                            st.metric("Composite Base", f"${valuation['composite']['target_mid']:.2f}", f"{valuation['composite']['upside_mid']:+.1f}%")
                         with col3:
-                            st.metric("Target (Bull)", f"${valuation['composite']['target_high']:.2f}", f"{valuation['composite']['upside_high']:+.1f}%")
+                            st.metric("Composite Bull", f"${valuation['composite']['target_high']:.2f}", f"{valuation['composite']['upside_high']:+.1f}%")
 
-                st.divider()
-                st.write("### Fundamental Signal Details")
+                # ── 8. SIGNAL DETAIL TABLE ────────────────────────────────────
+                st.markdown("---")
+                st.markdown("##### Full Signal Detail")
                 fund_signals_df = pd.DataFrame(fund_analysis['signals'])
                 if not fund_signals_df.empty:
                     st.dataframe(
                         fund_signals_df[['category', 'metric', 'value', 'signal', 'score', 'detail', 'benchmark']],
                         hide_index=True, use_container_width=True
                     )
-                st.caption("Source: Yahoo Finance — SEC filings (10-K, 10-Q). Analyst estimates aggregated from major brokerages.")
+                st.caption("Source: Yahoo Finance — SEC filings (10-K, 10-Q). Analyst estimates aggregated from major sell-side brokerages.")
 
         # ── CONCLUSION TAB ─────────────────────────────────────────────────────
         with tab_conclusion:
