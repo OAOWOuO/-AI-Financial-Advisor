@@ -1,7 +1,7 @@
 """
 Case Q&A — RAG chat grounded in course / case materials.
 
-Answers questions using ONLY documents in data/raw/, with citations.
+Answers questions using ONLY uploaded documents, with citations.
 Supports uploading PDFs directly from the browser (no terminal needed).
 Refuses to answer when the indexed documents don't support the question.
 """
@@ -9,18 +9,15 @@ from __future__ import annotations
 
 import io
 import os
-import tempfile
 from pathlib import Path
 
 import streamlit as st
 
-INDEX_DIR = Path("index")
-DATA_RAW_DIR = Path("data/raw")
 COLLECTION_NAME = "case_materials"
 EMBED_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
 TOP_K = 5
-DISTANCE_THRESHOLD = 1.0
+DISTANCE_THRESHOLD = 1.3   # cosine distance 0-2; 1.3 is permissive enough for relevant content
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
@@ -37,12 +34,49 @@ SYSTEM_PROMPT = (
 )
 
 
+# ────────────────────────  ChromaDB client  ────────────────────────
+
+def _get_chroma_client():
+    """Return an ephemeral ChromaDB client stored in session state.
+
+    Using EphemeralClient (in-memory) avoids all disk-path and SQLite-version
+    issues on Streamlit Cloud.  The client survives Streamlit reruns because
+    it lives in st.session_state, which persists for the lifetime of the
+    browser session.
+    """
+    if "cqa_chroma_client" not in st.session_state:
+        import chromadb
+        st.session_state.cqa_chroma_client = chromadb.EphemeralClient()
+    return st.session_state.cqa_chroma_client
+
+
+def _get_or_create_collection():
+    """Get (or create) the ChromaDB collection from the session-state client."""
+    client = _get_chroma_client()
+    try:
+        return client.get_collection(COLLECTION_NAME)
+    except Exception:
+        return client.create_collection(
+            COLLECTION_NAME,
+            metadata={"hnsw:space": "cosine"},
+        )
+
+
+def _get_collection():
+    """Return the collection if it has chunks, else None."""
+    try:
+        col = _get_or_create_collection()
+        return col if col.count() > 0 else None
+    except Exception:
+        return None
+
+
 # ────────────────────────  chunking  ────────────────────────
 
 def chunk_text(text: str, source: str, page: int = 0) -> list[dict]:
     """Split text into overlapping word-window chunks."""
     words = text.split()
-    chunks = []
+    chunks: list[dict] = []
     i = 0
     while i < len(words):
         chunk_words = words[i: i + CHUNK_SIZE]
@@ -63,10 +97,7 @@ def chunk_text(text: str, source: str, page: int = 0) -> list[dict]:
 # ────────────────────────  indexing  ────────────────────────
 
 def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> int:
-    """Extract text, chunk, embed, and store in ChromaDB. Returns chunk count."""
-    import chromadb
-
-    # Extract text
+    """Extract text, chunk, embed, and store in ChromaDB. Returns chunk count added."""
     all_chunks: list[dict] = []
     if filename.lower().endswith(".pdf"):
         try:
@@ -87,19 +118,14 @@ def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> 
         return 0
 
     if not all_chunks:
-        st.warning(f"No text extracted from '{filename}'.")
+        st.warning(
+            f"No text could be extracted from '{filename}'. "
+            "If this is a scanned PDF, text extraction is not supported — "
+            "please use a PDF with selectable text."
+        )
         return 0
 
-    # Embed in batches of 100
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(INDEX_DIR))
-    try:
-        collection = client.get_collection(COLLECTION_NAME)
-    except Exception:
-        collection = client.create_collection(
-            COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"},
-        )
+    collection = _get_or_create_collection()
 
     batch_size = 100
     added = 0
@@ -132,16 +158,6 @@ def _build_index_from_bytes(file_bytes: bytes, filename: str, openai_client) -> 
 
 
 # ────────────────────────  retrieval  ────────────────────────
-
-def _get_collection():
-    """Load ChromaDB collection; return None if index not yet built."""
-    try:
-        import chromadb
-        client = chromadb.PersistentClient(path=str(INDEX_DIR))
-        return client.get_collection(COLLECTION_NAME)
-    except Exception:
-        return None
-
 
 def _embed(text: str, openai_client) -> list[float]:
     resp = openai_client.embeddings.create(model=EMBED_MODEL, input=text)
@@ -232,7 +248,8 @@ def show_case_qa() -> None:
     st.write("### Upload Course Materials")
     st.caption(
         "Upload PDFs, Markdown, or text files. "
-        "They will be indexed automatically — no terminal commands needed."
+        "They will be indexed automatically — no terminal commands needed. "
+        "**Note:** documents are held in memory for this session; re-upload if you refresh the page."
     )
 
     uploaded_files = st.file_uploader(
@@ -245,8 +262,7 @@ def show_case_qa() -> None:
     if uploaded_files:
         files_to_index = []
         for uf in uploaded_files:
-            # Track which files have already been indexed this session
-            indexed_key = f"indexed_{uf.name}_{uf.size}"
+            indexed_key = f"cqa_indexed_{uf.name}_{uf.size}"
             if not st.session_state.get(indexed_key):
                 files_to_index.append(uf)
 
@@ -257,13 +273,12 @@ def show_case_qa() -> None:
                     file_bytes = uf.read()
                     n = _build_index_from_bytes(file_bytes, uf.name, openai_client)
                     total_added += n
-                    indexed_key = f"indexed_{uf.name}_{uf.size}"
-                    st.session_state[indexed_key] = True
+                    st.session_state[f"cqa_indexed_{uf.name}_{uf.size}"] = True
 
             if total_added > 0:
-                st.success(f"Indexed {total_added} new chunk(s) from {len(files_to_index)} file(s). Ready to chat!")
+                st.success(f"Indexed {total_added} chunk(s) from {len(files_to_index)} file(s). Ready to chat!")
             else:
-                st.info("No new chunks were added (files may already be indexed).")
+                st.info("No new chunks were added (files may already be indexed or contained no extractable text).")
         else:
             st.info(f"{len(uploaded_files)} file(s) already indexed this session.")
 
