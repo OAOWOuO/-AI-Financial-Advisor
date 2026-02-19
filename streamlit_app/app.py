@@ -119,8 +119,8 @@ def show_home():
                 with file and page citations.
             </p>
             <ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px;">
-                <li>Drop PDFs into <code>data/raw/</code></li>
-                <li>Run <code>build_index.py</code> once</li>
+                <li>Upload PDFs directly in the browser</li>
+                <li>Auto-indexed — no terminal needed</li>
                 <li>Ask any question about the materials</li>
                 <li>Cited answers: file + page + chunk ID</li>
                 <li>Refuses unsupported questions explicitly</li>
@@ -162,3 +162,4 @@ elif st.session_state.current_view == 'portfolio':
 elif st.session_state.current_view == 'caseqa':
     from case_qa import show_case_qa
     show_case_qa()
+
