@@ -460,7 +460,7 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
             signals.append({
                 "category": "Momentum", "indicator": "MACD",
                 "signal": "BULLISH", "score": "+10",
-                "detail": "MACD above signal with expanding histogram",
+                "detail": f"MACD above signal, histogram {latest['MACD_Hist']:+.4f} (expanding from {prev['MACD_Hist']:+.4f})",
                 "threshold": "MACD > Signal, Histogram increasing"
             })
         elif latest['MACD'] < latest['MACD_Signal'] and latest['MACD_Hist'] < prev['MACD_Hist']:
@@ -468,7 +468,7 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
             signals.append({
                 "category": "Momentum", "indicator": "MACD",
                 "signal": "BEARISH", "score": "-10",
-                "detail": "MACD below signal with expanding histogram",
+                "detail": f"MACD below signal, histogram {latest['MACD_Hist']:+.4f} (expanding from {prev['MACD_Hist']:+.4f})",
                 "threshold": "MACD < Signal, Histogram decreasing"
             })
         elif latest['MACD'] > latest['MACD_Signal']:
@@ -1476,11 +1476,13 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
         target_high = price * 1.1
         upside_high = 10.0
 
-    # Fix 1: Override to SELL when base target is >10% below price and bull case offers <5% upside
+    # Sanity check / Fix 1+2: Override to SELL when base target >10% below price AND bull case <5% upside.
+    # Also cap composite score to ≤35 (<40 = SELL range) so rating and score are always consistent.
     if upside < -10 and upside_high < 5:
         action = "SELL"
         action_color = "#ff0000"
         trade_decision = "REDUCE / AVOID POSITION"
+        combined_score = min(combined_score, 35)  # keep score in SELL/UNDERPERFORM range
 
     # Key drivers (bullish factors)
     bullish_drivers = []
@@ -1534,7 +1536,7 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
 {''.join(['• ' + r + chr(10) for r in bearish_risks[:3]]) if bearish_risks else '• No significant bearish factors identified'}
 {capital_note_section}
 **Valuation:**
-Current price of \${price:.2f} {valuation_desc} with a consensus target of \${target_price:.2f} ({upside:+.1f}% potential). Bull case target: \${target_high:.2f} ({upside_high:+.1f}%).
+Current price of \${price:.2f} {valuation_desc} with a base case target of \${target_price:.2f} ({upside:+.1f}% potential). Bull case target: \${target_high:.2f} ({upside_high:+.1f}%).
 """
 
     # Fix 5: Use actual support/resistance levels from technical analysis
@@ -2602,6 +2604,18 @@ also most assumption-dependent approach. A convergence of models above the curre
                 upside_low  = (recommendation['target_low']  - data['price']) / data['price'] * 100
                 upside_high = (recommendation['target_high'] - data['price']) / data['price'] * 100
 
+                # Sanity check 1: never show negative "upside"
+                _up = recommendation['upside']
+                _upside_label = (
+                    f"{abs(_up):.1f}% potential downside"
+                    if _up < 0
+                    else f"{_up:.1f}% potential upside"
+                )
+
+                # Sanity check 2: rename Bull → Best when bull target ≤ current price
+                _bull_label = "Bull Case" if recommendation['target_high'] > data['price'] else "Best Case"
+                _bull_note  = "" if recommendation['target_high'] > data['price'] else "<div style='font-size:10px;color:#8b949e;margin-top:4px;'>best case is still downside</div>"
+
                 # ── 1. HEADLINE RECOMMENDATION CARD ──────────────────────────
                 st.markdown(f"""
 <div style="background:#0d1117;border:2px solid {ac};border-radius:14px;padding:28px 30px;margin-bottom:18px;">
@@ -2619,7 +2633,7 @@ also most assumption-dependent approach. A convergence of models above the curre
     <div style="text-align:right;">
       <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">12-Month Price Target</div>
       <div style="font-size:40px;font-weight:700;color:#e6edf3;line-height:1;">${recommendation['target_price']:.2f}</div>
-      <div style="font-size:17px;color:{ac};font-weight:600;margin-top:4px;">{recommendation['upside']:+.1f}% potential upside</div>
+      <div style="font-size:17px;color:{ac};font-weight:600;margin-top:4px;">{_upside_label}</div>
       <div style="font-size:12px;color:#6e7681;margin-top:8px;">Current price: ${data['price']:.2f}</div>
     </div>
   </div>
@@ -2628,12 +2642,12 @@ also most assumption-dependent approach. A convergence of models above the curre
                 # ── 2. PRICE TARGET SCENARIOS ─────────────────────────────────
                 st.markdown("##### Price Target Scenarios")
                 pt_col1, pt_col2, pt_col3 = st.columns(3)
-                for col, (label, icon, price, upside, color) in zip(
+                for col, (label, icon, price, upside, color, note) in zip(
                     [pt_col1, pt_col2, pt_col3],
                     [
-                        ("Bear Case",  "\U0001f43b", recommendation['target_low'],   upside_low,                   "#f85149"),
-                        ("Base Case",  "\u2696\ufe0f",  recommendation['target_price'], recommendation['upside'],     "#d29922"),
-                        ("Bull Case",  "\U0001f402", recommendation['target_high'],  upside_high,                  "#3fb950"),
+                        ("Bear Case",  "\U0001f43b", recommendation['target_low'],   upside_low,   "#f85149", ""),
+                        ("Base Case",  "\u2696\ufe0f",  recommendation['target_price'], recommendation['upside'], "#d29922", ""),
+                        (_bull_label,  "\U0001f402", recommendation['target_high'],  upside_high,  "#3fb950", _bull_note),
                     ]
                 ):
                     with col:
@@ -2643,6 +2657,7 @@ also most assumption-dependent approach. A convergence of models above the curre
   <div style="font-size:12px;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:26px;font-weight:700;color:{color};">${price:.2f}</div>
   <div style="font-size:14px;color:{color};font-weight:600;margin-top:2px;">{upside:+.1f}%</div>
+  {note}
 </div>""", unsafe_allow_html=True)
 
                 # ── 3. EXPECTED RETURNS TABLE ─────────────────────────────────
