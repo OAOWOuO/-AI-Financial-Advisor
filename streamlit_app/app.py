@@ -36,12 +36,9 @@ p, span, label, li, div { color: #c9d1d9 !important; }
    Footer buttons overridden separately (.ft-nav-section).
    ══════════════════════════════════════════════════ */
 
-/* ── HOME CTAs — Portfolio (Emerald) ── */
-[data-testid="column"]:has(.tool-card-green) [data-testid="baseButton-secondary"],
-[data-testid="column"]:has(.tool-card-green) [data-testid="stBaseButton-secondary"],
-[data-testid="column"]:has(.tool-card-green) button[kind="secondary"],
-[data-testid="element-container"]:has(.btn-cta-portfolio)
-+ [data-testid="element-container"] .stButton > button {
+/* ── HOME CTAs — Portfolio (Emerald) ──
+   stVerticalBlock is the proven-working container (same as footer). ── */
+[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button {
     background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%) !important;
     border: 1.5px solid #34d399 !important;
     color: #d1fae5 !important;
@@ -53,11 +50,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     min-height: 52px !important;
     border-radius: 8px !important;
 }
-[data-testid="column"]:has(.tool-card-green) [data-testid="baseButton-secondary"]:hover,
-[data-testid="column"]:has(.tool-card-green) [data-testid="stBaseButton-secondary"]:hover,
-[data-testid="column"]:has(.tool-card-green) button[kind="secondary"]:hover,
-[data-testid="element-container"]:has(.btn-cta-portfolio)
-+ [data-testid="element-container"] .stButton > button:hover {
+[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:hover {
     background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%) !important;
     border-color: #6ee7b7 !important;
     color: #fff !important;
@@ -66,11 +59,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 }
 
 /* ── HOME CTAs — Stock Analyzer (Indigo) ── */
-[data-testid="column"]:has(.tool-card-indigo) [data-testid="baseButton-secondary"],
-[data-testid="column"]:has(.tool-card-indigo) [data-testid="stBaseButton-secondary"],
-[data-testid="column"]:has(.tool-card-indigo) button[kind="secondary"],
-[data-testid="element-container"]:has(.btn-cta-analyzer)
-+ [data-testid="element-container"] .stButton > button {
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button {
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%) !important;
     border: 1.5px solid #818cf8 !important;
     color: #e0e7ff !important;
@@ -82,11 +71,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     min-height: 52px !important;
     border-radius: 8px !important;
 }
-[data-testid="column"]:has(.tool-card-indigo) [data-testid="baseButton-secondary"]:hover,
-[data-testid="column"]:has(.tool-card-indigo) [data-testid="stBaseButton-secondary"]:hover,
-[data-testid="column"]:has(.tool-card-indigo) button[kind="secondary"]:hover,
-[data-testid="element-container"]:has(.btn-cta-analyzer)
-+ [data-testid="element-container"] .stButton > button:hover {
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:hover {
     background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%) !important;
     border-color: #a5b4fc !important;
     color: #fff !important;
@@ -95,11 +80,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 }
 
 /* ── HOME CTAs — Case Q&A (Violet) ── */
-[data-testid="column"]:has(.tool-card-purple) [data-testid="baseButton-secondary"],
-[data-testid="column"]:has(.tool-card-purple) [data-testid="stBaseButton-secondary"],
-[data-testid="column"]:has(.tool-card-purple) button[kind="secondary"],
-[data-testid="element-container"]:has(.btn-cta-caseqa)
-+ [data-testid="element-container"] .stButton > button {
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button {
     background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%) !important;
     border: 1.5px solid #c084fc !important;
     color: #ede9fe !important;
@@ -111,11 +92,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     min-height: 52px !important;
     border-radius: 8px !important;
 }
-[data-testid="column"]:has(.tool-card-purple) [data-testid="baseButton-secondary"]:hover,
-[data-testid="column"]:has(.tool-card-purple) [data-testid="stBaseButton-secondary"]:hover,
-[data-testid="column"]:has(.tool-card-purple) button[kind="secondary"]:hover,
-[data-testid="element-container"]:has(.btn-cta-caseqa)
-+ [data-testid="element-container"] .stButton > button:hover {
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:hover {
     background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%) !important;
     border-color: #d8b4fe !important;
     color: #fff !important;
@@ -123,12 +100,8 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     transform: translateY(-2px) !important;
 }
 
-/* ── BACK buttons (Ghost / outline) ──
-   4-layer fallback: col :has(.btn-back) targets the narrow back column. ── */
-[data-testid="column"]:has(.btn-back) [data-testid="baseButton-secondary"],
-[data-testid="column"]:has(.btn-back) [data-testid="stBaseButton-secondary"],
-[data-testid="column"]:has(.btn-back) button[kind="secondary"],
-[data-testid="column"]:has(.btn-back) .stButton > button {
+/* ── BACK buttons (Ghost / outline) ── */
+[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button {
     background: transparent !important;
     border: 1px solid #30363d !important;
     color: #8b949e !important;
@@ -141,10 +114,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     letter-spacing: 0 !important;
     text-transform: none !important;
 }
-[data-testid="column"]:has(.btn-back) [data-testid="baseButton-secondary"]:hover,
-[data-testid="column"]:has(.btn-back) [data-testid="stBaseButton-secondary"]:hover,
-[data-testid="column"]:has(.btn-back) button[kind="secondary"]:hover,
-[data-testid="column"]:has(.btn-back) .stButton > button:hover {
+[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button:hover {
     border-color: #58a6ff !important;
     color: #e6edf3 !important;
     background: #161b22 !important;
@@ -152,13 +122,12 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     box-shadow: none !important;
 }
 
-/* ── RUN FULL ANALYSIS (outline style — prominent full-width CTA) ──
-   4-layer fallback for Streamlit type="primary" button. ── */
+/* ── RUN FULL ANALYSIS (outline style — prominent CTA) ──
+   Global primary selectors + stVerticalBlock scoped fallback. ── */
 [data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"],
 button[kind="primary"],
-[data-testid="element-container"]:has(.btn-rfa)
-+ [data-testid="element-container"] .stButton > button {
+[data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button {
     background: transparent !important;
     border: 2px solid #4ade80 !important;
     color: #4ade80 !important;
@@ -167,17 +136,14 @@ button[kind="primary"],
     font-weight: 700 !important;
     letter-spacing: 0.03em !important;
     text-transform: none !important;
-    box-shadow: 0 0 12px rgba(74,222,128,0.2), inset 0 0 0 0 transparent !important;
+    box-shadow: 0 0 12px rgba(74,222,128,0.2) !important;
     min-height: 50px !important;
     border-radius: 8px !important;
-    transition: background 0.18s ease, color 0.18s ease,
-                box-shadow 0.18s ease, transform 0.15s ease !important;
 }
 [data-testid="baseButton-primary"]:hover,
 [data-testid="stBaseButton-primary"]:hover,
 button[kind="primary"]:hover,
-[data-testid="element-container"]:has(.btn-rfa)
-+ [data-testid="element-container"] .stButton > button:hover {
+[data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button:hover {
     background: #4ade80 !important;
     border-color: #4ade80 !important;
     color: #052e16 !important;
@@ -206,16 +172,9 @@ button[kind="primary"]:hover,
 }
 
 /* ── CLEAR CHAT (Ghost danger) ──
-   Adjacent-sibling only: shares col_left with RFA.
-   4-layer fallback ensures at least one selector matches. ── */
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] [data-testid="baseButton-secondary"],
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] [data-testid="stBaseButton-secondary"],
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] button[kind="secondary"],
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] .stButton > button {
+   Scoped to stVerticalBlock containing .btn-clear, excludes primary buttons
+   so it doesn't accidentally override Run Full Analysis. ── */
+[data-testid="stVerticalBlock"]:has(.btn-clear) .stButton > button:not([data-testid*="primary"]):not([kind="primary"]) {
     background: transparent !important;
     border: 1px solid #2a1515 !important;
     color: #5c2828 !important;
@@ -227,14 +186,7 @@ button[kind="primary"]:hover,
     text-transform: none !important;
     letter-spacing: 0 !important;
 }
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] [data-testid="baseButton-secondary"]:hover,
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] [data-testid="stBaseButton-secondary"]:hover,
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] button[kind="secondary"]:hover,
-[data-testid="element-container"]:has(.btn-clear)
-+ [data-testid="element-container"] .stButton > button:hover {
+[data-testid="stVerticalBlock"]:has(.btn-clear) .stButton > button:not([data-testid*="primary"]):not([kind="primary"]):hover {
     border-color: #f85149 !important;
     color: #f85149 !important;
     background: rgba(248,81,73,0.08) !important;
