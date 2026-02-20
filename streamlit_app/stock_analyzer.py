@@ -1760,7 +1760,8 @@ def show_stock_analyzer():
                 price_c = "#3fb950" if change_pct >= 0 else "#f85149"
                 pos = (data['price'] - data['low_52w']) / (data['high_52w'] - data['low_52w']) if data['high_52w'] > data['low_52w'] else 0.5
                 pos_pct = min(100, max(0, pos * 100))
-                ac = recommendation['action_color']
+                _biz = data.get('info', {}).get('longBusinessSummary', '')
+                _biz_short = '. '.join(_biz.replace('\n', ' ').split('. ')[:3]) + '.' if _biz else ''
                 st.markdown(f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:20px 18px;margin-bottom:10px;">
   <div style="font-size:20px;font-weight:700;color:#e6edf3 !important;">{data['name']}</div>
@@ -1787,12 +1788,12 @@ def show_stock_analyzer():
     </div>
     <div style="text-align:center;font-size:11px;color:#6e7681 !important;margin-top:4px;">{pos_pct:.0f}% of annual range</div>
   </div>
-</div>
-<div style="background:#0d1117;border:2px solid {ac};border-radius:10px;padding:16px 18px;text-align:center;">
-  <div style="font-size:11px;color:#8b949e !important;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Recommendation</div>
-  <div style="font-size:32px;font-weight:800;color:{ac} !important;letter-spacing:-1px;">{recommendation['action']}</div>
-  <div style="font-size:13px;color:#c9d1d9 !important;margin-top:6px;">Target: <strong style="color:{ac} !important;">${recommendation['target_price']:.2f}</strong> &nbsp;|&nbsp; {recommendation['upside']:+.1f}% upside</div>
-  <div style="font-size:11px;color:#8b949e !important;margin-top:4px;">Score: {recommendation['combined_score']:.0f} / 100</div>
+</div>""", unsafe_allow_html=True)
+                if _biz_short:
+                    st.markdown(f"""
+<div style="background:#0d1f38;border:1px solid #1d4ed8;border-radius:8px;padding:14px 16px;margin-top:4px;">
+  <div style="font-size:10px;color:#3b82f6 !important;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;">About the Company</div>
+  <div style="font-size:13px;color:#8b9db5 !important;line-height:1.65;">{_biz_short}</div>
 </div>""", unsafe_allow_html=True)
 
 
@@ -1815,15 +1816,21 @@ def show_stock_analyzer():
                 vs50  = (close_val / sma50_val  - 1) * 100 if sma50_val  and not pd.isna(sma50_val)  else 0
                 vs200 = (close_val / sma200_val - 1) * 100 if sma200_val and not pd.isna(sma200_val) else 0
 
-                if tech_score >= 70:
+                if tech_score >= 30:
                     stance = "**bullish technical setup**"; s_color = "#3fb950"
                     outlook = "Price action shows sustained buying pressure. Trend indicators align positively, supporting continuation of the uptrend barring macro disruptions."
-                elif tech_score >= 50:
-                    stance = "**moderately constructive posture**"; s_color = "#d29922"
-                    outlook = "Mixed signals characterise a transitional phase. Confirmation above key resistance would validate bullish continuation; a break below support would flip the bias."
+                elif tech_score >= 10:
+                    stance = "**mildly constructive posture**"; s_color = "#3fb950"
+                    outlook = "Positive signals outnumber negative ones, but conviction is limited. Watch for confirmation above key resistance to validate the bullish tilt."
+                elif tech_score >= -10:
+                    stance = "**mixed signals — no clear directional bias**"; s_color = "#d29922"
+                    outlook = "Bullish and bearish indicators are roughly offsetting each other. No actionable directional edge; wait for a decisive break above resistance or below support."
+                elif tech_score >= -30:
+                    stance = "**mildly bearish deterioration**"; s_color = "#f85149"
+                    outlook = "More indicators are pointing down than up. Exercise caution with new long positions; a confirmed bounce off support would be needed to turn the bias constructive."
                 else:
-                    stance = "**bearish technical deterioration**"; s_color = "#f85149"
-                    outlook = "Selling pressure dominates price discovery. Traders should exercise caution; wait for a confirmed technical base before re-entering long positions."
+                    stance = "**bearish technical breakdown**"; s_color = "#f85149"
+                    outlook = "Selling pressure dominates price discovery across most indicators. Traders should exercise caution; wait for a confirmed technical base before re-entering long positions."
 
                 rsi_desc  = (f"overbought at {rsi_val:.1f} — near-term exhaustion risk" if rsi_val > 70
                              else f"oversold at {rsi_val:.1f} — potential mean-reversion setup" if rsi_val < 30
@@ -1837,7 +1844,7 @@ def show_stock_analyzer():
 <p style="color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">Technical Analysis Overview</p>
 <p style="color:#c9d1d9;line-height:1.8;margin:0;font-size:14px;">
 <strong>{data['name']} ({data['ticker']})</strong> presents a {stance.replace("**","<strong>").replace("**","</strong>")}
- with a composite technical score of <strong style="color:{s_color};">{tech_score:.0f}/100</strong>.
+ with a composite technical score of <strong style="color:{s_color};">{(tech_score+100)/2:.0f}/100</strong> (50 = neutral).
 The stock is currently {sma_desc}, a key barometer of trend health — sustained trading above both moving averages 
 signals an intact primary uptrend, while a cross below the 200-day SMA would indicate structural deterioration.
 The RSI(14) reads {rsi_desc}.
