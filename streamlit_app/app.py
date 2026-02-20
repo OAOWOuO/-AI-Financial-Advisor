@@ -454,8 +454,7 @@ button[kind="primary"]:focus-visible,
     outline: 2px solid #58a6ff !important;
     outline-offset: 2px !important;
 }
-/* Hide the default radio circle — the border label IS the control */
-[data-testid="stRadio"] [data-testid="stMarkdownContainer"] { display: none !important; }
+/* Hide the default radio circle only — keep text labels visible */
 [data-testid="stRadio"] label > div:first-child { display: none !important; }
 
 /* ── Generic button reset: no glow on focus, clean active ── */

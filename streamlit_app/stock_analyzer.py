@@ -1994,7 +1994,7 @@ def show_stock_analyzer():
                 st.info("Enter a ticker and click **Run Full Analysis** to generate the report.")
             else:
                 chart_data = tech_df.reset_index()
-                chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_localize(None)
+                chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_convert(None)
 
                 # ── 1. PROFESSIONAL OVERVIEW ─────────────────────────────────
                 tech_score  = tech_analysis['score_pct']
@@ -2088,7 +2088,7 @@ high volume on up-days signals conviction buying; high volume on down-days signa
                 if _chart_type == "Candlestick":
                     import plotly.graph_objects as go
                     _hist_plot = data['hist_1y'].reset_index()
-                    _hist_plot['Date'] = pd.to_datetime(_hist_plot['Date']).dt.tz_localize(None)
+                    _hist_plot['Date'] = pd.to_datetime(_hist_plot['Date']).dt.tz_convert(None)
                     _fig_candle = go.Figure(data=[
                         go.Candlestick(
                             x=_hist_plot['Date'],
