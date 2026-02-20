@@ -17,15 +17,6 @@ st.set_page_config(
 if "current_view" not in st.session_state:
     st.session_state.current_view = "home"
 
-# Handle navigation from HTML <a href="?nav=…"> CTA links (full-page reload → query param)
-try:
-    _nav = st.query_params.get("nav", "")
-    if _nav in ("home", "portfolio", "analyzer", "caseqa"):
-        st.session_state.current_view = _nav
-        st.query_params.clear()
-except Exception:
-    pass
-
 st.markdown("""<style>
 .main { background: #0d1117; }
 .stApp { background: #0d1117; }
@@ -45,72 +36,91 @@ p, span, label, li, div { color: #c9d1d9 !important; }
    Footer buttons overridden separately (.ft-nav-section).
    ══════════════════════════════════════════════════ */
 
-/* ── CTA LINKS (HTML <a> tags — home page navigation) ──
-   These bypass Streamlit's button system entirely.
-   Inline styles + classes ensure guaranteed visibility. ── */
-a.cta-btn {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin-top: 20px;
-    padding: 14px 20px;
-    border-radius: 8px;
+/* ── HOME CTAs — Portfolio (Emerald) ── */
+[data-testid="column"]:has(.tool-card-green) [data-testid="baseButton-secondary"],
+[data-testid="column"]:has(.tool-card-green) [data-testid="stBaseButton-secondary"],
+[data-testid="column"]:has(.tool-card-green) button[kind="secondary"],
+[data-testid="element-container"]:has(.btn-cta-portfolio)
++ [data-testid="element-container"] .stButton > button {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%) !important;
+    border: 1.5px solid #34d399 !important;
+    color: #d1fae5 !important;
+    padding: 14px 20px !important;
     font-size: 15px !important;
     font-weight: 700 !important;
-    text-align: center;
-    text-decoration: none !important;
-    letter-spacing: 0.025em;
-    min-height: 52px;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease,
-                color 0.18s ease, box-shadow 0.18s ease,
-                transform 0.15s ease;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 12px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    min-height: 52px !important;
+    border-radius: 8px !important;
 }
-a.cta-emerald {
-    background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%);
-    border: 1.5px solid #34d399;
-    color: #d1fae5 !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    box-shadow: 0 2px 12px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
-}
-a.cta-emerald:hover {
-    background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%);
-    border-color: #6ee7b7;
+[data-testid="column"]:has(.tool-card-green) [data-testid="baseButton-secondary"]:hover,
+[data-testid="column"]:has(.tool-card-green) [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="column"]:has(.tool-card-green) button[kind="secondary"]:hover,
+[data-testid="element-container"]:has(.btn-cta-portfolio)
++ [data-testid="element-container"] .stButton > button:hover {
+    background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%) !important;
+    border-color: #6ee7b7 !important;
     color: #fff !important;
-    box-shadow: 0 6px 24px rgba(16,185,129,0.45), inset 0 1px 0 rgba(255,255,255,0.1);
-    transform: translateY(-2px);
-    text-decoration: none !important;
+    box-shadow: 0 6px 24px rgba(16,185,129,0.45), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-2px) !important;
 }
-a.cta-indigo {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%);
-    border: 1.5px solid #818cf8;
+
+/* ── HOME CTAs — Stock Analyzer (Indigo) ── */
+[data-testid="column"]:has(.tool-card-indigo) [data-testid="baseButton-secondary"],
+[data-testid="column"]:has(.tool-card-indigo) [data-testid="stBaseButton-secondary"],
+[data-testid="column"]:has(.tool-card-indigo) button[kind="secondary"],
+[data-testid="element-container"]:has(.btn-cta-analyzer)
++ [data-testid="element-container"] .stButton > button {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%) !important;
+    border: 1.5px solid #818cf8 !important;
     color: #e0e7ff !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    box-shadow: 0 2px 12px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    min-height: 52px !important;
+    border-radius: 8px !important;
 }
-a.cta-indigo:hover {
-    background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%);
-    border-color: #a5b4fc;
+[data-testid="column"]:has(.tool-card-indigo) [data-testid="baseButton-secondary"]:hover,
+[data-testid="column"]:has(.tool-card-indigo) [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="column"]:has(.tool-card-indigo) button[kind="secondary"]:hover,
+[data-testid="element-container"]:has(.btn-cta-analyzer)
++ [data-testid="element-container"] .stButton > button:hover {
+    background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%) !important;
+    border-color: #a5b4fc !important;
     color: #fff !important;
-    box-shadow: 0 6px 24px rgba(99,102,241,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-    transform: translateY(-2px);
-    text-decoration: none !important;
+    box-shadow: 0 6px 24px rgba(99,102,241,0.5), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-2px) !important;
 }
-a.cta-violet {
-    background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%);
-    border: 1.5px solid #c084fc;
+
+/* ── HOME CTAs — Case Q&A (Violet) ── */
+[data-testid="column"]:has(.tool-card-purple) [data-testid="baseButton-secondary"],
+[data-testid="column"]:has(.tool-card-purple) [data-testid="stBaseButton-secondary"],
+[data-testid="column"]:has(.tool-card-purple) button[kind="secondary"],
+[data-testid="element-container"]:has(.btn-cta-caseqa)
++ [data-testid="element-container"] .stButton > button {
+    background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%) !important;
+    border: 1.5px solid #c084fc !important;
     color: #ede9fe !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    box-shadow: 0 2px 12px rgba(109,40,217,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 12px rgba(109,40,217,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    min-height: 52px !important;
+    border-radius: 8px !important;
 }
-a.cta-violet:hover {
-    background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%);
-    border-color: #d8b4fe;
+[data-testid="column"]:has(.tool-card-purple) [data-testid="baseButton-secondary"]:hover,
+[data-testid="column"]:has(.tool-card-purple) [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="column"]:has(.tool-card-purple) button[kind="secondary"]:hover,
+[data-testid="element-container"]:has(.btn-cta-caseqa)
++ [data-testid="element-container"] .stButton > button:hover {
+    background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%) !important;
+    border-color: #d8b4fe !important;
     color: #fff !important;
-    box-shadow: 0 6px 24px rgba(109,40,217,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-    transform: translateY(-2px);
-    text-decoration: none !important;
+    box-shadow: 0 6px 24px rgba(109,40,217,0.5), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-2px) !important;
 }
 
 /* ── BACK buttons (Ghost / outline) ──
@@ -649,8 +659,11 @@ def show_home():
 <li>Dividend income tracking</li>
 <li>One-click rebalancing</li>
 </ul>
-<a href="?nav=portfolio" class="cta-btn cta-emerald">Enter Portfolio Allocator →</a>
 </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="btn-cta-portfolio"></div>', unsafe_allow_html=True)
+        if st.button("Enter Portfolio Allocator →", key="btn_portfolio", use_container_width=True):
+            st.session_state.current_view = "portfolio"
+            st.rerun()
 
     with col2:
         st.markdown("""<div class="tool-card tool-card-indigo">
@@ -666,8 +679,11 @@ def show_home():
 <li>Support &amp; resistance levels</li>
 <li>BUY / HOLD / SELL recommendation</li>
 </ul>
-<a href="?nav=analyzer" class="cta-btn cta-indigo">Enter Stock Analyzer →</a>
 </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="btn-cta-analyzer"></div>', unsafe_allow_html=True)
+        if st.button("Enter Stock Analyzer →", key="btn_analyzer", use_container_width=True):
+            st.session_state.current_view = "analyzer"
+            st.rerun()
 
     with col3:
         st.markdown("""<div class="tool-card tool-card-purple">
@@ -682,8 +698,11 @@ def show_home():
 <li>Cited answers: file + page + chunk ID</li>
 <li>Refuses unsupported questions explicitly</li>
 </ul>
-<a href="?nav=caseqa" class="cta-btn cta-violet">Enter Case Q&amp;A →</a>
 </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="btn-cta-caseqa"></div>', unsafe_allow_html=True)
+        if st.button("Enter Case Q&A →", key="btn_caseqa", use_container_width=True):
+            st.session_state.current_view = "caseqa"
+            st.rerun()
 
 
 # ============== MAIN ROUTING ==============
