@@ -26,46 +26,74 @@ h1, h2, h3, h4 { color: #e6edf3 !important; font-weight: 600 !important; }
 p, span, label, li, div { color: #c9d1d9 !important; }
 
 /* ══════════════════════════════════════════════════
-   BUTTON DESIGN SYSTEM
-   Each button role gets its own color personality.
-   Targeting: marker <div class="btn-xxx"> injected
-   immediately before each st.button(), then selected
-   via CSS adjacent-sibling:
-     [data-testid="element-container"]:has(.btn-xxx)
-     + [data-testid="element-container"] .stButton > button
+   BUTTON DESIGN SYSTEM — v4
+   Dual-selector strategy for maximum compatibility:
+   1. [data-testid="column"]:has(.unique-class) — targets
+      entire column by its unique content (most reliable)
+   2. element-container adjacent-sibling as fallback
+   3. button[kind="primary"] for Streamlit primary type
+   Footer buttons overridden last (text-link style).
    ══════════════════════════════════════════════════ */
 
-/* ── Base reset for all app buttons ── */
-.stButton > button {
+/* ── Base: every non-footer button gets a visible ghost style ── */
+.stButton > button,
+button[kind="secondary"],
+button[kind="primary"] {
     border-radius: 8px !important;
     font-weight: 600 !important;
     letter-spacing: 0.025em !important;
-    transition: all 0.2s ease !important;
+    transition: background 0.18s ease, border-color 0.18s ease,
+                color 0.18s ease, box-shadow 0.18s ease,
+                transform 0.15s ease !important;
     cursor: pointer !important;
-    background: #1d3a5e !important;
-    border: 1px solid #2563eb !important;
-    color: #93c5fd !important;
+    background: #0f1923 !important;
+    border: 1.5px solid #374151 !important;
+    color: #c9d1d9 !important;
     padding: 10px 20px !important;
     font-size: 14px !important;
+    min-height: 42px !important;
 }
-.stButton > button:hover {
-    background: #1d4ed8 !important;
-    border-color: #60a5fa !important;
-    color: #fff !important;
+.stButton > button:hover,
+button[kind="secondary"]:hover {
+    background: #161b22 !important;
+    border-color: #58a6ff !important;
+    color: #e6edf3 !important;
+    box-shadow: 0 0 0 1px rgba(88,166,255,0.4) !important;
+}
+.stButton > button:active {
+    transform: scale(0.975) !important;
+    filter: brightness(0.88) !important;
+    transition-duration: 0.08s !important;
+}
+.stButton > button:focus-visible {
+    outline: 2px solid #60a5fa !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(96,165,250,0.2) !important;
+}
+.stButton > button:disabled,
+.stButton > button[disabled] {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
 }
 
-/* ── 1. HOME CTA — Portfolio Allocator (Emerald) ── */
+/* ── 1. HOME CTA — Portfolio Allocator (Emerald) ──
+   Primary: column :has(.tool-card-green) — col1 owns this class exclusively.
+   Fallback: adjacent-sibling via btn-cta-portfolio marker. ── */
+[data-testid="column"]:has(.tool-card-green) .stButton > button,
 [data-testid="element-container"]:has(.btn-cta-portfolio)
 + [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%) !important;
-    border: 1px solid #34d399 !important;
+    border: 1.5px solid #34d399 !important;
     color: #d1fae5 !important;
     padding: 14px 20px !important;
     font-size: 15px !important;
     font-weight: 700 !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
     box-shadow: 0 2px 12px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    min-height: 52px !important;
 }
+[data-testid="column"]:has(.tool-card-green) .stButton > button:hover,
 [data-testid="element-container"]:has(.btn-cta-portfolio)
 + [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%) !important;
@@ -76,17 +104,20 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 }
 
 /* ── 2. HOME CTA — Stock Analyzer (Indigo) ── */
+[data-testid="column"]:has(.tool-card-indigo) .stButton > button,
 [data-testid="element-container"]:has(.btn-cta-analyzer)
 + [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%) !important;
-    border: 1px solid #818cf8 !important;
+    border: 1.5px solid #818cf8 !important;
     color: #e0e7ff !important;
     padding: 14px 20px !important;
     font-size: 15px !important;
     font-weight: 700 !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
     box-shadow: 0 2px 12px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    min-height: 52px !important;
 }
+[data-testid="column"]:has(.tool-card-indigo) .stButton > button:hover,
 [data-testid="element-container"]:has(.btn-cta-analyzer)
 + [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%) !important;
@@ -97,17 +128,20 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 }
 
 /* ── 3. HOME CTA — Case Q&A (Violet) ── */
+[data-testid="column"]:has(.tool-card-purple) .stButton > button,
 [data-testid="element-container"]:has(.btn-cta-caseqa)
 + [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%) !important;
-    border: 1px solid #c084fc !important;
+    border: 1.5px solid #c084fc !important;
     color: #ede9fe !important;
     padding: 14px 20px !important;
     font-size: 15px !important;
     font-weight: 700 !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
     box-shadow: 0 2px 12px rgba(109,40,217,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    min-height: 52px !important;
 }
+[data-testid="column"]:has(.tool-card-purple) .stButton > button:hover,
 [data-testid="element-container"]:has(.btn-cta-caseqa)
 + [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%) !important;
@@ -117,7 +151,9 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     transform: translateY(-2px) !important;
 }
 
-/* ── 4. BACK buttons (Ghost / outline) ── */
+/* ── 4. BACK buttons (Ghost / outline) ──
+   col_back is always its own narrow column → safe to use column :has. ── */
+[data-testid="column"]:has(.btn-back) .stButton > button,
 [data-testid="element-container"]:has(.btn-back)
 + [data-testid="element-container"] .stButton > button {
     background: transparent !important;
@@ -128,7 +164,11 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     font-weight: 500 !important;
     border-radius: 6px !important;
     box-shadow: none !important;
+    min-height: 36px !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
 }
+[data-testid="column"]:has(.btn-back) .stButton > button:hover,
 [data-testid="element-container"]:has(.btn-back)
 + [data-testid="element-container"] .stButton > button:hover {
     border-color: #58a6ff !important;
@@ -138,11 +178,15 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     box-shadow: none !important;
 }
 
-/* ── 5. RUN FULL ANALYSIS (Action green) ── */
+/* ── 5. RUN FULL ANALYSIS (primary — most prominent CTA) ──
+   button[kind="primary"] catches Streamlit type="primary".
+   Adjacent-sibling via btn-rfa marker as secondary path. ── */
+button[kind="primary"],
+[data-testid="stBaseButton-primary"],
 [data-testid="element-container"]:has(.btn-rfa)
 + [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%) !important;
-    border: 1px solid #4ade80 !important;
+    border: 1.5px solid #4ade80 !important;
     color: #dcfce7 !important;
     padding: 13px 20px !important;
     font-size: 14px !important;
@@ -150,7 +194,10 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     letter-spacing: 0.07em !important;
     text-transform: uppercase !important;
     box-shadow: 0 2px 12px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    min-height: 48px !important;
 }
+button[kind="primary"]:hover,
+[data-testid="stBaseButton-primary"]:hover,
 [data-testid="element-container"]:has(.btn-rfa)
 + [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%) !important;
@@ -168,15 +215,21 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     font-size: 13px !important;
     font-weight: 600 !important;
     padding: 9px 18px !important;
+    min-height: 38px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
 }
 [data-testid="stFormSubmitButton"] > button:hover {
     background: #1d4ed8 !important;
     border-color: #60a5fa !important;
     color: #fff !important;
     box-shadow: 0 2px 12px rgba(29,78,216,0.45) !important;
+    transform: none !important;
 }
 
-/* ── 7. CLEAR CHAT (Ghost danger) ── */
+/* ── 7. CLEAR CHAT (Ghost danger) ──
+   Adjacent-sibling only: shares col_left with RFA so we must NOT
+   use column :has() here (would accidentally re-style RFA too). ── */
 [data-testid="element-container"]:has(.btn-clear)
 + [data-testid="element-container"] .stButton > button {
     background: transparent !important;
@@ -186,6 +239,9 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     font-weight: 500 !important;
     padding: 6px 14px !important;
     box-shadow: none !important;
+    min-height: 34px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
 }
 [data-testid="element-container"]:has(.btn-clear)
 + [data-testid="element-container"] .stButton > button:hover {
@@ -194,19 +250,6 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     background: rgba(248,81,73,0.08) !important;
     box-shadow: none !important;
     transform: none !important;
-}
-
-/* ── Global active press state (all non-footer buttons) ── */
-.stButton > button:active {
-    transform: translateY(0) scale(0.972) !important;
-    filter: brightness(0.88) !important;
-    transition: transform 0.08s ease, filter 0.08s ease !important;
-}
-/* ── Focus ring ── */
-.stButton > button:focus-visible {
-    outline: 2px solid #60a5fa !important;
-    outline-offset: 3px !important;
-    box-shadow: 0 0 0 4px rgba(96,165,250,0.2) !important;
 }
 
 .tool-card {
@@ -253,6 +296,9 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     padding: 28px 28px 32px !important;
     background: #07111f !important;
     gap: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
 }
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:first-child > [data-testid="stVerticalBlock"] {
     padding-left: 44px !important;
@@ -316,15 +362,20 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     border-bottom: 1px solid #0d1f38;
 }
 .ft-brand-title {
-    display: block;
     font-family: 'SF Mono', 'Consolas', monospace;
-    font-size: 12px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
     color: #b8cfe8 !important;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
+    /* Match footer-col-title height exactly so all 4 headers baseline-align */
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
     border-bottom: 1px solid #0d1f38;
+    width: 100%;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
 }
 .ft-brand-body {
     display: block;
@@ -540,6 +591,58 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     border-color: #58a6ff !important;
 }
 
+/* ═══════════════════════════════════════
+   RESPONSIVE LAYOUT
+   ═══════════════════════════════════════ */
+
+/* Tablet (≤ 900 px): footer 2 × 2 */
+@media (max-width: 900px) {
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"] {
+        flex: 0 0 50% !important;
+        min-width: 50% !important;
+        max-width: 50% !important;
+        border-right: none !important;
+    }
+    /* Keep divider only between col 1 and col 2 on the same row */
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:nth-child(1),
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:nth-child(3) {
+        border-right: 1px solid #0d1f38 !important;
+    }
+}
+
+/* Mobile (≤ 560 px): footer single column */
+@media (max-width: 560px) {
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"] {
+        flex: 0 0 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        border-right: none !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:not(:last-child) {
+        border-bottom: 1px solid #0d1f38 !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:first-child > [data-testid="stVerticalBlock"],
+    [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"]:last-child > [data-testid="stVerticalBlock"] {
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+}
+
+/* Mobile: home tool cards stack vertically */
+@media (max-width: 768px) {
+    [data-testid="stHorizontalBlock"]:has(.tool-card-green) {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"] {
+        flex: 0 0 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
 </style>""", unsafe_allow_html=True)
 
 
@@ -688,7 +791,7 @@ with ft_col4:
 <a class="ft-about-link" href="https://www.linkedin.com/in/yuan-teng-fan1208/" target="_blank">LinkedIn →</a>
 <div class="ft-data-item" style="margin-top:10px;"><strong style="color:#8b9db5 !important;">Course</strong></div>
 <div class="ft-data-item">MGMT 690 · Mastering AI for Finance</div>
-<a class="ft-about-link" href="https://daniels.purdue.edu" target="_blank">Purdue Daniels School →</a>
+<a class="ft-about-link" href="https://business.purdue.edu/" target="_blank">Purdue Business School →</a>
 """, unsafe_allow_html=True)
 
 # Copyright strip — flush below the columns via negative margin
