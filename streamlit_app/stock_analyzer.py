@@ -117,6 +117,52 @@ def fetch_comprehensive_data(ticker: str) -> Dict:
         return {"valid": False, "ticker": ticker, "error": str(e)}
 
 
+@st.cache_data(ttl=600)
+def fetch_peer_comparison(ticker: str, sector: str) -> pd.DataFrame:
+    """Fetch key metrics for sector peers to enable relative valuation."""
+    _SECTOR_PEERS = {
+        "Technology": ["AAPL", "MSFT", "GOOGL", "META", "AMZN"],
+        "Communication Services": ["GOOGL", "META", "NFLX", "DIS", "T"],
+        "Consumer Cyclical": ["AMZN", "TSLA", "HD", "MCD", "NKE"],
+        "Financial Services": ["JPM", "BAC", "GS", "MS", "BRK-B"],
+        "Healthcare": ["JNJ", "UNH", "LLY", "ABBV", "MRK"],
+        "Energy": ["XOM", "CVX", "COP", "SLB", "EOG"],
+        "Industrials": ["GE", "HON", "UPS", "CAT", "DE"],
+        "Consumer Defensive": ["WMT", "COST", "PG", "KO", "PEP"],
+        "Basic Materials": ["LIN", "APD", "ECL", "NEM", "FCX"],
+        "Real Estate": ["AMT", "PLD", "CCI", "EQIX", "SPG"],
+        "Utilities": ["NEE", "DUK", "SO", "D", "AEP"],
+    }
+    peers = _SECTOR_PEERS.get(sector, ["SPY", "QQQ", "DIA", "IWM", "VTI"])
+    peers = [ticker] + [p for p in peers if p != ticker][:4]
+
+    rows = []
+    try:
+        import yfinance as yf
+        for sym in peers:
+            try:
+                info = yf.Ticker(sym).info
+                pe = info.get("trailingPE")
+                ev_ebitda = info.get("enterpriseToEbitda")
+                rev_growth = info.get("revenueGrowth")
+                net_margin = info.get("profitMargins")
+                roe = info.get("returnOnEquity")
+                rows.append({
+                    "Ticker": sym,
+                    "P/E": f"{pe:.1f}x" if pe else "N/A",
+                    "EV/EBITDA": f"{ev_ebitda:.1f}x" if ev_ebitda else "N/A",
+                    "Rev Growth": f"{rev_growth*100:.1f}%" if rev_growth else "N/A",
+                    "Net Margin": f"{net_margin*100:.1f}%" if net_margin else "N/A",
+                    "ROE": f"{roe*100:.1f}%" if roe else "N/A",
+                    "_is_subject": sym == ticker,
+                })
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return pd.DataFrame(rows)
+
+
 # ============== TECHNICAL ANALYSIS ==============
 def calculate_technical_indicators(hist: pd.DataFrame) -> pd.DataFrame:
     """Calculate comprehensive technical indicators."""
@@ -362,11 +408,11 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
                 "threshold": "RSI > 70 (Overbought)"
             })
         elif 40 <= rsi <= 60:
-            rsi_score = 5
+            rsi_score = 0
             signals.append({
                 "category": "Momentum", "indicator": "RSI",
-                "signal": "NEUTRAL", "score": "+5",
-                "detail": f"RSI at {rsi:.1f} - Neutral zone",
+                "signal": "NEUTRAL", "score": "0",
+                "detail": f"RSI at {rsi:.1f} - Neutral zone, no directional bias",
                 "threshold": "40 ≤ RSI ≤ 60 (Neutral)"
             })
         elif rsi < 40:
@@ -559,11 +605,11 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
                 "threshold": "Volume > 1.5x avg + Price down"
             })
         elif vol_ratio < 0.5:
-            vol_score = 0
+            vol_score = -5
             signals.append({
                 "category": "Volume", "indicator": "Volume",
-                "signal": "CAUTION", "score": "0",
-                "detail": f"Low volume ({vol_ratio:.1f}x avg) - Weak conviction",
+                "signal": "CAUTION", "score": "-5",
+                "detail": f"Low volume ({vol_ratio:.1f}x avg) - Weak conviction / volume shrinkage risk",
                 "threshold": "Volume < 0.5x average"
             })
         else:
@@ -691,8 +737,13 @@ def analyze_fundamentals(data: Dict) -> Dict:
                 "benchmark": "Threshold: >30x"
             })
 
-    # PEG Ratio (10 points)
+    # PEG Ratio (10 points) — calculate manually if yfinance doesn't provide it
     peg = data.get('peg_ratio')
+    if not peg:
+        _pe = data.get('pe_ratio')
+        _eg = data.get('earnings_growth')
+        if _pe and _eg and _eg > 0:
+            peg = _pe / (_eg * 100)
     if peg:
         if peg < 1:
             valuation_score += 10
@@ -813,10 +864,16 @@ def analyze_fundamentals(data: Dict) -> Dict:
         roe_pct = roe * 100
         if roe_pct > 20:
             profitability_score += 10
+            _de_check = data.get('debt_to_equity')
+            _roe_note = (
+                "High ROE partly driven by share buybacks reducing book equity — "
+                "operating profitability is strong but the metric is amplified by capital structure"
+                if (_de_check and _de_check > 10) else "Superior capital efficiency"
+            )
             signals.append({
                 "category": "Profitability", "metric": "Return on Equity",
                 "value": f"{roe_pct:.1f}%", "signal": "EXCELLENT", "score": "+10",
-                "detail": "Superior capital efficiency",
+                "detail": _roe_note,
                 "benchmark": "Elite: >20%"
             })
         elif roe_pct > 15:
@@ -971,13 +1028,51 @@ def analyze_fundamentals(data: Dict) -> Dict:
     health_max = 20
 
     # Debt/Equity (10 points)
+    # Note: companies with large buybacks (e.g. Apple) can have negative book equity,
+    # making D/E artificially high. Detect this and use Debt/EBITDA instead.
     de_ratio = data.get('debt_to_equity')
     if de_ratio is not None:
-        if de_ratio < 0.3:
+        _ev_ebitda = data.get('ev_ebitda')
+        _ev = data.get('enterprise_value')
+        _total_debt = data.get('total_debt')
+        _debt_ebitda = None
+        if _ev_ebitda and _ev and _ev_ebitda > 0 and _total_debt:
+            _ebitda_est = _ev / _ev_ebitda
+            if _ebitda_est > 0:
+                _debt_ebitda = _total_debt / _ebitda_est
+
+        _negative_equity = de_ratio > 10
+
+        if _negative_equity and _debt_ebitda is not None:
+            if _debt_ebitda < 2:
+                health_score += 7
+                signals.append({
+                    "category": "Financial Health", "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.1f}x (see note)", "signal": "MANAGEABLE", "score": "+7",
+                    "detail": f"D/E of {de_ratio:.1f}x is distorted by negative book equity from share buybacks. Debt/EBITDA of {_debt_ebitda:.1f}x shows manageable leverage.",
+                    "benchmark": "Debt/EBITDA < 2x = healthy leverage"
+                })
+            elif _debt_ebitda < 4:
+                health_score += 3
+                signals.append({
+                    "category": "Financial Health", "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.1f}x (see note)", "signal": "MODERATE", "score": "+3",
+                    "detail": f"D/E of {de_ratio:.1f}x distorted by negative book equity (buybacks). Debt/EBITDA of {_debt_ebitda:.1f}x shows moderate leverage.",
+                    "benchmark": "Debt/EBITDA 2-4x = moderate leverage"
+                })
+            else:
+                health_score += 0
+                signals.append({
+                    "category": "Financial Health", "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.1f}x (see note)", "signal": "ELEVATED", "score": "0",
+                    "detail": f"D/E of {de_ratio:.1f}x distorted by negative book equity (buybacks). Debt/EBITDA of {_debt_ebitda:.1f}x is elevated.",
+                    "benchmark": "Debt/EBITDA > 4x = elevated leverage"
+                })
+        elif de_ratio < 0.3:
             health_score += 10
             signals.append({
                 "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}", "signal": "STRONG", "score": "+10",
+                "value": f"{de_ratio:.2f}x", "signal": "STRONG", "score": "+10",
                 "detail": "Very low leverage - conservative balance sheet",
                 "benchmark": "Conservative: <0.3"
             })
@@ -985,7 +1080,7 @@ def analyze_fundamentals(data: Dict) -> Dict:
             health_score += 7
             signals.append({
                 "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}", "signal": "HEALTHY", "score": "+7",
+                "value": f"{de_ratio:.2f}x", "signal": "HEALTHY", "score": "+7",
                 "detail": "Moderate leverage",
                 "benchmark": "Healthy: 0.3-0.7"
             })
@@ -993,7 +1088,7 @@ def analyze_fundamentals(data: Dict) -> Dict:
             health_score += 3
             signals.append({
                 "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}", "signal": "ELEVATED", "score": "+3",
+                "value": f"{de_ratio:.2f}x", "signal": "ELEVATED", "score": "+3",
                 "detail": "Higher leverage - monitor interest coverage",
                 "benchmark": "Elevated: 0.7-1.5"
             })
@@ -1001,7 +1096,7 @@ def analyze_fundamentals(data: Dict) -> Dict:
             health_score -= 5
             signals.append({
                 "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}", "signal": "HIGH RISK", "score": "-5",
+                "value": f"{de_ratio:.2f}x", "signal": "HIGH RISK", "score": "-5",
                 "detail": "High leverage - balance sheet risk",
                 "benchmark": "High risk: >1.5"
             })
@@ -1151,15 +1246,23 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
             terminal_pv = terminal_value / (1 + discount_rate) ** years
             return total_pv + terminal_pv
 
-        dcf_bear = simple_dcf(fcf_per_share, 0.05, 0.12)
-        dcf_base = simple_dcf(fcf_per_share, 0.08, 0.10)
-        dcf_bull = simple_dcf(fcf_per_share, 0.12, 0.08)
+        _rev_g = (data.get('revenue_growth') or 0)
+        _dcf_g_base = float(max(min(_rev_g, 0.18), 0.03))
+        _dcf_g_bull = float(min(_dcf_g_base * 1.35, 0.25))
+        _dcf_g_bear = float(max(_dcf_g_base * 0.50, 0.02))
+
+        dcf_bear = simple_dcf(fcf_per_share, _dcf_g_bear, 0.12)
+        dcf_base = simple_dcf(fcf_per_share, _dcf_g_base, 0.10)
+        dcf_bull = simple_dcf(fcf_per_share, _dcf_g_bull, 0.08)
 
         results['dcf_valuation'] = {
             'bear': dcf_bear,
             'base': dcf_base,
             'bull': dcf_bull,
-            'fcf_per_share': fcf_per_share
+            'fcf_per_share': fcf_per_share,
+            'growth_bear': _dcf_g_bear,
+            'growth_base': _dcf_g_base,
+            'growth_bull': _dcf_g_bull,
         }
 
     # ===== COMPOSITE TARGET =====
@@ -1744,9 +1847,10 @@ The RSI(14) reads {rsi_desc}.
                 # ── 2. DIMENSION SCORE CARDS ─────────────────────────────────
                 st.markdown("##### Dimensional Breakdown")
                 bd = tech_analysis['breakdown']
+                _show_overall = (tech_score + 100) / 2
                 dim_cols = st.columns(5)
                 dims = [
-                    ("Overall",    tech_score,              100, tech_analysis['rating']),
+                    ("Overall",    _show_overall,            100, tech_analysis['rating'] + " · 50=neutral"),
                     ("Trend",      bd['trend']['score'],     bd['trend']['max'],      ""),
                     ("Momentum",   bd['momentum']['score'],  bd['momentum']['max'],   ""),
                     ("Volatility", bd['volatility']['score'],bd['volatility']['max'], ""),
@@ -1781,46 +1885,79 @@ levels mark price zones where supply/demand historically interacted. Volume bars
 high volume on up-days signals conviction buying; high volume on down-days signals distribution.
 </div>""", unsafe_allow_html=True)
 
-                price_layer = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
-                    x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
-                    y=alt.Y('Close:Q', title='Price (USD)', scale=alt.Scale(zero=False),
-                            axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', format='$.0f')),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Close:Q', format='$.2f', title='Close')]
-                )
-                ma50_layer  = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[4,4]).encode(
-                    x='Date:T', y=alt.Y('SMA_50:Q', title=''),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_50:Q', format='$.2f', title='SMA 50')]
-                )
-                ma200_layer = alt.Chart(chart_data).mark_line(color='#a371f7', strokeWidth=1.5, strokeDash=[4,4]).encode(
-                    x='Date:T', y=alt.Y('SMA_200:Q', title=''),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_200:Q', format='$.2f', title='SMA 200')]
-                )
-                price_combined = price_layer + ma50_layer + ma200_layer
-                if supports:
-                    sup_df = pd.DataFrame({'y': [supports[-1]]})
-                    price_combined = price_combined + alt.Chart(sup_df).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
-                if resistances:
-                    res_df = pd.DataFrame({'y': [resistances[-1]]})
-                    price_combined = price_combined + alt.Chart(res_df).mark_rule(color='#f85149', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
+                _chart_type = st.radio("Chart type", ["Line", "Candlestick"], horizontal=True, key="chart_type_toggle")
 
-                vol_layer = alt.Chart(chart_data).mark_bar(opacity=0.6).encode(
-                    x=alt.X('Date:T', title=None),
-                    y=alt.Y('Volume:Q', title='Volume', axis=alt.Axis(labelColor='#8b949e', format='~s', gridColor='#21262d')),
-                    color=alt.condition(
-                        alt.datum.Close >= alt.datum.Open if 'Open' in chart_data.columns else alt.value('#3fb950'),
-                        alt.value('#3fb950'), alt.value('#f85149')
-                    ),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Volume:Q', format=',', title='Volume')]
-                )
+                if _chart_type == "Candlestick":
+                    import plotly.graph_objects as go
+                    _hist_plot = data['hist_1y'].reset_index()
+                    _hist_plot['Date'] = pd.to_datetime(_hist_plot['Date']).dt.tz_localize(None)
+                    _fig_candle = go.Figure(data=[
+                        go.Candlestick(
+                            x=_hist_plot['Date'],
+                            open=_hist_plot['Open'],
+                            high=_hist_plot['High'],
+                            low=_hist_plot['Low'],
+                            close=_hist_plot['Close'],
+                            name=data['ticker'],
+                            increasing_line_color='#3fb950',
+                            decreasing_line_color='#f85149',
+                        )
+                    ])
+                    _fig_candle.add_trace(go.Scatter(x=chart_data['Date'], y=chart_data['SMA_50'].values,
+                        mode='lines', name='SMA50', line=dict(color='#d29922', width=1.5, dash='dot')))
+                    _fig_candle.add_trace(go.Scatter(x=chart_data['Date'], y=chart_data['SMA_200'].values,
+                        mode='lines', name='SMA200', line=dict(color='#f85149', width=1.5, dash='dot')))
+                    _fig_candle.update_layout(
+                        paper_bgcolor='#0d1117', plot_bgcolor='#0d1117',
+                        font=dict(color='#c9d1d9'), height=380,
+                        xaxis=dict(gridcolor='#21262d', rangeslider_visible=False),
+                        yaxis=dict(gridcolor='#21262d'),
+                        legend=dict(bgcolor='rgba(0,0,0,0)'),
+                        margin=dict(l=0, r=0, t=20, b=0),
+                    )
+                    st.plotly_chart(_fig_candle, use_container_width=True)
+                    st.caption("Green = bullish candle  Red = bearish candle  Yellow = SMA50  Red dashed = SMA200")
+                else:
+                    price_layer = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
+                        x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
+                        y=alt.Y('Close:Q', title='Price (USD)', scale=alt.Scale(zero=False),
+                                axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', format='$.0f')),
+                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Close:Q', format='$.2f', title='Close')]
+                    )
+                    ma50_layer  = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[4,4]).encode(
+                        x='Date:T', y=alt.Y('SMA_50:Q', title=''),
+                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_50:Q', format='$.2f', title='SMA 50')]
+                    )
+                    ma200_layer = alt.Chart(chart_data).mark_line(color='#a371f7', strokeWidth=1.5, strokeDash=[4,4]).encode(
+                        x='Date:T', y=alt.Y('SMA_200:Q', title=''),
+                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_200:Q', format='$.2f', title='SMA 200')]
+                    )
+                    price_combined = price_layer + ma50_layer + ma200_layer
+                    if supports:
+                        sup_df = pd.DataFrame({'y': [supports[-1]]})
+                        price_combined = price_combined + alt.Chart(sup_df).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
+                    if resistances:
+                        res_df = pd.DataFrame({'y': [resistances[-1]]})
+                        price_combined = price_combined + alt.Chart(res_df).mark_rule(color='#f85149', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
 
-                combined_chart = alt.vconcat(
-                    price_combined.properties(height=280, title=''),
-                    vol_layer.properties(height=80, title=''),
-                ).resolve_scale(x='shared').configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(
-                    labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d'
-                )
-                st.altair_chart(combined_chart, use_container_width=True)
-                st.caption("🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume")
+                    vol_layer = alt.Chart(chart_data).mark_bar(opacity=0.6).encode(
+                        x=alt.X('Date:T', title=None),
+                        y=alt.Y('Volume:Q', title='Volume', axis=alt.Axis(labelColor='#8b949e', format='~s', gridColor='#21262d')),
+                        color=alt.condition(
+                            alt.datum.Close >= alt.datum.Open if 'Open' in chart_data.columns else alt.value('#3fb950'),
+                            alt.value('#3fb950'), alt.value('#f85149')
+                        ),
+                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Volume:Q', format=',', title='Volume')]
+                    )
+
+                    combined_chart = alt.vconcat(
+                        price_combined.properties(height=280, title=''),
+                        vol_layer.properties(height=80, title=''),
+                    ).resolve_scale(x='shared').configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(
+                        labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d'
+                    )
+                    st.altair_chart(combined_chart, use_container_width=True)
+                    st.caption("🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume")
 
                 # ── 4. RSI SECTION ────────────────────────────────────────────
                 st.markdown("---")
@@ -1967,6 +2104,31 @@ The stock is currently {val_comment},
 posting a {roe_comment}, and generating {fcf_comment}.
 {f_outlook}
 </p></div>""", unsafe_allow_html=True)
+
+                # Dynamic overview narrative
+                _val_score = fund_analysis['breakdown']['valuation']['score']
+                _val_max = fund_analysis['breakdown']['valuation']['max']
+                _prof_score = fund_analysis['breakdown']['profitability']['score']
+                _val_pct = (_val_score / _val_max * 100) if _val_max else 0
+                _prof_pct = (_prof_score / fund_analysis['breakdown']['profitability']['max'] * 100) if fund_analysis['breakdown']['profitability']['max'] else 0
+
+                if _val_pct < -10 and _prof_pct > 60:
+                    _fund_overview = (f"{data['name']} is a high-quality business trading at a premium valuation — "
+                                      f"strong profitability and growth are offset by stretched multiples. "
+                                      f"The investment risk is valuation, not business quality.")
+                elif _val_pct < 0 and _prof_pct > 40:
+                    _fund_overview = (f"{data['name']} shows solid fundamentals with elevated valuation multiples. "
+                                      f"Investors are paying a growth premium — justified by the profitability profile "
+                                      f"but leaves limited margin of safety.")
+                elif fund_analysis['score_pct'] >= 40:
+                    _fund_overview = (f"{data['name']} demonstrates strong fundamentals across valuation, "
+                                      f"profitability, and growth dimensions.")
+                elif fund_analysis['score_pct'] >= 10:
+                    _fund_overview = (f"{data['name']} shows solid fundamentals with some areas to monitor.")
+                else:
+                    _fund_overview = (f"{data['name']} faces fundamental headwinds across one or more dimensions.")
+
+                st.info(_fund_overview)
 
                 # ── 2. DIMENSION SCORE CARDS ─────────────────────────────────
                 st.markdown("##### Dimensional Breakdown")
@@ -2226,6 +2388,20 @@ also most assumption-dependent approach. A convergence of models above the curre
                         f"</tr></thead><tbody>{_rows}</tbody></table></div>",
                         unsafe_allow_html=True)
                 st.caption("Source: Yahoo Finance \u2014 SEC filings (10-K, 10-Q). Analyst estimates aggregated from major sell-side brokerages.")
+
+                st.markdown("---")
+                st.markdown("**Peer Comparison**")
+                st.caption("Key metrics vs sector peers (Yahoo Finance data)")
+                with st.spinner("Loading peers..."):
+                    _peer_df = fetch_peer_comparison(data['ticker'], data.get('sector', ''))
+                if not _peer_df.empty:
+                    def _style_peers(row):
+                        if _peer_df.loc[row.name, '_is_subject']:
+                            return ['background-color: rgba(29,78,216,0.15); font-weight:bold'] * len(row)
+                        return [''] * len(row)
+                    _display_df = _peer_df.drop(columns=['_is_subject'])
+                    st.dataframe(_display_df.style.apply(_style_peers, axis=1),
+                                 use_container_width=True, hide_index=True)
 
         # ── CONCLUSION TAB ─────────────────────────────────────────────────────
         with tab_conclusion:
