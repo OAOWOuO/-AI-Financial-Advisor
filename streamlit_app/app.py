@@ -4,6 +4,8 @@ Combined app with session state navigation
 """
 
 import streamlit as st
+from datetime import datetime
+current_year = datetime.now().year
 
 st.set_page_config(
     page_title="AI Financial Advisor",
@@ -56,7 +58,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
    Gap between them closed by setting columns padding-bottom: 2rem and
    applying margin-top: -2rem on the copyright element-container.
    Whatever the Streamlit flex gap is (typically 0.5-1rem), the 2rem
-   overlap eats into the columns’ bottom padding (not the content),
+   overlap eats into the columns' bottom padding (not the content),
    so the copyright always sits flush with no visible seam.
    ═══════════════════════════════════════ */
 
@@ -68,6 +70,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     border-image: linear-gradient(90deg, #0a1628 0%, #1d4ed8 42%, #3b82f6 58%, #0a1628 100%) 1;
     gap: 0 !important;
     align-items: stretch !important;
+    flex-wrap: wrap;
 }
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) > [data-testid="column"] {
     padding: 0 !important;
@@ -106,7 +109,7 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) div,
 [data-testid="stHorizontalBlock"]:has(.ft-nav-section) p { color: inherit !important; }
 
-/* ─ Copyright strip: margin-top -2rem eats into the columns’ 32px bottom padding,
+/* ─ Copyright strip: margin-top -2rem eats into the columns' 32px bottom padding,
    guaranteeing flush contact regardless of the Streamlit flex gap value ─ */
 [data-testid="element-container"]:has(.ft-copy) {
     margin-top: -2rem !important;
@@ -176,39 +179,74 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     font-style: italic;
 }
 
-/* ─ Footer nav buttons: rounded, soft blue pill style ─ */
+/* ─ Footer column layout ─ */
+.footer-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.footer-col-title {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #3b82f6 !important;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #0d1f38;
+    width: 100%;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+}
+
+/* ─ Footer nav buttons: plain text-link style ─ */
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button {
-    background: rgba(29, 78, 216, 0.06) !important;
-    border: 1px solid rgba(59, 130, 246, 0.18) !important;
-    border-radius: 6px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
     color: #6aa3c8 !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     font-weight: 400 !important;
     text-align: left !important;
     justify-content: flex-start !important;
-    padding: 7px 12px !important;
+    padding: 2px 0 !important;
     min-height: unset !important;
     height: auto !important;
-    line-height: 1.2 !important;
-    width: 100% !important;
+    line-height: 1.6 !important;
+    width: auto !important;
     box-shadow: none !important;
     letter-spacing: 0.01em !important;
-    margin-bottom: 5px !important;
-    transition: all 0.15s ease !important;
+    margin-bottom: 2px !important;
+    transition: color 0.2s ease !important;
 }
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button:hover {
-    background: rgba(29, 78, 216, 0.14) !important;
-    border-color: rgba(59, 130, 246, 0.45) !important;
-    color: #c2dff5 !important;
+    background: transparent !important;
+    border: none !important;
+    color: #e2e8f0 !important;
 }
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button:focus:not(:active) {
     box-shadow: none !important;
-    background: rgba(29, 78, 216, 0.06) !important;
+    background: transparent !important;
 }
 [data-testid="stVerticalBlock"]:has(.ft-nav-section) .stButton > button:active {
-    background: rgba(29, 78, 216, 0.2) !important;
-    color: #d8eeff !important;
+    background: transparent !important;
+    color: #93c5fd !important;
 }
+
+/* ─ Footer about links ─ */
+.ft-about-link {
+    color: #6aa3c8 !important;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.6;
+    display: block;
+    transition: color 0.2s;
+}
+.ft-about-link:hover { color: #e2e8f0 !important; }
 </style>""", unsafe_allow_html=True)
 
 
@@ -303,13 +341,7 @@ elif st.session_state.current_view == "caseqa":
 
 
 # ============== FOOTER ==============
-# Row 1: st.columns() — brand | navigation buttons | data & legal
-# Row 2: st.markdown() — copyright strip
-# Gap fix: columns padding-bottom = 2rem; copyright margin-top = -2rem.
-# The 2rem overlap eats into the columns’ bottom padding (not text content),
-# so the copyright always sits flush regardless of Streamlit’s flex gap value.
-
-ft_col1, ft_col2, ft_col3 = st.columns([2, 1, 1.5])
+ft_col1, ft_col2, ft_col3, ft_col4 = st.columns([2, 1, 1.5, 1.5])
 
 with ft_col1:
     st.markdown("""
@@ -321,7 +353,7 @@ with ft_col1:
 """, unsafe_allow_html=True)
 
 with ft_col2:
-    st.markdown('<span class="ft-section-label">Navigation</span><div class="ft-nav-section"></div>', unsafe_allow_html=True)
+    st.markdown('<span class="footer-col-title">Navigation</span><div class="ft-nav-section"></div>', unsafe_allow_html=True)
     if st.button("Home", key="ft_home"):
         st.session_state.current_view = "home"
         st.rerun()
@@ -337,23 +369,37 @@ with ft_col2:
 
 with ft_col3:
     st.markdown("""
-<span class="ft-section-label">Data &amp; Legal</span>
-<div class="ft-data-item">• Yahoo Finance &mdash; 15–20 min delayed</div>
-<div class="ft-data-item">• AI analysis via OpenAI GPT-4o</div>
-<div class="ft-data-item">• US-listed equities only</div>
+<span class="footer-col-title">Data &amp; Legal</span>
+<div class="ft-data-item">• Market data: Yahoo Finance (15–20 min delayed)</div>
+<div class="ft-data-item">• AI analysis: OpenAI API</div>
+<div class="ft-data-item">• Equity universe: US-listed stocks only</div>
+<div class="ft-data-item">• Data accuracy not guaranteed</div>
 <span class="ft-legal-note">Past performance is not indicative of future results.
-Not affiliated with any financial institution.</span>
+Not affiliated with any financial institution.<br><br>
+Source code: <a href="https://github.com/OAOWOuO/-AI-Financial-Advisor" target="_blank"
+style="color:#3b82f6 !important;text-decoration:none;">github.com/OAOWOuO/-AI-Financial-Advisor</a></span>
+""", unsafe_allow_html=True)
+
+with ft_col4:
+    st.markdown("""
+<span class="footer-col-title">About</span>
+<div class="ft-data-item"><strong style="color:#8b9db5 !important;">Author</strong></div>
+<div class="ft-data-item">YuanTeng Fan</div>
+<a class="ft-about-link" href="https://www.linkedin.com/in/yuan-teng-fan1208/" target="_blank">LinkedIn →</a>
+<div class="ft-data-item" style="margin-top:10px;"><strong style="color:#8b9db5 !important;">Course</strong></div>
+<div class="ft-data-item">MGMT 690 · Mastering AI for Finance</div>
+<a class="ft-about-link" href="https://daniels.purdue.edu" target="_blank">Purdue Daniels School →</a>
 """, unsafe_allow_html=True)
 
 # Copyright strip — flush below the columns via negative margin
-st.markdown("""
+st.markdown(f"""
 <div class="ft-copy">
-  <span>© 2025 AI Financial Advisor</span>
+  <span>© {current_year} AI Financial Advisor</span>
   <span class="ft-copy-sep">·</span>
   <span>Educational use only</span>
   <span class="ft-copy-sep">·</span>
   <span>Not financial advice</span>
   <span class="ft-copy-sep">·</span>
-  <span>All rights reserved</span>
+  <span>Built for MGMT 690 · Purdue University</span>
 </div>
 """, unsafe_allow_html=True)
