@@ -28,19 +28,20 @@ p, span, label, li, div { color: #c9d1d9 !important; }
 /* ══════════════════════════════════════════════════
    BUTTON DESIGN SYSTEM
    Each button role gets its own color personality.
-   aria-label = button text → unique CSS targeting.
+   Targeting: marker <div class="btn-xxx"> injected
+   immediately before each st.button(), then selected
+   via CSS adjacent-sibling:
+     [data-testid="element-container"]:has(.btn-xxx)
+     + [data-testid="element-container"] .stButton > button
    ══════════════════════════════════════════════════ */
 
 /* ── Base reset for all app buttons ── */
-.stButton > button,
-[data-testid="stBaseButton-primary"],
-[data-testid="stBaseButton-secondary"] {
+.stButton > button {
     border-radius: 8px !important;
     font-weight: 600 !important;
     letter-spacing: 0.025em !important;
     transition: all 0.2s ease !important;
     cursor: pointer !important;
-    /* fallback: steel blue (any unspecified button) */
     background: #1d3a5e !important;
     border: 1px solid #2563eb !important;
     color: #93c5fd !important;
@@ -53,8 +54,9 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     color: #fff !important;
 }
 
-/* ── 1. HOME CTA — Portfolio Allocator  (Emerald) ── */
-button[aria-label="Enter Portfolio Allocator →"] {
+/* ── 1. HOME CTA — Portfolio Allocator (Emerald) ── */
+[data-testid="element-container"]:has(.btn-cta-portfolio)
++ [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%) !important;
     border: 1px solid #34d399 !important;
     color: #d1fae5 !important;
@@ -64,7 +66,8 @@ button[aria-label="Enter Portfolio Allocator →"] {
     text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
     box-shadow: 0 2px 12px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
 }
-button[aria-label="Enter Portfolio Allocator →"]:hover {
+[data-testid="element-container"]:has(.btn-cta-portfolio)
++ [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%) !important;
     border-color: #6ee7b7 !important;
     color: #fff !important;
@@ -72,8 +75,9 @@ button[aria-label="Enter Portfolio Allocator →"]:hover {
     transform: translateY(-2px) !important;
 }
 
-/* ── 2. HOME CTA — Stock Analyzer  (Indigo / Royal Blue) ── */
-button[aria-label="Enter Stock Analyzer →"] {
+/* ── 2. HOME CTA — Stock Analyzer (Indigo) ── */
+[data-testid="element-container"]:has(.btn-cta-analyzer)
++ [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%) !important;
     border: 1px solid #818cf8 !important;
     color: #e0e7ff !important;
@@ -83,7 +87,8 @@ button[aria-label="Enter Stock Analyzer →"] {
     text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
     box-shadow: 0 2px 12px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
 }
-button[aria-label="Enter Stock Analyzer →"]:hover {
+[data-testid="element-container"]:has(.btn-cta-analyzer)
++ [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%) !important;
     border-color: #a5b4fc !important;
     color: #fff !important;
@@ -91,8 +96,9 @@ button[aria-label="Enter Stock Analyzer →"]:hover {
     transform: translateY(-2px) !important;
 }
 
-/* ── 3. HOME CTA — Case Q&A  (Violet / Purple) ── */
-button[aria-label="Enter Case Q&A →"] {
+/* ── 3. HOME CTA — Case Q&A (Violet) ── */
+[data-testid="element-container"]:has(.btn-cta-caseqa)
++ [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%) !important;
     border: 1px solid #c084fc !important;
     color: #ede9fe !important;
@@ -102,7 +108,8 @@ button[aria-label="Enter Case Q&A →"] {
     text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
     box-shadow: 0 2px 12px rgba(109,40,217,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
 }
-button[aria-label="Enter Case Q&A →"]:hover {
+[data-testid="element-container"]:has(.btn-cta-caseqa)
++ [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%) !important;
     border-color: #d8b4fe !important;
     color: #fff !important;
@@ -110,8 +117,9 @@ button[aria-label="Enter Case Q&A →"]:hover {
     transform: translateY(-2px) !important;
 }
 
-/* ── 4. BACK buttons  (Ghost / outline) ── */
-button[aria-label="← Back"] {
+/* ── 4. BACK buttons (Ghost / outline) ── */
+[data-testid="element-container"]:has(.btn-back)
++ [data-testid="element-container"] .stButton > button {
     background: transparent !important;
     border: 1px solid #30363d !important;
     color: #8b949e !important;
@@ -121,7 +129,8 @@ button[aria-label="← Back"] {
     border-radius: 6px !important;
     box-shadow: none !important;
 }
-button[aria-label="← Back"]:hover {
+[data-testid="element-container"]:has(.btn-back)
++ [data-testid="element-container"] .stButton > button:hover {
     border-color: #58a6ff !important;
     color: #e6edf3 !important;
     background: #161b22 !important;
@@ -129,8 +138,9 @@ button[aria-label="← Back"]:hover {
     box-shadow: none !important;
 }
 
-/* ── 5. RUN FULL ANALYSIS  (Action green — primary CTA inside tool) ── */
-button[aria-label="Run Full Analysis"] {
+/* ── 5. RUN FULL ANALYSIS (Action green) ── */
+[data-testid="element-container"]:has(.btn-rfa)
++ [data-testid="element-container"] .stButton > button {
     background: linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%) !important;
     border: 1px solid #4ade80 !important;
     color: #dcfce7 !important;
@@ -141,7 +151,8 @@ button[aria-label="Run Full Analysis"] {
     text-transform: uppercase !important;
     box-shadow: 0 2px 12px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.06) !important;
 }
-button[aria-label="Run Full Analysis"]:hover {
+[data-testid="element-container"]:has(.btn-rfa)
++ [data-testid="element-container"] .stButton > button:hover {
     background: linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%) !important;
     border-color: #86efac !important;
     color: #fff !important;
@@ -149,8 +160,7 @@ button[aria-label="Run Full Analysis"]:hover {
     transform: translateY(-1px) !important;
 }
 
-/* ── 6. SEND → (chat form submit — compact accent) ── */
-button[aria-label="Send →"],
+/* ── 6. SEND → (form submit — compact accent) ── */
 [data-testid="stFormSubmitButton"] > button {
     background: #0f2a4a !important;
     border: 1px solid #1d4ed8 !important;
@@ -159,7 +169,6 @@ button[aria-label="Send →"],
     font-weight: 600 !important;
     padding: 9px 18px !important;
 }
-button[aria-label="Send →"]:hover,
 [data-testid="stFormSubmitButton"] > button:hover {
     background: #1d4ed8 !important;
     border-color: #60a5fa !important;
@@ -167,8 +176,9 @@ button[aria-label="Send →"]:hover,
     box-shadow: 0 2px 12px rgba(29,78,216,0.45) !important;
 }
 
-/* ── 7. CLEAR CHAT  (Ghost danger) ── */
-button[aria-label="Clear Chat"] {
+/* ── 7. CLEAR CHAT (Ghost danger) ── */
+[data-testid="element-container"]:has(.btn-clear)
++ [data-testid="element-container"] .stButton > button {
     background: transparent !important;
     border: 1px solid #2a1515 !important;
     color: #5c2828 !important;
@@ -177,7 +187,8 @@ button[aria-label="Clear Chat"] {
     padding: 6px 14px !important;
     box-shadow: none !important;
 }
-button[aria-label="Clear Chat"]:hover {
+[data-testid="element-container"]:has(.btn-clear)
++ [data-testid="element-container"] .stButton > button:hover {
     border-color: #f85149 !important;
     color: #f85149 !important;
     background: rgba(248,81,73,0.08) !important;
@@ -558,6 +569,7 @@ def show_home():
 <li>One-click rebalancing</li>
 </ul>
 </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="btn-cta-portfolio"></div>', unsafe_allow_html=True)
         if st.button("Enter Portfolio Allocator →", key="btn_portfolio", use_container_width=True):
             st.session_state.current_view = "portfolio"
             st.rerun()
@@ -577,6 +589,7 @@ def show_home():
 <li>BUY / HOLD / SELL recommendation</li>
 </ul>
 </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="btn-cta-analyzer"></div>', unsafe_allow_html=True)
         if st.button("Enter Stock Analyzer →", key="btn_analyzer", use_container_width=True):
             st.session_state.current_view = "analyzer"
             st.rerun()
@@ -595,6 +608,7 @@ def show_home():
 <li>Refuses unsupported questions explicitly</li>
 </ul>
 </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="btn-cta-caseqa"></div>', unsafe_allow_html=True)
         if st.button("Enter Case Q&A →", key="btn_caseqa", use_container_width=True):
             st.session_state.current_view = "caseqa"
             st.rerun()
@@ -610,6 +624,7 @@ elif st.session_state.current_view == "portfolio":
     import os
     col_back, col_title = st.columns([1, 11])
     with col_back:
+        st.markdown('<div class="btn-back"></div>', unsafe_allow_html=True)
         if st.button("← Back", key="back_portfolio"):
             st.session_state.current_view = "home"
             st.rerun()

@@ -208,6 +208,7 @@ def _answer(question: str, context_docs: list[str], openai_client) -> str:
 def show_case_qa() -> None:
     col_back, _ = st.columns([1, 11])
     with col_back:
+        st.markdown('<div class="btn-back"></div>', unsafe_allow_html=True)
         if st.button("← Back", key="back_caseqa"):
             st.session_state.current_view = "home"
             st.rerun()

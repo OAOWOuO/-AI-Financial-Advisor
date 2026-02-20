@@ -1615,6 +1615,7 @@ def show_stock_analyzer():
     # Back button and header
     col_back, col_title = st.columns([1, 11])
     with col_back:
+        st.markdown('<div class="btn-back"></div>', unsafe_allow_html=True)
         if st.button("← Back", key="back_analyzer"):
             st.session_state.current_view = 'home'
             st.rerun()
@@ -1652,6 +1653,7 @@ def show_stock_analyzer():
         ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker",
                                placeholder="e.g. AAPL, MSFT, NVDA", label_visibility="collapsed")
         ticker = ticker.strip().upper()
+        st.markdown('<div class="btn-rfa"></div>', unsafe_allow_html=True)
         analyze_btn = st.button("Run Full Analysis", type="primary", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1704,6 +1706,7 @@ def show_stock_analyzer():
                     st.markdown(_msg["content"])
 
         if st.session_state.get(_chat_key):
+            st.markdown('<div class="btn-clear"></div>', unsafe_allow_html=True)
             if st.button("Clear Chat", key="clear_chat_top", use_container_width=True):
                 st.session_state[_chat_key] = []
                 st.rerun()
