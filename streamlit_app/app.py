@@ -35,14 +35,8 @@ p, span, label, li, div { color: #c9d1d9 !important; }
    Footer buttons overridden separately (.ft-nav-section).
    ══════════════════════════════════ */
 
-/* ── Shared base for all non-footer CTA & action buttons ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-green)  .stButton > button,
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button,
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-cta-portfolio) .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-cta-analyzer)  .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-cta-caseqa)    .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-back)          .stButton > button,
+/* ── Shared base: RFA + Back ── */
+[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button,
 [data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"],
 button[kind="primary"],
@@ -60,84 +54,75 @@ button[kind="primary"],
     cursor: pointer !important;
 }
 
-/* ── HOME CTA — Portfolio Allocator (Emerald outline) ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-cta-portfolio) .stButton > button {
-    background: transparent !important;
-    border: 1px solid #1e5c3a !important;
-    color: #6ee7b7 !important;
+/* ══════════════════════════════════════
+   HOME CTA BUTTONS
+   Use stHorizontalBlock + nth-child — same pattern proven by footer CSS.
+   stHorizontalBlock:has(.tool-card-green) = the home tool-card row only.
+   column nth-child(1/2/3) = Portfolio / Analyzer / Case Q&A.
+   ══════════════════════════════════════ */
+
+/* Shared base for all 3 CTAs */
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"] .stButton > button {
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 10px 18px !important;
+    font-size: 14px !important;
     min-height: 44px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: background 0.15s ease, border-color 0.15s ease,
+                color 0.15s ease, transform 0.1s ease !important;
+    cursor: pointer !important;
 }
-[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:hover,
-[data-testid="stVerticalBlock"]:has(.btn-cta-portfolio) .stButton > button:hover {
-    background: rgba(16,185,129,0.06) !important;
-    border-color: #2d8a55 !important;
+
+/* ── Portfolio Allocator — column 1 (Emerald) ── */
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(1) .stButton > button {
+    background: transparent !important;
+    border: 2px solid #10b981 !important;
+    color: #6ee7b7 !important;
+}
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(1) .stButton > button:hover {
+    background: rgba(16,185,129,0.12) !important;
+    border-color: #34d399 !important;
     color: #a7f3d0 !important;
 }
-[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:active,
-[data-testid="stVerticalBlock"]:has(.btn-cta-portfolio) .stButton > button:active {
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(1) .stButton > button:active {
     transform: translateY(1px) !important;
-    background: rgba(16,185,129,0.1) !important;
-    box-shadow: none !important;
-}
-[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:focus-visible,
-[data-testid="stVerticalBlock"]:has(.btn-cta-portfolio) .stButton > button:focus-visible {
-    outline: 2px solid #2d8a55 !important;
-    outline-offset: 2px !important;
+    background: rgba(16,185,129,0.18) !important;
     box-shadow: none !important;
 }
 
-/* ── HOME CTA — Stock Analyzer (Indigo outline) ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-cta-analyzer) .stButton > button {
+/* ── Stock Analyzer — column 2 (Indigo) ── */
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(2) .stButton > button {
     background: transparent !important;
-    border: 1px solid #2e2a6e !important;
+    border: 2px solid #6366f1 !important;
     color: #a5b4fc !important;
-    min-height: 44px !important;
 }
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:hover,
-[data-testid="stVerticalBlock"]:has(.btn-cta-analyzer) .stButton > button:hover {
-    background: rgba(99,102,241,0.06) !important;
-    border-color: #4338ca !important;
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(2) .stButton > button:hover {
+    background: rgba(99,102,241,0.12) !important;
+    border-color: #818cf8 !important;
     color: #c7d2fe !important;
 }
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:active,
-[data-testid="stVerticalBlock"]:has(.btn-cta-analyzer) .stButton > button:active {
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(2) .stButton > button:active {
     transform: translateY(1px) !important;
-    background: rgba(99,102,241,0.1) !important;
-    box-shadow: none !important;
-}
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:focus-visible,
-[data-testid="stVerticalBlock"]:has(.btn-cta-analyzer) .stButton > button:focus-visible {
-    outline: 2px solid #4338ca !important;
-    outline-offset: 2px !important;
+    background: rgba(99,102,241,0.18) !important;
     box-shadow: none !important;
 }
 
-/* ── HOME CTA — Case Q&A (Violet outline) ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button,
-[data-testid="stVerticalBlock"]:has(.btn-cta-caseqa) .stButton > button {
+/* ── Case Q&A — column 3 (Violet) ── */
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(3) .stButton > button {
     background: transparent !important;
-    border: 1px solid #3b1f72 !important;
+    border: 2px solid #a855f7 !important;
     color: #c4b5fd !important;
-    min-height: 44px !important;
 }
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:hover,
-[data-testid="stVerticalBlock"]:has(.btn-cta-caseqa) .stButton > button:hover {
-    background: rgba(139,92,246,0.06) !important;
-    border-color: #5b21b6 !important;
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(3) .stButton > button:hover {
+    background: rgba(168,85,247,0.12) !important;
+    border-color: #c084fc !important;
     color: #ddd6fe !important;
 }
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:active,
-[data-testid="stVerticalBlock"]:has(.btn-cta-caseqa) .stButton > button:active {
+[data-testid="stHorizontalBlock"]:has(.tool-card-green) > [data-testid="column"]:nth-child(3) .stButton > button:active {
     transform: translateY(1px) !important;
-    background: rgba(139,92,246,0.1) !important;
-    box-shadow: none !important;
-}
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:focus-visible,
-[data-testid="stVerticalBlock"]:has(.btn-cta-caseqa) .stButton > button:focus-visible {
-    outline: 2px solid #5b21b6 !important;
-    outline-offset: 2px !important;
+    background: rgba(168,85,247,0.18) !important;
     box-shadow: none !important;
 }
 
