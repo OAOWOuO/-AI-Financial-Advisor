@@ -36,162 +36,205 @@ p, span, label, li, div { color: #c9d1d9 !important; }
    Footer buttons overridden separately (.ft-nav-section).
    ══════════════════════════════════════════════════ */
 
-/* ── HOME CTAs — Portfolio (Emerald) ──
-   stVerticalBlock is the proven-working container (same as footer). ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button {
-    background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%) !important;
-    border: 1.5px solid #34d399 !important;
-    color: #d1fae5 !important;
-    padding: 14px 20px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
-    box-shadow: 0 2px 12px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
-    min-height: 52px !important;
-    border-radius: 8px !important;
-}
-[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:hover {
-    background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%) !important;
-    border-color: #6ee7b7 !important;
-    color: #fff !important;
-    box-shadow: 0 6px 24px rgba(16,185,129,0.45), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-    transform: translateY(-2px) !important;
-}
+/* ══════════════════════════════════
+   BUTTON SYSTEM — Bloomberg Terminal style
+   Principle: recognisable as button, not decorative.
+   No glow. No gradients. No large coloured fill.
+   Crisp 1 px border, restrained hover, subtle active.
+   ══════════════════════════════════ */
 
-/* ── HOME CTAs — Stock Analyzer (Indigo) ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%) !important;
-    border: 1.5px solid #818cf8 !important;
-    color: #e0e7ff !important;
-    padding: 14px 20px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
-    box-shadow: 0 2px 12px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
-    min-height: 52px !important;
-    border-radius: 8px !important;
-}
-[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:hover {
-    background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%) !important;
-    border-color: #a5b4fc !important;
-    color: #fff !important;
-    box-shadow: 0 6px 24px rgba(99,102,241,0.5), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ── HOME CTAs — Case Q&A (Violet) ── */
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button {
-    background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%) !important;
-    border: 1.5px solid #c084fc !important;
-    color: #ede9fe !important;
-    padding: 14px 20px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
-    box-shadow: 0 2px 12px rgba(109,40,217,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
-    min-height: 52px !important;
-    border-radius: 8px !important;
-}
-[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:hover {
-    background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%) !important;
-    border-color: #d8b4fe !important;
-    color: #fff !important;
-    box-shadow: 0 6px 24px rgba(109,40,217,0.5), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ── BACK buttons (Ghost / outline) ── */
-[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button {
-    background: transparent !important;
-    border: 1px solid #30363d !important;
-    color: #8b949e !important;
-    padding: 6px 14px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    border-radius: 6px !important;
-    box-shadow: none !important;
-    min-height: 36px !important;
-    letter-spacing: 0 !important;
-    text-transform: none !important;
-}
-[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button:hover {
-    border-color: #58a6ff !important;
-    color: #e6edf3 !important;
-    background: #161b22 !important;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* ── RUN FULL ANALYSIS (outline style — prominent CTA) ──
-   Global primary selectors + stVerticalBlock scoped fallback. ── */
+/* ── Shared base for all non-footer CTA & action buttons ── */
+[data-testid="stVerticalBlock"]:has(.tool-card-green)  .stButton > button,
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button,
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button,
+[data-testid="stVerticalBlock"]:has(.btn-back)         .stButton > button,
 [data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"],
 button[kind="primary"],
 [data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button {
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em !important;
+    padding: 10px 18px !important;
+    font-size: 14px !important;
+    min-height: 40px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: background 0.15s ease, border-color 0.15s ease,
+                color 0.15s ease, transform 0.1s ease !important;
+    cursor: pointer !important;
+}
+
+/* ── HOME CTA — Portfolio Allocator (Emerald outline) ── */
+[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button {
     background: transparent !important;
-    border: 2px solid #4ade80 !important;
-    color: #4ade80 !important;
-    padding: 13px 20px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.03em !important;
-    text-transform: none !important;
-    box-shadow: 0 0 12px rgba(74,222,128,0.2) !important;
-    min-height: 50px !important;
-    border-radius: 8px !important;
+    border: 1px solid #1e5c3a !important;
+    color: #6ee7b7 !important;
+    min-height: 44px !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:hover {
+    background: rgba(16,185,129,0.06) !important;
+    border-color: #2d8a55 !important;
+    color: #a7f3d0 !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:active {
+    transform: translateY(1px) !important;
+    background: rgba(16,185,129,0.1) !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-green) .stButton > button:focus-visible {
+    outline: 2px solid #1e5c3a !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+}
+
+/* ── HOME CTA — Stock Analyzer (Indigo outline) ── */
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button {
+    background: transparent !important;
+    border: 1px solid #2e2a6e !important;
+    color: #a5b4fc !important;
+    min-height: 44px !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:hover {
+    background: rgba(99,102,241,0.06) !important;
+    border-color: #4338ca !important;
+    color: #c7d2fe !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:active {
+    transform: translateY(1px) !important;
+    background: rgba(99,102,241,0.1) !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-indigo) .stButton > button:focus-visible {
+    outline: 2px solid #2e2a6e !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+}
+
+/* ── HOME CTA — Case Q&A (Violet outline) ── */
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button {
+    background: transparent !important;
+    border: 1px solid #3b1f72 !important;
+    color: #c4b5fd !important;
+    min-height: 44px !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:hover {
+    background: rgba(139,92,246,0.06) !important;
+    border-color: #5b21b6 !important;
+    color: #ddd6fe !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:active {
+    transform: translateY(1px) !important;
+    background: rgba(139,92,246,0.1) !important;
+}
+[data-testid="stVerticalBlock"]:has(.tool-card-purple) .stButton > button:focus-visible {
+    outline: 2px solid #3b1f72 !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+}
+
+/* ── BACK buttons (minimal ghost) ── */
+[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button {
+    background: transparent !important;
+    border: 1px solid #21262d !important;
+    color: #8b949e !important;
+    padding: 7px 14px !important;
+    font-size: 13px !important;
+    min-height: 34px !important;
+    font-weight: 500 !important;
+}
+[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button:hover {
+    border-color: #30363d !important;
+    color: #c9d1d9 !important;
+    background: rgba(255,255,255,0.03) !important;
+}
+[data-testid="stVerticalBlock"]:has(.btn-back) .stButton > button:active {
+    transform: translateY(1px) !important;
+}
+
+/* ── RUN FULL ANALYSIS (primary — solid dark, clean border) ── */
+[data-testid="baseButton-primary"],
+[data-testid="stBaseButton-primary"],
+button[kind="primary"],
+[data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button {
+    background: #111a11 !important;
+    border: 1px solid #1e4a1e !important;
+    color: #86efac !important;
+    padding: 10px 18px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    min-height: 44px !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
 }
 [data-testid="baseButton-primary"]:hover,
 [data-testid="stBaseButton-primary"]:hover,
 button[kind="primary"]:hover,
 [data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button:hover {
-    background: #4ade80 !important;
-    border-color: #4ade80 !important;
-    color: #052e16 !important;
-    box-shadow: 0 4px 20px rgba(74,222,128,0.45) !important;
-    transform: translateY(-1px) !important;
+    background: #172617 !important;
+    border-color: #2d6a2d !important;
+    color: #a7f3d0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+[data-testid="baseButton-primary"]:active,
+[data-testid="stBaseButton-primary"]:active,
+button[kind="primary"]:active,
+[data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button:active {
+    transform: translateY(1px) !important;
+    background: #0f1f0f !important;
+}
+[data-testid="baseButton-primary"]:focus-visible,
+[data-testid="stBaseButton-primary"]:focus-visible,
+button[kind="primary"]:focus-visible,
+[data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button:focus-visible {
+    outline: 2px solid #22c55e !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
 }
 
-/* ── SEND → (form submit — compact accent) ── */
+/* ── SEND → (form submit) ── */
 [data-testid="stFormSubmitButton"] > button {
-    background: #0f2a4a !important;
-    border: 1px solid #1d4ed8 !important;
+    background: #0f1f3a !important;
+    border: 1px solid #1e3a6e !important;
     color: #93c5fd !important;
     font-size: 13px !important;
     font-weight: 600 !important;
-    padding: 9px 18px !important;
-    min-height: 38px !important;
+    padding: 8px 16px !important;
+    min-height: 36px !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
 }
 [data-testid="stFormSubmitButton"] > button:hover {
-    background: #1d4ed8 !important;
-    border-color: #60a5fa !important;
-    color: #fff !important;
-    box-shadow: 0 2px 12px rgba(29,78,216,0.45) !important;
-    transform: none !important;
+    background: #162d54 !important;
+    border-color: #2d5a9e !important;
+    color: #bfdbfe !important;
+    box-shadow: none !important;
+}
+[data-testid="stFormSubmitButton"] > button:active {
+    transform: translateY(1px) !important;
 }
 
-/* ── CLEAR CHAT (Ghost danger) ──
-   Scoped to stVerticalBlock containing .btn-clear, excludes primary buttons
-   so it doesn't accidentally override Run Full Analysis. ── */
+/* ── CLEAR CHAT (danger ghost) ── */
 [data-testid="stVerticalBlock"]:has(.btn-clear) .stButton > button:not([data-testid*="primary"]):not([kind="primary"]) {
     background: transparent !important;
     border: 1px solid #2a1515 !important;
-    color: #5c2828 !important;
+    color: #6b3535 !important;
     font-size: 12px !important;
     font-weight: 500 !important;
-    padding: 6px 14px !important;
+    padding: 6px 12px !important;
     box-shadow: none !important;
-    min-height: 34px !important;
-    text-transform: none !important;
-    letter-spacing: 0 !important;
+    min-height: 32px !important;
+    border-radius: 6px !important;
 }
 [data-testid="stVerticalBlock"]:has(.btn-clear) .stButton > button:not([data-testid*="primary"]):not([kind="primary"]):hover {
-    border-color: #f85149 !important;
-    color: #f85149 !important;
-    background: rgba(248,81,73,0.08) !important;
+    border-color: #7f1d1d !important;
+    color: #fca5a5 !important;
+    background: rgba(127,29,29,0.08) !important;
     box-shadow: none !important;
-    transform: none !important;
+}
+[data-testid="stVerticalBlock"]:has(.btn-clear) .stButton > button:not([data-testid*="primary"]):not([kind="primary"]):active {
+    transform: translateY(1px) !important;
 }
 
 .tool-card {
