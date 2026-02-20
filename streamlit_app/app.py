@@ -160,28 +160,29 @@ button[kind="primary"],
     transform: translateY(1px) !important;
 }
 
-/* ── RUN FULL ANALYSIS (primary — solid dark, clean border) ── */
+/* ── RUN FULL ANALYSIS (primary — solid green, clear outline) ── */
 [data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"],
 button[kind="primary"],
 [data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button {
-    background: #111a11 !important;
-    border: 1px solid #1e4a1e !important;
+    background: #1a4a2e !important;
+    border: 2px solid #22c55e !important;
     color: #86efac !important;
     padding: 10px 18px !important;
     font-size: 14px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     min-height: 44px !important;
     box-shadow: none !important;
     border-radius: 6px !important;
+    letter-spacing: 0.02em !important;
 }
 [data-testid="baseButton-primary"]:hover,
 [data-testid="stBaseButton-primary"]:hover,
 button[kind="primary"]:hover,
 [data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button:hover {
-    background: #172617 !important;
-    border-color: #2d6a2d !important;
-    color: #a7f3d0 !important;
+    background: #215c38 !important;
+    border-color: #4ade80 !important;
+    color: #bbf7d0 !important;
     box-shadow: none !important;
     transform: none !important;
 }
@@ -190,7 +191,8 @@ button[kind="primary"]:hover,
 button[kind="primary"]:active,
 [data-testid="stVerticalBlock"]:has(.btn-rfa) .stButton > button:active {
     transform: translateY(1px) !important;
-    background: #0f1f0f !important;
+    background: #163828 !important;
+    box-shadow: none !important;
 }
 [data-testid="baseButton-primary"]:focus-visible,
 [data-testid="stBaseButton-primary"]:focus-visible,
