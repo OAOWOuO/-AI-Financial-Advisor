@@ -25,22 +25,177 @@ st.markdown("""<style>
 h1, h2, h3, h4 { color: #e6edf3 !important; font-weight: 600 !important; }
 p, span, label, li, div { color: #c9d1d9 !important; }
 
-/* ── Product / back buttons ── */
-.stButton > button {
-    background: #1d4ed8 !important;
-    color: #e8f0fe !important;
+/* ══════════════════════════════════════════════════
+   BUTTON DESIGN SYSTEM
+   Each button role gets its own color personality.
+   aria-label = button text → unique CSS targeting.
+   ══════════════════════════════════════════════════ */
+
+/* ── Base reset for all app buttons ── */
+.stButton > button,
+[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-secondary"] {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.025em !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    /* fallback: steel blue (any unspecified button) */
+    background: #1d3a5e !important;
     border: 1px solid #2563eb !important;
-    border-radius: 6px !important;
-    padding: 12px 24px !important;
-    font-size: 15px !important;
-    font-weight: 500 !important;
-    width: 100%;
-    letter-spacing: 0.02em !important;
+    color: #93c5fd !important;
+    padding: 10px 20px !important;
+    font-size: 14px !important;
 }
 .stButton > button:hover {
-    background: #2563eb !important;
+    background: #1d4ed8 !important;
     border-color: #60a5fa !important;
     color: #fff !important;
+}
+
+/* ── 1. HOME CTA — Portfolio Allocator  (Emerald) ── */
+button[aria-label="Enter Portfolio Allocator →"] {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%) !important;
+    border: 1px solid #34d399 !important;
+    color: #d1fae5 !important;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 12px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+button[aria-label="Enter Portfolio Allocator →"]:hover {
+    background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%) !important;
+    border-color: #6ee7b7 !important;
+    color: #fff !important;
+    box-shadow: 0 6px 24px rgba(16,185,129,0.45), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ── 2. HOME CTA — Stock Analyzer  (Indigo / Royal Blue) ── */
+button[aria-label="Enter Stock Analyzer →"] {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%) !important;
+    border: 1px solid #818cf8 !important;
+    color: #e0e7ff !important;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+button[aria-label="Enter Stock Analyzer →"]:hover {
+    background: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4338ca 100%) !important;
+    border-color: #a5b4fc !important;
+    color: #fff !important;
+    box-shadow: 0 6px 24px rgba(99,102,241,0.5), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ── 3. HOME CTA — Case Q&A  (Violet / Purple) ── */
+button[aria-label="Enter Case Q&A →"] {
+    background: linear-gradient(135deg, #2e1065 0%, #4a1d96 55%, #6d28d9 100%) !important;
+    border: 1px solid #c084fc !important;
+    color: #ede9fe !important;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 12px rgba(109,40,217,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+button[aria-label="Enter Case Q&A →"]:hover {
+    background: linear-gradient(135deg, #4a1d96 0%, #6d28d9 55%, #7c3aed 100%) !important;
+    border-color: #d8b4fe !important;
+    color: #fff !important;
+    box-shadow: 0 6px 24px rgba(109,40,217,0.5), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ── 4. BACK buttons  (Ghost / outline) ── */
+button[aria-label="← Back"] {
+    background: transparent !important;
+    border: 1px solid #30363d !important;
+    color: #8b949e !important;
+    padding: 6px 14px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}
+button[aria-label="← Back"]:hover {
+    border-color: #58a6ff !important;
+    color: #e6edf3 !important;
+    background: #161b22 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ── 5. RUN FULL ANALYSIS  (Action green — primary CTA inside tool) ── */
+button[aria-label="Run Full Analysis"] {
+    background: linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%) !important;
+    border: 1px solid #4ade80 !important;
+    color: #dcfce7 !important;
+    padding: 13px 20px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    box-shadow: 0 2px 12px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+button[aria-label="Run Full Analysis"]:hover {
+    background: linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%) !important;
+    border-color: #86efac !important;
+    color: #fff !important;
+    box-shadow: 0 6px 20px rgba(22,163,74,0.55), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 6. SEND → (chat form submit — compact accent) ── */
+button[aria-label="Send →"],
+[data-testid="stFormSubmitButton"] > button {
+    background: #0f2a4a !important;
+    border: 1px solid #1d4ed8 !important;
+    color: #93c5fd !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 9px 18px !important;
+}
+button[aria-label="Send →"]:hover,
+[data-testid="stFormSubmitButton"] > button:hover {
+    background: #1d4ed8 !important;
+    border-color: #60a5fa !important;
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(29,78,216,0.45) !important;
+}
+
+/* ── 7. CLEAR CHAT  (Ghost danger) ── */
+button[aria-label="Clear Chat"] {
+    background: transparent !important;
+    border: 1px solid #2a1515 !important;
+    color: #5c2828 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 6px 14px !important;
+    box-shadow: none !important;
+}
+button[aria-label="Clear Chat"]:hover {
+    border-color: #f85149 !important;
+    color: #f85149 !important;
+    background: rgba(248,81,73,0.08) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* ── Global active press state (all non-footer buttons) ── */
+.stButton > button:active {
+    transform: translateY(0) scale(0.972) !important;
+    filter: brightness(0.88) !important;
+    transition: transform 0.08s ease, filter 0.08s ease !important;
+}
+/* ── Focus ring ── */
+.stButton > button:focus-visible {
+    outline: 2px solid #60a5fa !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 4px rgba(96,165,250,0.2) !important;
 }
 
 .tool-card {
@@ -49,8 +204,12 @@ p, span, label, li, div { color: #c9d1d9 !important; }
     border-radius: 12px;
     padding: 30px;
     text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.tool-card:hover { border-color: #58a6ff; }
+.tool-card:hover { border-color: #58a6ff; box-shadow: 0 4px 24px rgba(88,166,255,0.1); }
+.tool-card-green  { border-top: 3px solid #10b981 !important; }
+.tool-card-indigo { border-top: 3px solid #6366f1 !important; }
+.tool-card-purple { border-top: 3px solid #a855f7 !important; }
 
 /* ═══════════════════════════════════════
    FOOTER
@@ -385,11 +544,12 @@ def show_home():
     col1, col2, col3 = st.columns(3, gap="large")
 
     with col1:
-        st.markdown("""<div class="tool-card">
+        st.markdown("""<div class="tool-card tool-card-green">
 <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
-<div style="font-size: 22px; font-weight: 600; color: #e6edf3 !important;">Portfolio Allocator</div>
-<p style="color: #8b949e; margin: 15px 0;">Optimize your multi-stock portfolio with AI-powered allocation, risk analytics, and rebalancing recommendations.</p>
-<ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px;">
+<div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Portfolio Allocator</div>
+<div style="font-size: 11px; color: #10b981 !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">RISK &amp; ALLOCATION</div>
+<p style="color: #8b949e; margin: 12px 0;">Optimize your multi-stock portfolio with AI-powered allocation, risk analytics, and rebalancing recommendations.</p>
+<ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px; line-height: 1.9;">
 <li>Multi-stock signal analysis</li>
 <li>Position sizing &amp; allocation</li>
 <li>Risk metrics (Sharpe, Beta, VaR)</li>
@@ -403,14 +563,15 @@ def show_home():
             st.rerun()
 
     with col2:
-        st.markdown("""<div class="tool-card">
+        st.markdown("""<div class="tool-card tool-card-indigo">
 <div style="font-size: 48px; margin-bottom: 15px;">📈</div>
-<div style="font-size: 22px; font-weight: 600; color: #e6edf3 !important;">Stock Analyzer</div>
-<p style="color: #8b949e; margin: 15px 0;">Deep-dive analysis of individual stocks with technical indicators and fundamental metrics to find the best opportunities.</p>
-<ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px;">
-<li>CFA-style technical analysis (RSI, MACD, Bollinger, ADX)</li>
-<li>Fundamental scoring (valuation, profitability, growth, health)</li>
-<li>Multi-model valuation (P/E, DCF, analyst consensus)</li>
+<div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Stock Analyzer</div>
+<div style="font-size: 11px; color: #818cf8 !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">TECHNICAL &amp; FUNDAMENTAL</div>
+<p style="color: #8b949e; margin: 12px 0;">Deep-dive analysis of individual stocks with institutional-grade technical and fundamental scoring to find the best opportunities.</p>
+<ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px; line-height: 1.9;">
+<li>CFA-style technical analysis (RSI, MACD, Bollinger)</li>
+<li>Fundamental scoring (valuation, profitability, growth)</li>
+<li>Multi-model valuation (P/E, DCF, consensus)</li>
 <li>Return forecasts with confidence intervals</li>
 <li>Support &amp; resistance levels</li>
 <li>BUY / HOLD / SELL recommendation</li>
@@ -421,11 +582,12 @@ def show_home():
             st.rerun()
 
     with col3:
-        st.markdown("""<div class="tool-card">
+        st.markdown("""<div class="tool-card tool-card-purple">
 <div style="font-size: 48px; margin-bottom: 15px;">📚</div>
-<div style="font-size: 22px; font-weight: 600; color: #e6edf3 !important;">Case Q&amp;A</div>
-<p style="color: #8b949e; margin: 15px 0;">Chat with your course materials using RAG-powered AI. Every answer is grounded in your uploaded documents with file and page citations.</p>
-<ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px;">
+<div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Case Q&amp;A</div>
+<div style="font-size: 11px; color: #c084fc !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">RAG-POWERED LEARNING</div>
+<p style="color: #8b949e; margin: 12px 0;">Chat with your course materials using RAG-powered AI. Every answer is grounded in your uploaded documents with file and page citations.</p>
+<ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px; line-height: 1.9;">
 <li>Upload PDFs directly in the browser</li>
 <li>Auto-indexed — no terminal needed</li>
 <li>Ask any question about the materials</li>
