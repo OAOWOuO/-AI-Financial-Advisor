@@ -16,8 +16,14 @@ The original repo uses Financial Datasets API + LangGraph; my app uses none of t
 |---|---|
 | `app.py` | Dark-themed home page with card-based navigation between all three tools |
 | `portfolio_allocator.py` | Portfolio optimization UI: multi-stock signal analysis, position sizing, risk metrics (Sharpe, Beta, VaR), S&P 500 benchmark comparison, dividend tracking, one-click rebalancing |
-| `stock_analyzer.py` | Individual stock deep-dive: CFA-style technical analysis (RSI, MACD, Bollinger Bands, ADX), fundamental scoring (valuation / profitability / growth / financial health), multi-model valuation (P/E, DCF, analyst consensus), BUY / HOLD / SELL recommendation |
-| `case_qa.py` | RAG-powered Case Q&A chat tab: answers questions using **only** documents in `data/raw/`, shows citations (file + page + chunk ID), refuses unsupported questions explicitly |
+| `stock_analyzer.py` | Individual stock deep-dive: CFA-style technical analysis (RSI, MACD, Bollinger Bands, ADX), fundamental scoring (valuation / profitability / growth / financial health), multi-model valuation (P/E, DCF, analyst consensus), BUY / HOLD / SELL recommendation with sanity-checked Conclusion & Forecast |
+| `financial_planner.py` | AI Financial Planning Assistant (replaces Case Q&A): hybrid rules engine + RAG + LLM narrative. 6-tab UI — client profile input, document library, gap analysis (emergency fund / DTI / cash flow / insurance / retirement), Conservative/Balanced/Aggressive scenario projections, prioritized recommendation report with source citations, and explainability layer |
+| `fp_schemas.py` | Data models: `ClientProfile`, `PlanningIssue`, `Recommendation`, `QuantCheck`, `ScenarioProjection`, `PlanningReport` |
+| `fp_calculators.py` | Deterministic financial math: emergency fund months, DTI, net worth benchmark (Stanley-Danko), retirement FV projection, goal savings |
+| `fp_rules.py` | Rules engine: 8 check categories (emergency fund, debt, cash flow, insurance, retirement match capture, trajectory, net worth, goals) with thresholds from `data/rule_configs/planning_rules.json` |
+| `fp_scenarios.py` | Retirement scenario engine: Conservative (5%/3.5% SWR), Balanced (7%/4%), Aggressive (9%/4.5%) projections with gap and monthly savings targets |
+| `fp_retriever.py` | In-memory numpy cosine-similarity RAG: ingest PDF/MD/TXT/HTML with topic + reliability metadata, retrieve top-k chunks for report grounding |
+| `fp_report.py` | LLM narrative layer: deterministic quant checks + rules issues → GPT writes Executive Summary, Case Reasoning, Follow-up Questions, Missing Information |
 
 #### `scripts/build_index.py` — RAG Ingestion Pipeline (original)
 
@@ -42,17 +48,24 @@ GitHub Actions workflow: flake8 lint + pytest on every push.
 # 1. Install dependencies
 pip install -r streamlit_app/requirements.txt
 
-# 2. Set your API key
+# 2. Set your API key (choose one method)
+#    Option A — .env file (local dev):
 cp .env.example .env
-# Edit .env and add OPENAI_API_KEY=...
+# Edit .env and add: OPENAI_API_KEY=sk-...
 
-# 3. (Optional) Build Case Q&A index
-# Drop PDFs into data/raw/ then:
-python scripts/build_index.py
+#    Option B — Streamlit secrets (local or Streamlit Cloud):
+cp streamlit_app/.streamlit/secrets.toml.example streamlit_app/.streamlit/secrets.toml
+# Edit secrets.toml and add: OPENAI_API_KEY = "sk-..."
 
-# 4. Launch
+# 3. Launch
 streamlit run streamlit_app/app.py
 ```
+
+The **Financial Planner** tab requires an OpenAI API key for:
+- Embedding uploaded reference documents (RAG ingestion)
+- Generating the LLM narrative sections of the planning report
+
+No API key is needed to view client profiles, run the rules engine, or generate scenario projections (all deterministic).
 
 Live deployment: <https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamlit.app/>
 

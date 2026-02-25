@@ -425,37 +425,13 @@ button[kind="primary"]:focus-visible,
 }
 [data-testid="stTextInput"] input::placeholder { color: #6e7681 !important; }
 
-/* ── Radio buttons (e.g. chart type toggle) ── */
-[data-testid="stRadio"] > div {
-    display: flex !important;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
-}
+/* ── Radio buttons — native dot style with dark-theme text ── */
 [data-testid="stRadio"] label {
-    border: 1px solid #30363d !important;
-    border-radius: 6px !important;
-    padding: 5px 14px !important;
-    cursor: pointer !important;
-    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease !important;
-    color: #8b949e !important;
-}
-[data-testid="stRadio"] label:hover {
-    border-color: #58a6ff !important;
     color: #c9d1d9 !important;
-    background: #161b22 !important;
+    cursor: pointer !important;
 }
-/* Active/selected radio state */
-[data-testid="stRadio"] label:has(input:checked) {
-    border-color: #58a6ff !important;
-    background: rgba(88,166,255,0.08) !important;
-    color: #58a6ff !important;
-}
-[data-testid="stRadio"] label:focus-within {
-    outline: 2px solid #58a6ff !important;
-    outline-offset: 2px !important;
-}
-/* Hide the default radio circle only — keep text labels visible */
-[data-testid="stRadio"] label > div:first-child { display: none !important; }
+[data-testid="stRadio"] label:hover { color: #e6edf3 !important; }
+[data-testid="stRadio"] label:has(input:checked) { color: #58a6ff !important; }
 
 /* ── Generic button reset: no glow on focus, clean active ── */
 .stButton > button:focus-visible {

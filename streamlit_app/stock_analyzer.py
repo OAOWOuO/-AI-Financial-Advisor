@@ -1371,9 +1371,9 @@ def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valua
     if abs(_target_upside_fc) > 15:
         _conf_score += 5    # strong valuation signal (large gap between price and target)
 
-    if _conf_score > 25:
+    if _conf_score > 18:
         _base_confidence = "High"
-    elif _conf_score > 12:
+    elif _conf_score > 8:
         _base_confidence = "Medium"
     else:
         _base_confidence = "Low"
@@ -1393,10 +1393,14 @@ def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valua
         range_low = point_estimate - period_vol
         range_high = point_estimate + period_vol
 
-        # Confidence — same tier for all periods, but probability varies by horizon.
-        # Shorter periods have more noise: apply a noise penalty so each row shows a different value.
-        # Rule: _period_noise = {7:10, 30:7, 90:3, 180:0} subtracted from base probability range.
-        confidence = _base_confidence
+        # Confidence — adjust tier by horizon: shorter = less certain, longer = more certain.
+        # 1W: one tier down; 6M: one tier up. Also apply noise penalty to probability range.
+        _tier_val = {"High": 2, "Medium": 1, "Low": 0}[_base_confidence]
+        if period == 7:
+            _tier_val = max(0, _tier_val - 1)   # 1W: one tier lower
+        elif period == 180:
+            _tier_val = min(2, _tier_val + 1)   # 6M: one tier higher
+        confidence = ["Low", "Medium", "High"][_tier_val]
         _noise = {7: 10, 30: 7, 90: 3, 180: 0}.get(days, 0)
         if _base_confidence == "High":
             _p_lo, _p_hi = (60, 70) if expected_annual >= 0 else (25, 35)
@@ -2066,9 +2070,15 @@ The RSI(14) reads {rsi_desc}.
                     ("Volatility", bd['volatility']['score'],bd['volatility']['max'], ""),
                     ("Volume",     bd['volume']['score'],    bd['volume']['max'],     ""),
                 ]
-                for col, (label, score, mx, sub) in zip(dim_cols, dims):
-                    pct = score / mx * 100 if mx else 0
-                    bar_color = "#3fb950" if pct >= 65 else "#d29922" if pct >= 40 else "#f85149"
+                for idx, (col, (label, score, mx, sub)) in enumerate(zip(dim_cols, dims)):
+                    if idx == 0:
+                        # Overall already on 0–100 scale
+                        pct = score / mx * 100 if mx else 0
+                    else:
+                        # Component scores are symmetric around 0 (can be negative).
+                        # Map [-mx, +mx] → [0%, 100%] so score=0 → 50% (neutral/yellow).
+                        pct = max(0, min(100, (score / mx + 1) / 2 * 100)) if mx else 50
+                    bar_color = "#3fb950" if pct >= 60 else "#d29922" if pct >= 40 else "#f85149"
                     with col:
                         st.markdown(f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
@@ -2343,9 +2353,12 @@ posting a {roe_comment}, and generating {fcf_comment}.
                     ("Growth",        bd['growth']['score'],            bd['growth']['max'],        ""),
                     ("Health",        bd['health']['score'],            bd['health']['max'],        ""),
                 ]
-                for col, (label, score, mx, sub) in zip(dim_cols, dims):
-                    pct = score / mx * 100 if mx else 0
-                    bar_color = "#3fb950" if pct >= 65 else "#d29922" if pct >= 40 else "#f85149"
+                for idx, (col, (label, score, mx, sub)) in enumerate(zip(dim_cols, dims)):
+                    if idx == 0:
+                        pct = score / mx * 100 if mx else 0
+                    else:
+                        pct = max(0, min(100, (score / mx + 1) / 2 * 100)) if mx else 50
+                    bar_color = "#3fb950" if pct >= 60 else "#d29922" if pct >= 40 else "#f85149"
                     with col:
                         st.markdown(f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">

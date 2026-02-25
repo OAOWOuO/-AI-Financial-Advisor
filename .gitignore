@@ -72,3 +72,4 @@ app/backend/alembic/versions/__pycache__/
 !data/raw/*.txt
 # Allow the ChromaDB vector store to be committed so the deployed app works
 !index/chroma.sqlite3
+streamlit_app/.streamlit/secrets.toml

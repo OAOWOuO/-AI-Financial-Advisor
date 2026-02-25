@@ -21,12 +21,22 @@ import streamlit as st
 
 def _get_openai_client():
     api_key = ""
+    # 1. Streamlit Cloud secrets
     try:
         api_key = st.secrets.get("OPENAI_API_KEY", "")
     except Exception:
         pass
+    # 2. Environment variable (already set in shell or loaded by dotenv elsewhere)
     if not api_key:
         api_key = os.getenv("OPENAI_API_KEY", "")
+    # 3. Load from .env file in parent directory (local dev)
+    if not api_key:
+        try:
+            from dotenv import load_dotenv as _load_dotenv
+            _load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+            api_key = os.getenv("OPENAI_API_KEY", "")
+        except ImportError:
+            pass
     if not api_key:
         return None
     import openai
