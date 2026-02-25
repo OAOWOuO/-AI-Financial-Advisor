@@ -1,0 +1,80 @@
+{
+  "_meta": {
+    "version": "2025",
+    "last_updated": "2025-01",
+    "sources": [
+      "IRS Publication 590-A (2024)",
+      "CFPB Your Money Your Goals toolkit",
+      "CFP Board Practice Standards",
+      "Certified Financial Planner Board benchmarks"
+    ]
+  },
+  "emergency_fund": {
+    "minimum_months": 3,
+    "recommended_months": 6,
+    "high_risk_months": 9,
+    "description": "3-6 months of essential living expenses; 9+ months for variable income, self-employed, or single-income households"
+  },
+  "debt": {
+    "max_total_dti": 0.43,
+    "recommended_dti": 0.36,
+    "conservative_dti": 0.28,
+    "max_housing_ratio": 0.28,
+    "consumer_debt_flag_pct": 0.15,
+    "high_interest_threshold_pct": 0.07,
+    "description": "Total Debt-to-Income ratio = total monthly debt payments / gross monthly income. Housing ratio = housing payment only. Consumer debt flag when consumer debt / income > 15%."
+  },
+  "savings": {
+    "min_savings_rate": 0.10,
+    "recommended_savings_rate": 0.20,
+    "excellent_savings_rate": 0.30,
+    "retirement_contribution_401k_2025": 23500,
+    "retirement_contribution_ira_2025": 7000,
+    "retirement_contribution_ira_catchup_2025": 8000,
+    "hsa_individual_2025": 4300,
+    "hsa_family_2025": 8550,
+    "description": "Savings rate = total annual savings / gross annual income. IRA catch-up applies age >= 50."
+  },
+  "insurance": {
+    "life_insurance_min_multiple": 5,
+    "life_insurance_recommended_multiple": 10,
+    "life_insurance_dependent_multiple": 15,
+    "disability_income_replacement": 0.60,
+    "description": "Life insurance face amount as multiple of gross annual income. With dependents, 15x recommended. Disability: 60% income replacement target."
+  },
+  "retirement": {
+    "replacement_ratio": 0.80,
+    "safe_withdrawal_rate": 0.04,
+    "conservative_real_return": 0.04,
+    "balanced_real_return": 0.06,
+    "aggressive_real_return": 0.08,
+    "inflation_assumption": 0.03,
+    "description": "80% income replacement at retirement. 4% safe withdrawal rate (Bengen rule). Real returns net of inflation."
+  },
+  "net_worth_targets": {
+    "description": "Target net worth as multiple of gross annual income (Stanley-Danko 'Millionaire Next Door' benchmarks, adjusted)",
+    "by_age": {
+      "30": 0.5,
+      "35": 1.0,
+      "40": 2.0,
+      "45": 3.0,
+      "50": 5.0,
+      "55": 8.0,
+      "60": 12.0,
+      "65": 15.0
+    }
+  },
+  "planning_priorities": {
+    "order": [
+      "1. Employer 401k match (free money — always capture first)",
+      "2. High-interest debt payoff (>7% rate)",
+      "3. Emergency fund to 3 months minimum",
+      "4. Max HSA if eligible (triple tax advantage)",
+      "5. Emergency fund to 6 months",
+      "6. Max IRA (Roth if eligible)",
+      "7. Max 401k to annual limit",
+      "8. Taxable brokerage / additional goals"
+    ],
+    "description": "General priority stack for cash flow allocation. Individual circumstances may reorder."
+  }
+}

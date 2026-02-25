@@ -589,21 +589,21 @@ def show_home():
 
     with col3:
         st.markdown("""<div class="tool-card tool-card-purple">
-<div style="font-size: 48px; margin-bottom: 15px;">📚</div>
-<div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Case Q&amp;A</div>
-<div style="font-size: 11px; color: #c084fc !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">RAG-POWERED LEARNING</div>
-<p style="color: #8b949e; margin: 12px 0;">Chat with your course materials using RAG-powered AI. Every answer is grounded in your uploaded documents with file and page citations.</p>
+<div style="font-size: 48px; margin-bottom: 15px;">🗂️</div>
+<div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Financial Planner</div>
+<div style="font-size: 11px; color: #c084fc !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">AI-POWERED PLANNING ASSISTANT</div>
+<p style="color: #8b949e; margin: 12px 0;">Comprehensive financial planning with rules engine, scenario projections, and RAG-grounded LLM narrative. Upload reference materials for cited recommendations.</p>
 <ul style="text-align: left; color: #8b949e; padding-left: 20px; font-size: 14px; line-height: 1.9;">
-<li>Upload PDFs directly in the browser</li>
-<li>Auto-indexed — no terminal needed</li>
-<li>Ask any question about the materials</li>
-<li>Cited answers: file + page + chunk ID</li>
-<li>Refuses unsupported questions explicitly</li>
+<li>Emergency fund, DTI &amp; cash flow checks</li>
+<li>Conservative / Balanced / Aggressive scenarios</li>
+<li>Retirement gap analysis with monthly targets</li>
+<li>Upload PDFs for RAG-grounded advice</li>
+<li>Downloadable report with full source citations</li>
 </ul>
 </div>""", unsafe_allow_html=True)
         st.markdown('<div class="btn-cta-caseqa"></div>', unsafe_allow_html=True)
-        if st.button("Enter Case Q&A →", key="btn_caseqa", use_container_width=True):
-            st.session_state.current_view = "caseqa"
+        if st.button("Enter Financial Planner →", key="btn_caseqa", use_container_width=True):
+            st.session_state.current_view = "fp"
             st.rerun()
 
 
@@ -628,9 +628,9 @@ elif st.session_state.current_view == "portfolio":
     )
     portfolio_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(portfolio_module)
-elif st.session_state.current_view == "caseqa":
-    from case_qa import show_case_qa
-    show_case_qa()
+elif st.session_state.current_view == "fp":
+    from financial_planner import show_financial_planner
+    show_financial_planner()
 
 
 # ============== FOOTER ==============
@@ -656,8 +656,8 @@ with ft_col2:
     if st.button("Stock Analyzer", key="ft_analyzer"):
         st.session_state.current_view = "analyzer"
         st.rerun()
-    if st.button("Case Q&A", key="ft_caseqa"):
-        st.session_state.current_view = "caseqa"
+    if st.button("Financial Planner", key="ft_caseqa"):
+        st.session_state.current_view = "fp"
         st.rerun()
 
 with ft_col3:

@@ -1,0 +1,64 @@
+{
+  "_meta": {"label": "Married Couple — dual income, mortgage, 2 kids, college savings gap"},
+  "name": "Jordan & Sam Rivera",
+  "age": 38,
+  "marital_status": "married",
+  "dependents": 2,
+  "gross_annual_income": 145000,
+  "spouse_annual_income": 65000,
+  "other_annual_income": 0,
+  "monthly_expenses": {
+    "housing": 2800,
+    "food": 900,
+    "transportation": 650,
+    "childcare": 1400,
+    "utilities": 200,
+    "healthcare": 180,
+    "entertainment": 300,
+    "personal": 400,
+    "subscriptions": 80,
+    "other": 290
+  },
+  "assets": {
+    "checking_savings": 22000,
+    "investments_brokerage": 38000,
+    "retirement_401k": 185000,
+    "retirement_ira": 28000,
+    "real_estate_equity": 120000,
+    "college_529": 8000,
+    "other": 15000
+  },
+  "liabilities": {
+    "mortgage": 310000,
+    "car_loans": 28000,
+    "student_loans": 0,
+    "credit_cards": 6500,
+    "other": 0
+  },
+  "monthly_debt_payments": {
+    "mortgage": 2050,
+    "car": 480,
+    "student_loans": 0,
+    "credit_cards": 200,
+    "other": 0
+  },
+  "insurance": {
+    "has_health": true,
+    "has_life": true,
+    "life_coverage_amount": 400000,
+    "has_disability": true,
+    "has_renters_homeowners": true
+  },
+  "retirement": {
+    "contribution_rate_pct": 8,
+    "employer_match_pct": 4,
+    "target_retirement_age": 62
+  },
+  "goals": [
+    {"type": "college_savings", "description": "Fund college for 2 kids (est. $120K each)", "target_amount": 240000, "timeline_months": 168, "priority": 1},
+    {"type": "retirement", "description": "Retire at 62 with 80% income replacement", "target_amount": 3500000, "timeline_months": 288, "priority": 2},
+    {"type": "debt_payoff", "description": "Pay off credit cards", "target_amount": 6500, "timeline_months": 18, "priority": 3}
+  ],
+  "risk_tolerance": "moderate",
+  "situation_summary": "Dual-income family with two children ages 6 and 9. Own a home purchased 6 years ago. Have life insurance but coverage may be insufficient for combined income. 529 balances are low relative to college cost projections. Carrying credit card debt from recent home renovation. Jordan wants to retire at 62 — 24 years away."
+}

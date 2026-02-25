@@ -1,0 +1,62 @@
+{
+  "_meta": {"label": "Young Professional — single, student loans, starter savings"},
+  "name": "Alex Chen",
+  "age": 28,
+  "marital_status": "single",
+  "dependents": 0,
+  "gross_annual_income": 72000,
+  "spouse_annual_income": 0,
+  "other_annual_income": 2400,
+  "monthly_expenses": {
+    "housing": 1800,
+    "food": 400,
+    "transportation": 350,
+    "utilities": 120,
+    "healthcare": 80,
+    "entertainment": 200,
+    "personal": 150,
+    "subscriptions": 60,
+    "other": 140
+  },
+  "assets": {
+    "checking_savings": 8500,
+    "investments_brokerage": 5000,
+    "retirement_401k": 12000,
+    "retirement_ira": 0,
+    "real_estate_equity": 0,
+    "other": 3000
+  },
+  "liabilities": {
+    "mortgage": 0,
+    "car_loans": 12000,
+    "student_loans": 38000,
+    "credit_cards": 2500,
+    "other": 0
+  },
+  "monthly_debt_payments": {
+    "mortgage": 0,
+    "car": 320,
+    "student_loans": 380,
+    "credit_cards": 75,
+    "other": 0
+  },
+  "insurance": {
+    "has_health": true,
+    "has_life": false,
+    "life_coverage_amount": 0,
+    "has_disability": false,
+    "has_renters_homeowners": true
+  },
+  "retirement": {
+    "contribution_rate_pct": 4,
+    "employer_match_pct": 3,
+    "target_retirement_age": 65
+  },
+  "goals": [
+    {"type": "emergency_fund", "description": "Build 6-month emergency fund", "target_amount": 18600, "timeline_months": 24, "priority": 1},
+    {"type": "debt_payoff", "description": "Eliminate credit card debt", "target_amount": 2500, "timeline_months": 6, "priority": 2},
+    {"type": "home_purchase", "description": "Down payment for condo purchase", "target_amount": 60000, "timeline_months": 60, "priority": 3}
+  ],
+  "risk_tolerance": "moderate",
+  "situation_summary": "Recent grad working in tech. High-cost city, renting. Has undergrad student loans. Employer offers 401k with 3% match — currently only contributing 4% (capturing match). No life/disability insurance. Credit card balance from moving expenses. Wants to buy a condo in ~5 years."
+}

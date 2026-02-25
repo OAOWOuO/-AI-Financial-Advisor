@@ -1,0 +1,65 @@
+{
+  "_meta": {"label": "Pre-Retirement — 55, high income, assessing retirement readiness"},
+  "name": "Morgan Okafor",
+  "age": 55,
+  "marital_status": "married",
+  "dependents": 0,
+  "gross_annual_income": 220000,
+  "spouse_annual_income": 85000,
+  "other_annual_income": 12000,
+  "monthly_expenses": {
+    "housing": 3200,
+    "food": 1100,
+    "transportation": 700,
+    "utilities": 280,
+    "healthcare": 400,
+    "travel": 800,
+    "entertainment": 500,
+    "personal": 600,
+    "charitable": 400,
+    "subscriptions": 120,
+    "other": 300
+  },
+  "assets": {
+    "checking_savings": 85000,
+    "investments_brokerage": 420000,
+    "retirement_401k": 890000,
+    "retirement_ira": 210000,
+    "real_estate_equity": 580000,
+    "other": 45000
+  },
+  "liabilities": {
+    "mortgage": 195000,
+    "car_loans": 0,
+    "student_loans": 0,
+    "credit_cards": 0,
+    "other": 0
+  },
+  "monthly_debt_payments": {
+    "mortgage": 2200,
+    "car": 0,
+    "student_loans": 0,
+    "credit_cards": 0,
+    "other": 0
+  },
+  "insurance": {
+    "has_health": true,
+    "has_life": true,
+    "life_coverage_amount": 1000000,
+    "has_disability": true,
+    "has_renters_homeowners": true,
+    "has_ltc": false
+  },
+  "retirement": {
+    "contribution_rate_pct": 15,
+    "employer_match_pct": 5,
+    "target_retirement_age": 65
+  },
+  "goals": [
+    {"type": "retirement", "description": "Retire at 65 with full income replacement (80% of $305K combined)", "target_amount": 6100000, "timeline_months": 120, "priority": 1},
+    {"type": "estate_planning", "description": "Review/update wills, beneficiaries, and trust structures", "target_amount": 0, "timeline_months": 6, "priority": 2},
+    {"type": "ltc_planning", "description": "Assess long-term care insurance need", "target_amount": 0, "timeline_months": 12, "priority": 3}
+  ],
+  "risk_tolerance": "conservative",
+  "situation_summary": "High-earning couple, 10 years from target retirement. Kids are grown and independent. Mortgage will be paid off in 8 years. No long-term care insurance — significant coverage gap given age. Estate documents are 15 years old and haven't been reviewed. Social Security optimization strategy not yet planned. Pension: none. Relies entirely on 401k/IRA/brokerage for retirement income."
+}
