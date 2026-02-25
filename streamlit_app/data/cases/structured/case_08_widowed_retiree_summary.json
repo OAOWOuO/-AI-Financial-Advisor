@@ -1,0 +1,83 @@
+{
+  "case_id": "case_08_widowed_retiree",
+  "title": "Widowed Retiree: Decumulation and Estate Planning",
+  "year": 2024,
+  "client_profile": {
+    "name": "Margaret Thompson",
+    "age": 68,
+    "location": "Seattle, WA",
+    "occupation": "Retired teacher",
+    "marital_status": "Widowed",
+    "dependents": 0,
+    "household_type": "single",
+    "life_stage": "retirement"
+  },
+  "financial_snapshot": {
+    "gross_income": 74600,
+    "net_monthly_income": 6200,
+    "monthly_expenses": 4200,
+    "monthly_surplus": 2000,
+    "total_assets": 1505000,
+    "total_liabilities": 0,
+    "net_worth": 1505000,
+    "emergency_fund_months": 12.0,
+    "retirement_savings": 890000
+  },
+  "goals": [
+    "Ensure assets last lifetime without income anxiety",
+    "Minimize income taxes on Required Minimum Distributions",
+    "Create legacy for grandchildren and local food bank",
+    "Reduce Washington State estate tax exposure"
+  ],
+  "constraints": [
+    "WA estate tax threshold $2.193M — at risk within 3-5 years",
+    "No LTC insurance — difficult and expensive at age 68",
+    "RMDs exceed spending needs ('forced accumulation')",
+    "Recent widowhood — estate plan needs complete rewrite"
+  ],
+  "key_risks": [
+    "WA estate tax exposure on estate near $2M threshold",
+    "LTC costs $120-180K/year in Seattle with no coverage",
+    "RMDs pushing into higher marginal tax brackets",
+    "Outdated estate documents post-spouse death"
+  ],
+  "planning_issues": [
+    {
+      "category": "TAX",
+      "severity": "HIGH",
+      "description": "RMDs ~$36K/year pushing toward 32% bracket; QCD strategy would exclude up to $105K/year from taxable income"
+    },
+    {
+      "category": "ESTATE",
+      "severity": "HIGH",
+      "description": "WA estate tax applies above $2.193M; current trajectory exceeds threshold in 3-5 years; 10-20% effective rate"
+    },
+    {
+      "category": "INSURANCE",
+      "severity": "HIGH",
+      "description": "No LTC insurance — nursing home in Seattle is $120-180K/year; self-insurance requires dedicated $250K reserve"
+    },
+    {
+      "category": "ESTATE",
+      "severity": "MEDIUM",
+      "description": "Estate documents not updated after spouse's death; beneficiaries, trustees, healthcare directives all outdated"
+    }
+  ],
+  "key_recommendations": [
+    "Implement QCD strategy — donate $18-24K/year directly from IRA to food bank (satisfies RMD tax-free)",
+    "Annual exclusion gifting to 6 grandchildren: $18K × 6 = $108K/year estate reduction",
+    "Establish Charitable Remainder Trust for food bank legacy",
+    "Consult WA estate tax attorney — model estate projection",
+    "LTC self-insurance: earmark $250K as dedicated reserve in conservative allocation"
+  ],
+  "follow_up_questions": [
+    "Have IRA beneficiary designations been updated post-spouse death?",
+    "Does Margaret want to keep or sell the home?",
+    "LTC preferences: home care, assisted living, or memory care?",
+    "Would a Donor Advised Fund provide more charitable giving flexibility?"
+  ],
+  "outcome_summary": "QCD strategy implemented, reducing taxable income by $22,000 and satisfying RMDs. Annual gifting to grandchildren reduced estate by $108,000/year. Charitable remainder trust established.",
+  "key_lesson": "Widowed retirees with income-generating assets often face forced accumulation. QCDs, annual gifting, and trusts simultaneously minimize taxes, reduce estate tax exposure, and fulfill legacy goals.",
+  "major_topics": ["tax", "estate", "retirement", "insurance"],
+  "similarity_tags": ["widowed", "retired", "high_net_worth", "rmd", "estate_planning", "qcd", "ltc_gap"]
+}

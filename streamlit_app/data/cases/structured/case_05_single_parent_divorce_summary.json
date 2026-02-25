@@ -1,0 +1,83 @@
+{
+  "case_id": "case_05_single_parent_divorce",
+  "title": "Single Parent After Divorce: Rebuilding Financial Security",
+  "year": 2024,
+  "client_profile": {
+    "name": "Jennifer Williams",
+    "age": 42,
+    "location": "Atlanta, GA",
+    "occupation": "Nurse practitioner",
+    "marital_status": "Divorced",
+    "dependents": 2,
+    "household_type": "single_parent",
+    "life_stage": "mid_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 82000,
+    "net_monthly_income": 5200,
+    "monthly_expenses": 4650,
+    "monthly_surplus": 550,
+    "total_assets": 148000,
+    "total_liabilities": 185000,
+    "net_worth": -37000,
+    "emergency_fund_months": 2.1,
+    "retirement_savings": 62000
+  },
+  "goals": [
+    "Secure income protection for children if Jennifer dies or is disabled",
+    "Rebuild emergency fund after divorce",
+    "Manage single-income household budget",
+    "Resume retirement savings contributions"
+  ],
+  "constraints": [
+    "Single income with two dependents",
+    "Thin monthly surplus ($550)",
+    "Divorce settlement depleted savings",
+    "Child custody costs and legal expenses"
+  ],
+  "key_risks": [
+    "Life insurance gap: $50K coverage vs $1.2M need with two dependents",
+    "Disability would be catastrophic with no backup income",
+    "Inadequate emergency fund for unexpected car/home expenses",
+    "Retirement derailment from extended divorce process"
+  ],
+  "planning_issues": [
+    {
+      "category": "INSURANCE",
+      "severity": "CRITICAL",
+      "description": "Life insurance: $50K employer coverage vs $1.2M need (15x income as single parent); disability income insurance missing"
+    },
+    {
+      "category": "EMERGENCY_FUND",
+      "severity": "HIGH",
+      "description": "2.1 months emergency fund — below 3-month minimum; single-income households should target 6 months"
+    },
+    {
+      "category": "CASH_FLOW",
+      "severity": "HIGH",
+      "description": "Only $550/month surplus leaves no room for savings or unexpected expenses"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "MEDIUM",
+      "description": "$62,000 at age 42 — below target for income level; contributions paused during divorce"
+    }
+  ],
+  "key_recommendations": [
+    "Purchase $1M–$1.5M 20-year term life insurance immediately (priority #1)",
+    "Add own-occupation disability to protect nursing income",
+    "Name children's guardian as beneficiary trustee in updated will",
+    "Rebuild emergency fund to $25,000 over 18 months",
+    "Resume 401k contributions at minimum to capture employer match"
+  ],
+  "follow_up_questions": [
+    "Is ex-spouse court-ordered to carry life insurance for child support?",
+    "What is the custody arrangement — shared custody affects financial aid and dependent care",
+    "Does Jennifer's nursing employer offer group disability insurance?",
+    "Is child support or alimony taxable income for Jennifer?"
+  ],
+  "outcome_summary": "Purchased $1.2M term life policy and disability insurance within 60 days. Will and guardianship documents updated. Emergency fund rebuilt to $18,000 in 12 months.",
+  "key_lesson": "Single parents face concentrated financial risk — all income and childcare depends on one person. Life and disability insurance are the foundation before any other financial goal.",
+  "major_topics": ["insurance", "emergency_fund", "cash_flow", "estate"],
+  "similarity_tags": ["single_parent", "divorced", "mid_career", "insurance_gap", "children", "rebuild"]
+}

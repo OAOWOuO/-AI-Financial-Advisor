@@ -1,0 +1,83 @@
+{
+  "case_id": "case_04_self_employed_freelancer",
+  "title": "Self-Employed Freelancer: Variable Income and Tax Strategy",
+  "year": 2024,
+  "client_profile": {
+    "name": "Michael Patel",
+    "age": 35,
+    "location": "Austin, TX",
+    "occupation": "Independent software developer / freelancer",
+    "marital_status": "Single",
+    "dependents": 0,
+    "household_type": "single",
+    "life_stage": "early_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 95000,
+    "net_monthly_income": 5500,
+    "monthly_expenses": 3800,
+    "monthly_surplus": 1700,
+    "total_assets": 78000,
+    "total_liabilities": 22000,
+    "net_worth": 56000,
+    "emergency_fund_months": 4.5,
+    "retirement_savings": 18000
+  },
+  "goals": [
+    "Reduce self-employment tax burden",
+    "Build retirement savings efficiently",
+    "Manage irregular income cash flow",
+    "Obtain health insurance coverage"
+  ],
+  "constraints": [
+    "Variable income ($4,200–$11,800/month)",
+    "No employer benefits (health, retirement matching)",
+    "Self-employment tax 15.3% on net income",
+    "No guaranteed income months during client gaps"
+  ],
+  "key_risks": [
+    "Income disruption with no disability coverage",
+    "No health insurance — catastrophic financial exposure",
+    "Retirement savings severely underfunded vs. age",
+    "Tax underpayment risk without estimated quarterly payments"
+  ],
+  "planning_issues": [
+    {
+      "category": "TAX",
+      "severity": "HIGH",
+      "description": "No quarterly estimated tax payments; self-employment tax 15.3%; Solo 401k and SEP-IRA can dramatically reduce taxable income"
+    },
+    {
+      "category": "INSURANCE",
+      "severity": "HIGH",
+      "description": "No health insurance; own-occupation disability missing; income fully exposed to health event"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "HIGH",
+      "description": "$18,000 at age 35 on $95K income is severely underfunded; Solo 401k allows up to $46,000/year in contributions"
+    },
+    {
+      "category": "CASH_FLOW",
+      "severity": "MEDIUM",
+      "description": "Irregular income requires 6-month buffer and percentage-based savings approach rather than fixed amounts"
+    }
+  ],
+  "key_recommendations": [
+    "Open Solo 401k immediately; contribute maximum employee + employer portions",
+    "Set up quarterly estimated tax payments to avoid IRS penalties",
+    "Enroll in ACA marketplace health insurance at next open enrollment",
+    "Add own-occupation disability insurance (2-3% of income/month)",
+    "Build 6-month cash buffer before aggressively investing"
+  ],
+  "follow_up_questions": [
+    "Is Michael operating as sole proprietor or LLC/S-Corp? (S-Corp may reduce SE tax above ~$60K)",
+    "What is the client contract duration — project-based or retainer?",
+    "Does Michael track all deductible business expenses (home office, equipment, travel)?",
+    "Has an S-Corp election been evaluated to reduce SE tax on distributions?"
+  ],
+  "outcome_summary": "Solo 401k opened with $38,000 contributed in year one. ACA health plan enrolled. Quarterly tax payments established. S-Corp election evaluated for following year.",
+  "key_lesson": "Self-employed individuals must function as their own HR department — Solo 401k, SEP-IRA, and S-Corp structuring can reduce tax burden by $8,000–$15,000/year while simultaneously building retirement savings.",
+  "major_topics": ["tax", "retirement", "insurance", "cash_flow"],
+  "similarity_tags": ["single", "self_employed", "freelancer", "variable_income", "no_benefits", "solo_401k"]
+}

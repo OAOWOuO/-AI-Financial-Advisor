@@ -1,0 +1,84 @@
+{
+  "case_id": "case_10_first_time_homebuyer",
+  "title": "First-Time Homebuyer: Down Payment vs Financial Security",
+  "year": 2024,
+  "client_profile": {
+    "name": "Miguel Garcia",
+    "age": 31,
+    "location": "Denver, CO",
+    "occupation": "Marketing manager",
+    "marital_status": "Single",
+    "dependents": 0,
+    "household_type": "single",
+    "life_stage": "early_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 88000,
+    "net_monthly_income": 5850,
+    "monthly_expenses": 3000,
+    "monthly_surplus": 2850,
+    "total_assets": 92000,
+    "total_liabilities": 15000,
+    "net_worth": 77000,
+    "emergency_fund_months": 4.3,
+    "retirement_savings": 38000
+  },
+  "goals": [
+    "Purchase first home at ~$380,000",
+    "Avoid PMI or minimize PMI cost",
+    "Maintain adequate emergency fund after purchase",
+    "Evaluate whether to buy now or wait 18-24 months"
+  ],
+  "constraints": [
+    "11% down payment (below 20% PMI threshold)",
+    "Active car loan increases DTI to 44%",
+    "7.0% mortgage rate environment (2024)",
+    "Closing costs could deplete emergency fund"
+  ],
+  "key_risks": [
+    "Emergency fund depletion at time of maximum financial exposure (new homeowner)",
+    "DTI at 44% approaching lender maximum with car loan",
+    "PITI-to-income ratio 38.2% — above 28% benchmark",
+    "PMI cost $1,600-3,200/year reduces affordability"
+  ],
+  "planning_issues": [
+    {
+      "category": "GOALS",
+      "severity": "HIGH",
+      "description": "11% down triggers PMI ($1,600-3,200/year); 20% down requires $76,000; emergency fund at risk from closing costs"
+    },
+    {
+      "category": "DEBT",
+      "severity": "HIGH",
+      "description": "Car loan ($430/month) pushes DTI to 44%; paying it off drops DTI to 38% and improves mortgage qualification"
+    },
+    {
+      "category": "CASH_FLOW",
+      "severity": "MEDIUM",
+      "description": "PITI of $2,799/month = 38.2% of gross income — above the 28% benchmark; housing cost ratio at boundary"
+    },
+    {
+      "category": "GOALS",
+      "severity": "MEDIUM",
+      "description": "Rate environment: 7.0% mortgage adds $762/month vs 3.5% rate; first-time buyer programs may offer below-market rates"
+    }
+  ],
+  "key_recommendations": [
+    "Investigate Colorado CHFA and first-time buyer programs — may change affordability math",
+    "Wait 6 more months: save to 15% down ($57,000) minimum",
+    "Maintain $15,000 emergency fund at closing — do not let closing costs drain below 3 months",
+    "Pay off car loan aggressively before applying for mortgage",
+    "Consider rate buydown: 1-point buydown (~$3,380) reduces rate to 6.0%; break-even 18-24 months"
+  ],
+  "follow_up_questions": [
+    "Is Miguel eligible for Colorado CHFA (income and purchase price limits)?",
+    "Does employer offer home purchase assistance benefits?",
+    "What is Miguel's credit score? (720+ qualifies for best conventional rates)",
+    "Is there flexibility on purchase price? ($340-350K meaningfully changes DTI)",
+    "Has a 2-1 rate buydown strategy been evaluated?"
+  ],
+  "outcome_summary": "Miguel waited 8 months, saved $20,000 more, paid off car loan, purchased at $365,000 with 17% down. Housing cost ratio 33%.",
+  "key_lesson": "First-time buyers must model the full cost of PMI, DTI impact of existing debt, and emergency fund depletion risk. A 6-12 month wait to reach a stronger financial position often dominates the cost of continued renting.",
+  "major_topics": ["goals", "debt", "cash_flow"],
+  "similarity_tags": ["single", "early_career", "homebuying", "pmi", "dti", "first_time_buyer", "car_loan"]
+}

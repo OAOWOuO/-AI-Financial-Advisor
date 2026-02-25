@@ -1,0 +1,83 @@
+{
+  "case_id": "case_01_young_professional",
+  "title": "Young Professional: Student Loan Debt and Early Wealth Building",
+  "year": 2024,
+  "client_profile": {
+    "name": "Sarah Chen",
+    "age": 27,
+    "location": "Chicago, IL",
+    "occupation": "Marketing coordinator",
+    "marital_status": "Single",
+    "dependents": 0,
+    "household_type": "single",
+    "life_stage": "early_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 68000,
+    "net_monthly_income": 4200,
+    "monthly_expenses": 3350,
+    "monthly_surplus": 850,
+    "total_assets": 27500,
+    "total_liabilities": 48000,
+    "net_worth": -20500,
+    "emergency_fund_months": 1.4,
+    "retirement_savings": 8500
+  },
+  "goals": [
+    "Eliminate student loan debt efficiently",
+    "Build emergency fund to 3-6 months",
+    "Start retirement savings",
+    "Improve financial stability"
+  ],
+  "constraints": [
+    "Limited monthly surplus ($850)",
+    "Negative net worth due to student loans",
+    "Thin emergency fund (1.4 months)",
+    "Lifestyle inflation from recent salary increase"
+  ],
+  "key_risks": [
+    "Income disruption with inadequate emergency fund",
+    "High-interest student loans reducing net worth",
+    "Opportunity cost of delaying retirement savings",
+    "Lifestyle inflation eroding surplus"
+  ],
+  "planning_issues": [
+    {
+      "category": "EMERGENCY_FUND",
+      "severity": "HIGH",
+      "description": "Emergency fund covers only 1.4 months of expenses — below the 3-month minimum"
+    },
+    {
+      "category": "DEBT",
+      "severity": "HIGH",
+      "description": "$48,000 student loans at blended 5.8%; highest rate loans (7.0%) should be avalanche-targeted first"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "MEDIUM",
+      "description": "Only 6% 401k contribution capturing employer match but not maximizing tax-advantaged space"
+    },
+    {
+      "category": "CASH_FLOW",
+      "severity": "MEDIUM",
+      "description": "Monthly surplus of $850 is thin and leaves no room for unexpected expenses without credit card use"
+    }
+  ],
+  "key_recommendations": [
+    "Build $5,000 emergency fund before accelerating loan payoff",
+    "Apply debt avalanche: attack highest-rate loans first (7.0%)",
+    "Maintain 401k at minimum to capture full employer match",
+    "Refinance private loans if credit score supports lower rate",
+    "Increase income through professional development or side work"
+  ],
+  "follow_up_questions": [
+    "What is the breakdown of federal vs. private loans by interest rate?",
+    "Has income-driven repayment (IDR) been evaluated for federal loans?",
+    "What is the employer match vesting schedule?",
+    "Is PSLF (Public Service Loan Forgiveness) applicable given any prior employment?"
+  ],
+  "outcome_summary": "Built $8,000 emergency fund in 7 months; refinanced private loans from 7.0% to 5.1%; paid off $12,000 in highest-rate debt in 14 months.",
+  "key_lesson": "Young professionals with student debt must sequence goals correctly: emergency fund stability first, then debt avalanche, then maximizing tax-advantaged accounts. Refinancing high-rate private loans can save thousands.",
+  "major_topics": ["debt", "emergency_fund", "retirement", "cash_flow"],
+  "similarity_tags": ["single", "early_career", "student_loans", "tight_budget", "young_professional"]
+}

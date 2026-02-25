@@ -1,0 +1,83 @@
+{
+  "case_id": "case_06_dual_income_no_kids",
+  "title": "High-Income DINK Couple: Accelerated Wealth Building",
+  "year": 2024,
+  "client_profile": {
+    "name": "Kim Family (David & Sophia)",
+    "age": 33,
+    "location": "Seattle, WA",
+    "occupation": "Senior software engineer + data scientist",
+    "marital_status": "Married",
+    "dependents": 0,
+    "household_type": "married_no_children",
+    "life_stage": "early_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 350000,
+    "net_monthly_income": 14500,
+    "monthly_expenses": 6200,
+    "monthly_surplus": 8300,
+    "total_assets": 560000,
+    "total_liabilities": 0,
+    "net_worth": 560000,
+    "emergency_fund_months": 5.5,
+    "retirement_savings": 145000
+  },
+  "goals": [
+    "Optimize tax-advantaged contribution space",
+    "Diversify concentrated employer stock RSU position",
+    "Accelerate wealth building toward early retirement (FIRE)",
+    "Create estate plan"
+  ],
+  "constraints": [
+    "Above Roth IRA income limits ($240K MFJ threshold 2024)",
+    "RSU vesting creates concentrated single-stock risk",
+    "No taxable investment account despite large surplus",
+    "Complex tax situation with RSU income"
+  ],
+  "key_risks": [
+    "32% of investable assets in single employer stock",
+    "David's human capital and investment correlated with same company",
+    "No estate plan — assets would pass by intestacy",
+    "Large cash balance earning below-market returns"
+  ],
+  "planning_issues": [
+    {
+      "category": "INVESTMENT",
+      "severity": "HIGH",
+      "description": "Concentrated employer stock: 32% of investable portfolio in single company; correlated with David's employment"
+    },
+    {
+      "category": "TAX",
+      "severity": "HIGH",
+      "description": "Backdoor Roth IRA not implemented; 401k contributions below maximum despite $350K income"
+    },
+    {
+      "category": "INVESTMENT",
+      "severity": "MEDIUM",
+      "description": "$145,000 in cash savings above emergency fund earning 4.5% — opportunity cost vs long-term market returns"
+    },
+    {
+      "category": "ESTATE",
+      "severity": "MEDIUM",
+      "description": "No wills, powers of attorney, or healthcare directives; no estate plan at $560K net worth"
+    }
+  ],
+  "key_recommendations": [
+    "Execute backdoor Roth IRA for both spouses ($7,000 each annually)",
+    "Maximize both 401ks to $23,000 each",
+    "Open HSA accounts and maximize (triple tax advantage)",
+    "Systematic RSU diversification — sell at vesting, reinvest in index funds",
+    "Open taxable brokerage; invest $6,000–$8,000/month from surplus"
+  ],
+  "follow_up_questions": [
+    "Does David's 401k allow after-tax contributions (mega backdoor Roth)?",
+    "Planning to purchase a home in 3-5 years? (Affects liquid allocation)",
+    "What is the target retirement age — FIRE or conventional 65?",
+    "Has AMT exposure been modeled for any ISO stock options?"
+  ],
+  "outcome_summary": "Maximized both 401ks and backdoor Roth IRAs. Sold 60% of concentrated stock over 12 months. Taxable brokerage opened and grew to $180,000.",
+  "key_lesson": "High-income dual-earner households with no children often have large untapped tax-advantaged space and concentrated stock risk. Structured contribution and diversification planning materially improves retirement wealth.",
+  "major_topics": ["tax", "investing", "estate"],
+  "similarity_tags": ["married", "dink", "high_income", "rsu", "concentrated_stock", "backdoor_roth", "early_career"]
+}

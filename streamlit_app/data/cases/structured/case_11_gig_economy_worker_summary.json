@@ -1,0 +1,83 @@
+{
+  "case_id": "case_11_gig_economy_worker",
+  "title": "Gig Economy Worker: Tax Compliance and Financial Stability",
+  "year": 2024,
+  "client_profile": {
+    "name": "Jessica Brown",
+    "age": 30,
+    "location": "Austin, TX",
+    "occupation": "Rideshare driver / food delivery courier (1099)",
+    "marital_status": "Single",
+    "dependents": 0,
+    "household_type": "single",
+    "life_stage": "early_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 54000,
+    "net_monthly_income": 3300,
+    "monthly_expenses": 2690,
+    "monthly_surplus": 610,
+    "total_assets": 6200,
+    "total_liabilities": 11600,
+    "net_worth": -5400,
+    "emergency_fund_months": 2.3,
+    "retirement_savings": 0
+  },
+  "goals": [
+    "Resolve IRS underpayment notice and establish tax compliance",
+    "Build financial stability with variable income",
+    "Obtain health insurance coverage",
+    "Start retirement savings"
+  ],
+  "constraints": [
+    "Highly variable monthly income ($2,800–$6,100)",
+    "IRS underpayment notice $8,200 accruing penalties",
+    "No employer benefits of any kind",
+    "Personal auto insurance does not cover commercial use"
+  ],
+  "key_risks": [
+    "IRS penalties compounding on $8,200 underpayment",
+    "Uninsured during rideshare Period 1 (app on, no passenger)",
+    "No health insurance — catastrophic financial exposure",
+    "Zero retirement savings at age 30 — compounding time being lost"
+  ],
+  "planning_issues": [
+    {
+      "category": "TAX",
+      "severity": "CRITICAL",
+      "description": "No quarterly estimated tax payments; IRS $8,200 underpayment with penalties accruing at 8% annually; SE tax 15.3% on net income"
+    },
+    {
+      "category": "INSURANCE",
+      "severity": "HIGH",
+      "description": "No health insurance; no rideshare TNC endorsement (personal policy voids during commercial use); no disability income"
+    },
+    {
+      "category": "EMERGENCY_FUND",
+      "severity": "HIGH",
+      "description": "$6,200 savings = 2.3 months expenses; variable income workers need 6-month buffer minimum"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "HIGH",
+      "description": "Zero retirement savings at age 30; Solo 401k available for 1099 workers; also reduces SE tax burden"
+    }
+  ],
+  "key_recommendations": [
+    "Set up IRS installment agreement; establish 27% tax reserve account immediately",
+    "Set up quarterly estimated tax payments (January 15, April 15, June 15, September 15)",
+    "Enroll in ACA marketplace health insurance at next open enrollment (~$150-250/month after credits)",
+    "Add TNC (rideshare) commercial insurance endorsement ($20-40/month)",
+    "Open Solo 401k; contribute minimum 10% of net income; builds retirement and reduces SE tax"
+  ],
+  "follow_up_questions": [
+    "Does Jessica track mileage and vehicle expenses? (Standard mileage vs actual cost method)",
+    "Is Jessica enrolled in Uber Pro or Lyft rewards? (Gas/maintenance savings)",
+    "Has ACA enrollment ever been explored? Does she qualify for Medicaid?",
+    "Has an S-Corp election been considered to reduce SE tax at this income level?"
+  ],
+  "outcome_summary": "IRS underpayment paid off in 10 months. ACA Silver plan enrolled ($195/month after tax credits). Solo 401k opened with $4,500 contributed, reducing taxable income.",
+  "key_lesson": "Gig workers must treat their finances as a small business — separate tax reserves, business-appropriate insurance, and Solo 401k contributions are foundational steps most 1099 workers skip.",
+  "major_topics": ["tax", "insurance", "emergency_fund", "retirement"],
+  "similarity_tags": ["single", "gig_worker", "1099", "variable_income", "no_benefits", "self_employed", "early_career", "tax_issue"]
+}

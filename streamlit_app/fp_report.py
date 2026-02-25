@@ -157,6 +157,7 @@ def _build_prompt(
     quant_checks: List[QuantCheck],
     scenarios: List[ScenarioProjection],
     retrieved_docs: List[Dict[str, Any]],
+    similar_cases: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     issue_lines = "\n".join(
         f"  [{iss.severity}] {iss.category} — {iss.title}: {iss.detail}"
@@ -176,6 +177,22 @@ def _build_prompt(
         for i, d in enumerate(retrieved_docs[:5])
     )
 
+    # Build case-based reasoning context
+    case_lines = ""
+    if similar_cases:
+        case_parts = []
+        for i, c in enumerate(similar_cases[:3]):
+            meta = c.get("metadata", {})
+            struct = c.get("structured", {})
+            reasons = "; ".join(c.get("reasons", []))
+            recs = "; ".join(struct.get("candidate_recommendations", [])[:3])
+            case_parts.append(
+                f"  [{i+1}] {meta.get('title', c['case_id'])} "
+                f"(similarity: {c.get('score_pct', 0):.0f}%) — Match: {reasons}. "
+                f"Key lessons: {recs}"
+            )
+        case_lines = "\n".join(case_parts)
+
     return f"""You are a senior financial planning analyst. Your task is to write an educational planning report.
 
 CLIENT PROFILE:
@@ -193,21 +210,26 @@ QUANTITATIVE CHECKS:
 RETIREMENT SCENARIOS:
 {scenario_lines}
 
-RETRIEVED REFERENCE MATERIALS (to ground your recommendations):
+SIMILAR CASES FROM BUILT-IN CASE LIBRARY (use for analogy, not prescription):
+{case_lines if case_lines else "  No case library matches available."}
+
+RETRIEVED REFERENCE MATERIALS (uploaded documents):
 {source_lines if source_lines else "  No documents uploaded yet. Base reasoning on general planning principles."}
 
 INSTRUCTIONS:
 1. Write a concise EXECUTIVE SUMMARY (3-5 sentences) covering the client's overall financial health.
-2. Write a CASE REASONING section (2-4 sentences) explaining which retrieved sources are most relevant and why.
-3. List 3-5 FOLLOW-UP QUESTIONS the planner should ask the client to complete the analysis.
-4. List 2-3 MISSING INFORMATION items that are required before finalizing the plan.
+2. Write a CASE REASONING section explaining: (a) which similar cases are most analogous and why, \
+(b) which uploaded reference materials are most relevant. Be explicit about the analogical reasoning.
+3. List 4-6 FOLLOW-UP QUESTIONS the planner should ask the client to complete the analysis.
+4. List 2-3 MISSING INFORMATION items required before finalizing the plan.
 
 FORMAT RULES:
 - Use plain text with clear section headers: ## Executive Summary, ## Case Reasoning, ## Follow-up Questions, ## Missing Information
 - Do NOT invent specific numbers not in the data above.
 - Mark uncertain assumptions explicitly with [ASSUMPTION].
+- When referencing similar cases, say "In a similar case (Case Library)..." to make analogical reasoning transparent.
 - Be concrete and actionable, but avoid overconfident language.
-- Keep total response under 600 words.
+- Keep total response under 700 words.
 
 IMPORTANT: End every response with this exact disclaimer:
 ⚠️ This analysis is for educational purposes only. It does not constitute legal, tax, or investment advice. Consult a licensed CFP, CPA, or attorney before making any financial decisions.
@@ -222,15 +244,18 @@ def generate_report(
     retrieved_docs: List[Dict[str, Any]],
     openai_client,
     model: str = CHAT_MODEL,
+    similar_cases: Optional[List[Dict[str, Any]]] = None,
 ) -> PlanningReport:
     """
     Assemble a complete PlanningReport.
     Deterministic calculations happen before this function.
     Only narrative sections come from LLM.
+    similar_cases: output of fp_case_retriever.retrieve_similar_cases()
     """
     recs = build_recommendations(profile, issues, scenarios)
 
-    prompt = _build_prompt(profile, issues, quant_checks, scenarios, retrieved_docs)
+    prompt = _build_prompt(profile, issues, quant_checks, scenarios, retrieved_docs,
+                           similar_cases=similar_cases)
 
     try:
         completion = openai_client.chat.completions.create(

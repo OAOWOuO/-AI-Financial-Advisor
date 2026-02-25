@@ -1,0 +1,83 @@
+{
+  "case_id": "case_09_military_family",
+  "title": "Military Family: TSP Optimization and Deployment Planning",
+  "year": 2024,
+  "client_profile": {
+    "name": "Anderson Family (Tyler & Emily)",
+    "age": 29,
+    "location": "Fort Campbell, KY",
+    "occupation": "Army Captain (O-3E) + civilian HR coordinator",
+    "marital_status": "Married",
+    "dependents": 2,
+    "household_type": "married_with_children",
+    "life_stage": "early_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 138000,
+    "net_monthly_income": 8400,
+    "monthly_expenses": 4200,
+    "monthly_surplus": 4200,
+    "total_assets": 58000,
+    "total_liabilities": 14200,
+    "net_worth": 43800,
+    "emergency_fund_months": 4.3,
+    "retirement_savings": 40000
+  },
+  "goals": [
+    "Maximize retirement savings during combat zone deployment (tax-free window)",
+    "Optimize TSP contributions to full government match",
+    "Plan homebuying strategy around PCS frequency",
+    "Support Emily's career continuity across PCS moves"
+  ],
+  "constraints": [
+    "PCS moves every 2-3 years — homebuying complex",
+    "Emily's civilian career disrupted by military moves",
+    "Tyler's career decision: 20-year pension vs. earlier separation",
+    "Special military tax rules require specialized knowledge"
+  ],
+  "key_risks": [
+    "Combat zone deployment — life insurance adequacy is critical",
+    "TSP severely under-contributed for income level",
+    "PCS frequency destroys equity if buying/selling each move",
+    "Emily's income continuity risk with each move"
+  ],
+  "planning_issues": [
+    {
+      "category": "RETIREMENT",
+      "severity": "HIGH",
+      "description": "TSP at 5% captures full match but misses combat zone Roth window — zero-tax Roth contributions possible during deployment"
+    },
+    {
+      "category": "TAX",
+      "severity": "HIGH",
+      "description": "Combat zone tax exclusion creates rare Roth TSP opportunity: contribute after-tax funds in a year when income tax is near zero"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "MEDIUM",
+      "description": "BRS pension vs. civilian career decision; 20-year pension (40% of base pay) worth $624K present value at age 40"
+    },
+    {
+      "category": "GOALS",
+      "severity": "MEDIUM",
+      "description": "Homebuying strategy: VA loan benefit available but PCS every 2-3 years creates transaction cost trap"
+    }
+  ],
+  "key_recommendations": [
+    "Maximize Roth TSP during deployment ($23,000 limit) — zero-tax Roth contributions",
+    "Post-deployment: continue 15% Roth TSP contribution rate",
+    "Emily: increase 401k to 6% to capture full 3% employer match",
+    "VA loan planning for next PCS assignment if 3+ year stay",
+    "Model BRS pension value vs. earlier separation with max TSP"
+  ],
+  "follow_up_questions": [
+    "How many years has Tyler served? What is his anticipated career endpoint?",
+    "Does Tyler's deployment income exceed the annual TSP limit?",
+    "Does Emily have Military Spouse Preference for federal civilian employment?",
+    "Does Tyler have a VA disability rating from any prior injury?"
+  ],
+  "outcome_summary": "Tyler maximized Roth TSP during deployment ($18,500 in tax-free contributions). Emily increased 401k to capture full match. TSP balance grew to $68,000 in two years.",
+  "key_lesson": "Military families have extraordinary financial benefits (TRICARE, SGLI, TSP matching, VA loan, combat zone tax exclusion) that are systematically underutilized. A deployment window is a rare opportunity to front-load Roth savings at near-zero tax cost.",
+  "major_topics": ["retirement", "tax", "insurance", "goals"],
+  "similarity_tags": ["military", "married", "early_career", "tsp", "roth", "combat_zone", "pcs", "government_benefits"]
+}

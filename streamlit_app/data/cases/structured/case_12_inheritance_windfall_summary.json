@@ -1,0 +1,83 @@
+{
+  "case_id": "case_12_inheritance_windfall",
+  "title": "Inheritance Windfall: Integrating a Sudden Wealth Event",
+  "year": 2024,
+  "client_profile": {
+    "name": "William Davis",
+    "age": 44,
+    "location": "Charlotte, NC",
+    "occupation": "Civil engineer (municipal government)",
+    "marital_status": "Married",
+    "dependents": 2,
+    "household_type": "married_with_children",
+    "life_stage": "mid_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 170000,
+    "net_monthly_income": 9833,
+    "monthly_expenses": 6800,
+    "monthly_surplus": 3033,
+    "total_assets": 706000,
+    "total_liabilities": 290500,
+    "net_worth": 415500,
+    "emergency_fund_months": 5.2,
+    "retirement_savings": 95000
+  },
+  "goals": [
+    "Deploy $395,000 inheritance wisely without making costly mistakes",
+    "Manage inherited IRA 10-year distribution rule efficiently",
+    "Catch up on 529 college funding for two children",
+    "Avoid windfall paralysis and create actionable deployment plan"
+  ],
+  "constraints": [
+    "Inherited IRA 10-year distribution rule — mandatory complete distribution by year 10",
+    "Highly appreciated inherited brokerage positions — step-up basis window closing",
+    "3.25% mortgage creates prepayment vs. investment dilemma",
+    "Windfall paralysis — 8 months elapsed without any action"
+  ],
+  "key_risks": [
+    "Inherited IRA 25% excise tax penalty if 10-year rule violated",
+    "Tax spike risk if all inherited IRA distributed in final years",
+    "Step-up in basis window closing on inherited brokerage positions",
+    "No umbrella liability insurance at $706K net worth"
+  ],
+  "planning_issues": [
+    {
+      "category": "TAX",
+      "severity": "HIGH",
+      "description": "Inherited IRA 10-year rule: no distributions taken in year 1 (8 months elapsed); bunching distributions creates tax spike risk"
+    },
+    {
+      "category": "TAX",
+      "severity": "HIGH",
+      "description": "Inherited taxable brokerage received step-up in basis at death; near-zero capital gains if sold now vs. growing gains if held"
+    },
+    {
+      "category": "GOALS",
+      "severity": "HIGH",
+      "description": "$12,000 in 529 plans vs $160-300K needed for two children; 4-year runway for oldest"
+    },
+    {
+      "category": "INVESTMENT",
+      "severity": "MEDIUM",
+      "description": "$168,000 inheritance sitting in money market — opportunity cost; deployment framework needed"
+    }
+  ],
+  "key_recommendations": [
+    "Begin inherited IRA distributions immediately: $13,500-17,500/year over 10 years",
+    "Sell inherited brokerage within 30 days — realize step-up in basis; reinvest in diversified index funds",
+    "Cash deployment priority: emergency fund top-up → car loan payoff → 529 superfunding → retirement maximization → taxable brokerage",
+    "Do NOT prepay 3.25% mortgage — invest surplus at expected 7% long-term return instead",
+    "Purchase $2M umbrella liability policy at $706K+ net worth"
+  ],
+  "follow_up_questions": [
+    "Exact date of aunt's death? (Starts 10-year inherited IRA clock)",
+    "Has a CPA modeled the inherited IRA annual distribution schedule and tax impact?",
+    "Specific holdings in inherited brokerage? (Affects step-up calculation and rebalancing approach)",
+    "Does William's government employer offer a 457b plan? (No early withdrawal penalty — powerful supplement)"
+  ],
+  "outcome_summary": "Inherited brokerage sold within 45 days (minimal capital gains). 10-year inherited IRA schedule established at $14,000/year. Both 529 plans superfunded to $25,000 each. Car loan paid off.",
+  "key_lesson": "Sudden wealth recipients need a structured decision framework — prioritizing time-sensitive decisions first (inherited IRA schedule, step-up basis window) transforms a windfall from anxiety into financial acceleration.",
+  "major_topics": ["tax", "estate", "goals", "investing"],
+  "similarity_tags": ["married", "mid_career", "inheritance", "windfall", "inherited_ira", "529", "children", "government_employee"]
+}

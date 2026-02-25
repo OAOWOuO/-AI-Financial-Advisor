@@ -1,0 +1,83 @@
+{
+  "case_id": "case_03_pre_retirement_couple",
+  "title": "Pre-Retirement Couple: Sequence-of-Returns Risk and Concentrated Stock",
+  "year": 2024,
+  "client_profile": {
+    "name": "Johnson Family (Robert & Linda)",
+    "age": 58,
+    "location": "Minneapolis, MN",
+    "occupation": "Corporate finance director + HR manager (semi-retired)",
+    "marital_status": "Married",
+    "dependents": 0,
+    "household_type": "married_no_children",
+    "life_stage": "pre_retirement"
+  },
+  "financial_snapshot": {
+    "gross_income": 215000,
+    "net_monthly_income": 12000,
+    "monthly_expenses": 7200,
+    "monthly_surplus": 4800,
+    "total_assets": 1680000,
+    "total_liabilities": 95000,
+    "net_worth": 1585000,
+    "emergency_fund_months": 8.0,
+    "retirement_savings": 820000
+  },
+  "goals": [
+    "Retire at 62 with sustainable income",
+    "Reduce concentrated stock position risk",
+    "Plan Social Security claiming strategy",
+    "Address long-term care gap"
+  ],
+  "constraints": [
+    "5-year runway to target retirement",
+    "Concentrated stock position (~28% of portfolio)",
+    "No LTC insurance at age 58",
+    "Sequence-of-returns risk in early retirement years"
+  ],
+  "key_risks": [
+    "Concentrated employer stock destroys diversification",
+    "No LTC insurance — $120-300K/year nursing home cost exposure",
+    "Sequence-of-returns risk if retiring into a down market",
+    "Medicare gap age 62-65 before retirement health coverage"
+  ],
+  "planning_issues": [
+    {
+      "category": "INVESTMENT",
+      "severity": "HIGH",
+      "description": "28% of investable portfolio in single employer stock; correlated with Robert's human capital"
+    },
+    {
+      "category": "INSURANCE",
+      "severity": "HIGH",
+      "description": "No LTC insurance; LTC costs in Minneapolis average $90,000–$150,000/year; age 58 is last reasonable window for affordable coverage"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "MEDIUM",
+      "description": "Sequence-of-returns risk: retiring at 62 with 30-year horizon requires inflation-adjusted withdrawal strategy"
+    },
+    {
+      "category": "TAX",
+      "severity": "MEDIUM",
+      "description": "RMD planning starting age 73; Roth conversion window between retirement and age 73 is tax-efficient"
+    }
+  ],
+  "key_recommendations": [
+    "Systematic concentrated stock diversification over 3 years",
+    "Evaluate LTC insurance now — last affordable window at age 58",
+    "Model Social Security claiming strategies (62 vs 67 vs 70)",
+    "Roth conversion ladder in gap years between retirement and SS/RMD",
+    "Build 2-year cash/bond buffer against sequence-of-returns risk"
+  ],
+  "follow_up_questions": [
+    "What is the cost basis on the concentrated stock position? (NUA analysis)",
+    "Has Linda applied for Social Security earnings record review?",
+    "Does Robert's employer offer any pension or defined benefit component?",
+    "What are the LTC preferences — home care vs. facility?"
+  ],
+  "outcome_summary": "Divested 60% of concentrated position over 18 months. LTC insurance secured. SS claiming modeled to maximize lifetime benefits for both spouses.",
+  "key_lesson": "Pre-retirement planning must address sequence-of-returns risk, concentrated positions, and LTC insurance simultaneously. The decade before retirement is the last cost-effective window for LTC coverage.",
+  "major_topics": ["retirement", "investing", "insurance", "tax"],
+  "similarity_tags": ["married", "pre_retirement", "concentrated_stock", "ltc_gap", "social_security", "high_income"]
+}

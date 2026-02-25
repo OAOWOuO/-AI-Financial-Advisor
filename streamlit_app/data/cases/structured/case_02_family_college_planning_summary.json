@@ -1,0 +1,83 @@
+{
+  "case_id": "case_02_family_college_planning",
+  "title": "Middle-Income Family: College Planning and Insurance Gaps",
+  "year": 2024,
+  "client_profile": {
+    "name": "Martinez Family (Roberto & Maria)",
+    "age": 42,
+    "location": "Houston, TX",
+    "occupation": "Construction project manager + part-time bookkeeper",
+    "marital_status": "Married",
+    "dependents": 2,
+    "household_type": "married_with_children",
+    "life_stage": "mid_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 148000,
+    "net_monthly_income": 8900,
+    "monthly_expenses": 7100,
+    "monthly_surplus": 1800,
+    "total_assets": 445000,
+    "total_liabilities": 285000,
+    "net_worth": 160000,
+    "emergency_fund_months": 3.2,
+    "retirement_savings": 142000
+  },
+  "goals": [
+    "Fund college for two children (ages 10 and 14)",
+    "Protect family income with adequate insurance",
+    "Reach retirement at 65 with sufficient savings",
+    "Pay down mortgage"
+  ],
+  "constraints": [
+    "Limited monthly surplus ($1,800)",
+    "Competing demands: college savings vs. retirement",
+    "Maria's part-time income is variable",
+    "4 years to oldest child's college enrollment"
+  ],
+  "key_risks": [
+    "Roberto's income is primary; no own-occupation disability",
+    "Life insurance gap: $500K coverage vs $2.1M need",
+    "College funding gap: $14K saved vs $160-300K needed",
+    "Retirement underfunded relative to income"
+  ],
+  "planning_issues": [
+    {
+      "category": "INSURANCE",
+      "severity": "HIGH",
+      "description": "Life insurance gap: $500K coverage vs. $2.1M need (10x income benchmark); own-occupation disability missing"
+    },
+    {
+      "category": "GOALS",
+      "severity": "HIGH",
+      "description": "$14,000 in 529 plans vs. $160,000–$300,000 college need for two children; 4-year runway for oldest"
+    },
+    {
+      "category": "RETIREMENT",
+      "severity": "MEDIUM",
+      "description": "$142,000 at age 42 on $148K income — underfunded; target $296,000–$444,000 by this age"
+    },
+    {
+      "category": "CASH_FLOW",
+      "severity": "LOW",
+      "description": "Tight surplus of $1,800/month after expenses; competing savings demands"
+    }
+  ],
+  "key_recommendations": [
+    "Increase life insurance to $1.5M (Roberto) + $500K (Maria) via term policies",
+    "Add own-occupation disability for Roberto",
+    "Front-load 529 plans for older child ($15K/year, consider superfunding)",
+    "Increase 401k contributions to capture full match plus beyond",
+    "Evaluate financial aid strategy before over-saving in 529s"
+  ],
+  "follow_up_questions": [
+    "Does Roberto have employer-provided disability? Is it own-occupation definition?",
+    "What colleges are the children targeting — in-state public or private?",
+    "Has the family considered the 529 account ownership impact on financial aid?",
+    "Is Maria's part-time bookkeeping work growing toward full-time?"
+  ],
+  "outcome_summary": "Increased life insurance, added disability coverage, increased 529 contributions to $10,000/year per child. Financial aid FAFSA strategy established for oldest child.",
+  "key_lesson": "Middle-income families must balance competing financial priorities. Insurance gaps are often the biggest risk; life and disability coverage should be addressed before accelerating discretionary goals.",
+  "major_topics": ["insurance", "college_planning", "retirement", "cash_flow"],
+  "similarity_tags": ["married", "mid_career", "children", "college_planning", "insurance_gap", "middle_income"]
+}

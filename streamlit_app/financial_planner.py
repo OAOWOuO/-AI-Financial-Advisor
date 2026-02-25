@@ -53,13 +53,99 @@ def _init_state() -> None:
         "fp_scenarios":      None,
         "fp_report":         None,
         "fp_retrieved_docs": [],
+        "fp_similar_cases":  None,
         "fp_model":          "gpt-4o-mini",
         "fp_top_k":          8,
         "fp_topic_filter":   "all",
+        "fp_case_top_k":     3,
+        "fp_case_mode":      "hybrid",
+        "fp_use_cases":      True,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+
+# ── CSS injection ─────────────────────────────────────────────────────────────
+
+def _fp_inject_css() -> None:
+    st.markdown("""<style>
+/* ════ FP CTA buttons — prominent gradient ════ */
+.fp-cta-btn > div > button, .fp-cta-btn > button {
+    background: linear-gradient(135deg, #1a3a5c 0%, #1f6feb 100%) !important;
+    border: 1px solid #388bfd !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.4px !important;
+    padding: 0.6rem 1.5rem !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 16px rgba(31,111,235,0.35) !important;
+    transition: all 0.22s ease !important;
+}
+.fp-cta-btn > div > button:hover, .fp-cta-btn > button:hover {
+    background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%) !important;
+    box-shadow: 0 0 28px rgba(56,139,253,0.55) !important;
+    transform: translateY(-2px) !important;
+}
+.fp-cta-btn > div > button:active, .fp-cta-btn > button:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 0 10px rgba(31,111,235,0.25) !important;
+}
+/* ════ Section headers with left accent ════ */
+.fp-section-header {
+    border-left: 3px solid #388bfd;
+    padding-left: 10px;
+    margin: 18px 0 10px 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #e6edf3;
+    letter-spacing: 0.2px;
+}
+/* ════ Status / severity badge ════ */
+.fp-badge {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 2px 9px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+/* ════ Issue row card ════ */
+.fp-issue-row {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+/* ════ Case insight card ════ */
+.fp-case-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease;
+}
+.fp-case-card:hover { border-color: #58a6ff; }
+/* ════ Metric card ════ */
+.fp-metric {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+}
+/* ════ Tab container spacing ════ */
+[data-testid="stTabs"] [data-testid="stTab"] {
+    font-size: 13px !important;
+}
+</style>""", unsafe_allow_html=True)
 
 
 # ── Colour palette ────────────────────────────────────────────────────────────
@@ -341,7 +427,24 @@ def _tab_planning_analysis() -> None:
 
     profile = ClientProfile.from_dict(d)
 
-    if st.button("▶ Run Planning Analysis", key="fp_run_analysis", type="primary", use_container_width=True):
+    st.markdown("""
+<div style="background:#0d1117;border:1px solid #1f6feb;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+  <div style="font-size:13px;color:#8b949e;margin-bottom:8px;">
+  Ready to analyse <strong style="color:#e6edf3;">{}</strong> · Age {} · {} · Income ${:,.0f}/yr
+  </div>
+  <div style="font-size:11px;color:#6e7681;">Runs: emergency fund check · DTI · housing ratio · net worth benchmark ·
+  retirement savings rate · cash flow · insurance · goals · scenario projections</div>
+</div>""".format(profile.name, profile.age, profile.marital_status.capitalize(),
+                 profile.total_annual_income()), unsafe_allow_html=True)
+
+    st.markdown('<div class="fp-cta-btn">', unsafe_allow_html=True)
+    run_clicked = st.button(
+        "⚡ Run Full Planning Analysis", key="fp_run_analysis",
+        type="primary", use_container_width=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if run_clicked:
         with st.spinner("Running rules engine and scenario projections…"):
             engine   = RulesEngine()
             issues   = engine.run_all_checks(profile)
@@ -350,7 +453,8 @@ def _tab_planning_analysis() -> None:
             st.session_state.fp_issues       = issues
             st.session_state.fp_quant_checks = quant
             st.session_state.fp_scenarios    = scenarios
-        st.success("Analysis complete. See results below.")
+            st.session_state.fp_similar_cases = None   # reset case cache
+        st.success(f"Analysis complete — {len(issues)} planning issues identified.")
 
     issues    = st.session_state.get("fp_issues")
     quant     = st.session_state.get("fp_quant_checks")
@@ -380,44 +484,233 @@ def _tab_planning_analysis() -> None:
 </div>""", unsafe_allow_html=True)
 
     # ── Issues ──────────────────────────────────────────────────────────────
-    st.markdown("##### Planning Issues Detected")
+    st.markdown('<div class="fp-section-header">Planning Issues Detected</div>', unsafe_allow_html=True)
     critical = [i for i in issues if i.severity != "INFO"]
+    info_only = [i for i in issues if i.severity == "INFO"]
     if not critical:
-        st.success("No significant planning gaps detected.")
+        st.success("✅ No significant planning gaps detected.")
+    _sev_icon = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🔵", "INFO": "⚪"}
     for iss in critical:
         sc = _COLORS.get(iss.severity, "#8b949e")
-        with st.expander(f"[{iss.severity}] {iss.category} — {iss.title}", expanded=(iss.severity in ("CRITICAL","HIGH"))):
-            cols = st.columns([3,1])
+        icon = _sev_icon.get(iss.severity, "⚪")
+        with st.expander(
+            f"{icon} **{iss.severity}** · {iss.category} · {iss.title}",
+            expanded=(iss.severity in ("CRITICAL", "HIGH"))
+        ):
+            cols = st.columns([3, 1])
             cols[0].markdown(iss.detail)
             if iss.metric_value or iss.benchmark:
                 cols[1].markdown(f"""
-<div style="background:#161b22;border-radius:6px;padding:8px;text-align:center;">
-  <div style="font-size:18px;font-weight:700;color:{sc};">{iss.metric_value or '—'}</div>
-  <div style="font-size:11px;color:#8b949e;">{iss.benchmark or ''}</div>
+<div class="fp-metric" style="border-color:{sc};">
+  <div style="font-size:20px;font-weight:700;color:{sc};">{iss.metric_value or '—'}</div>
+  <div style="font-size:10px;color:#8b949e;margin-top:2px;">{iss.benchmark or ''}</div>
 </div>""", unsafe_allow_html=True)
             if iss.action_hint:
-                st.info(f"💡 **Suggested action:** {iss.action_hint}")
+                st.markdown(f"""
+<div style="background:#161b22;border-left:3px solid #388bfd;padding:8px 12px;border-radius:0 6px 6px 0;font-size:13px;color:#c9d1d9;margin-top:6px;">
+  💡 <strong>Suggested action:</strong> {iss.action_hint}
+</div>""", unsafe_allow_html=True)
+    if info_only:
+        with st.expander(f"ℹ️ {len(info_only)} informational note(s)", expanded=False):
+            for iss in info_only:
+                st.caption(f"**{iss.title}:** {iss.detail}")
 
     # ── Scenarios ───────────────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown("##### Retirement Scenario Projections")
+    st.markdown('<div class="fp-section-header">Retirement Scenario Projections</div>', unsafe_allow_html=True)
     sc_cols = st.columns(3)
     sc_colors = {"Conservative": "#58a6ff", "Balanced": "#d29922", "Aggressive": "#3fb950"}
     for col, scenario in zip(sc_cols, scenarios):
         c = sc_colors.get(scenario.name, "#8b949e")
         gap_color = "#3fb950" if scenario.gap <= 0 else "#f85149"
+        gap_icon  = "✅" if scenario.gap <= 0 else "⚠️"
         gap_label = f"Surplus ${abs(scenario.gap):,.0f}" if scenario.gap <= 0 else f"Shortfall ${scenario.gap:,.0f}"
+        assump_str = " · ".join(f"{k}: {v}" for k, v in list(scenario.assumptions.items())[:3])
         with col:
             st.markdown(f"""
-<div style="background:#0d1117;border:1px solid {c};border-radius:10px;padding:16px;text-align:center;">
-  <div style="font-size:12px;color:{c};text-transform:uppercase;font-weight:700;margin-bottom:8px;">{scenario.name}</div>
-  <div style="font-size:11px;color:#6e7681;margin-bottom:12px;">{' | '.join(f'{k}: {v}' for k,v in list(scenario.assumptions.items())[:3])}</div>
-  <div style="font-size:13px;color:#8b949e;">Projected Corpus</div>
-  <div style="font-size:22px;font-weight:700;color:#e6edf3;margin:4px 0;">${scenario.retirement_corpus:,.0f}</div>
-  <div style="font-size:12px;color:#6e7681;">Target: ${scenario.corpus_needed:,.0f}</div>
-  <div style="font-size:14px;font-weight:700;color:{gap_color};margin-top:8px;">{gap_label}</div>
-  {f'<div style="font-size:11px;color:#8b949e;margin-top:4px;">Need ~${scenario.monthly_savings_needed:,.0f}/mo extra</div>' if scenario.monthly_savings_needed > 0 else ''}
+<div style="background:#0d1117;border:1px solid {c};border-radius:10px;padding:18px;text-align:center;">
+  <div style="font-size:11px;color:{c};text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:4px;">{scenario.name}</div>
+  <div style="font-size:10px;color:#6e7681;margin-bottom:14px;">{assump_str}</div>
+  <div style="font-size:11px;color:#6e7681;text-transform:uppercase;letter-spacing:.5px;">Projected Corpus</div>
+  <div style="font-size:26px;font-weight:700;color:#e6edf3;margin:6px 0;">${scenario.retirement_corpus:,.0f}</div>
+  <div style="background:#21262d;height:1px;margin:10px 0;"></div>
+  <div style="font-size:11px;color:#8b949e;">Target: <span style="color:#c9d1d9;">${scenario.corpus_needed:,.0f}</span></div>
+  <div style="font-size:15px;font-weight:700;color:{gap_color};margin-top:10px;">{gap_icon} {gap_label}</div>
+  {f'<div style="font-size:11px;color:#8b949e;margin-top:6px;background:#161b22;padding:6px 8px;border-radius:4px;">+${scenario.monthly_savings_needed:,.0f}/mo needed</div>' if scenario.monthly_savings_needed > 0 else '<div style="font-size:11px;color:#3fb950;margin-top:6px;">On track</div>'}
 </div>""", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 3 — CASE INSIGHTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _tab_case_insights() -> None:
+    from fp_schemas import ClientProfile
+    import fp_case_retriever as case_ret
+
+    st.markdown("#### 🏛️ Case Insights — Similar Cases from Built-in Library")
+    st.caption(
+        "The system retrieves the most analogous financial planning cases from the built-in library "
+        "and explains why they match. These cases inform — but do not replace — the deterministic rules engine."
+    )
+
+    client = _get_openai_client()
+    d      = st.session_state.get("fp_profile_dict")
+    issues = st.session_state.get("fp_issues")
+
+    if not d:
+        st.warning("Load a client profile in **Client Input** first.")
+        return
+
+    profile = ClientProfile.from_dict(d)
+
+    # ── Library status badge ─────────────────────────────────────────────
+    index = case_ret.load_case_index()
+    n_cases = len(index)
+    is_emb  = case_ret.is_indexed()
+    st.markdown(f"""
+<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+  <span style="background:#1f6feb22;border:1px solid #1f6feb;color:#58a6ff;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;">
+    📚 {n_cases} built-in cases
+  </span>
+  <span style="background:{'#3fb95022' if is_emb else '#30363d'};border:1px solid {'#3fb950' if is_emb else '#30363d'};
+    color:{'#3fb950' if is_emb else '#6e7681'};border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;">
+    {'✅ Embeddings ready' if is_emb else '⏳ Not yet indexed'}
+  </span>
+  {'<span style="background:#3fb95022;border:1px solid #3fb950;color:#3fb950;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;">✅ Analysis done</span>' if issues else '<span style="background:#d2992222;border:1px solid #d29922;color:#d29922;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;">⚠ Run Analysis first for best matches</span>'}
+</div>""", unsafe_allow_html=True)
+
+    if not issues:
+        st.info("For best case matching, run **Planning Analysis** first so the system can match your client's specific planning issues.")
+
+    # ── Controls ─────────────────────────────────────────────────────────
+    c1, c2, c3 = st.columns([3, 1, 1])
+    top_k = c2.number_input("Cases to show", value=st.session_state.fp_case_top_k,
+                             min_value=1, max_value=6, key="fp_ci_topk")
+    mode  = c3.selectbox("Mode", ["hybrid", "structured"], key="fp_ci_mode",
+                          help="hybrid = embedding + rules; structured = rules only (no API needed)")
+
+    if not client and mode == "hybrid":
+        st.warning("OpenAI API key required for hybrid mode. Switching to structured matching.")
+        mode = "structured"
+
+    with c1:
+        st.markdown('<div class="fp-cta-btn">', unsafe_allow_html=True)
+        find_clicked = st.button("🔍 Find Similar Cases", key="fp_find_cases",
+                                  type="primary", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    if find_clicked:
+        with st.spinner(f"Indexing case library and retrieving top {top_k} matches…"):
+            if client and not is_emb and mode == "hybrid":
+                store = case_ret.build_case_embeddings(client)
+                if store.get("error"):
+                    st.warning(f"Embedding note: {store['error']}. Using structured matching.")
+                    mode = "structured"
+            similar = case_ret.retrieve_similar_cases(
+                profile, issues or [], client or type("_", (), {"embeddings": None})(),
+                top_k=top_k, mode=mode
+            )
+            st.session_state.fp_similar_cases = similar
+            st.session_state.fp_case_top_k    = top_k
+            st.session_state.fp_case_mode     = mode
+
+    similar = st.session_state.get("fp_similar_cases")
+
+    # ── Library overview (no results yet) ────────────────────────────────
+    if not similar:
+        if index:
+            st.markdown('<div class="fp-section-header">Case Library Overview</div>', unsafe_allow_html=True)
+            import pandas as pd
+            df = pd.DataFrame([{
+                "Title": m["title"],
+                "Household": m["household_type"].replace("_", " ").title(),
+                "Life Stage": m["life_stage"].replace("_", " ").title(),
+                "Topics": ", ".join(m["major_topics"][:3]),
+                "Income Range": f"${m['income_range'][0]/1e3:.0f}K–${m['income_range'][1]/1e3:.0f}K",
+            } for m in index])
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        return
+
+    # ── Results ───────────────────────────────────────────────────────────
+    st.markdown(f'<div class="fp-section-header">Top {len(similar)} Matched Cases</div>',
+                unsafe_allow_html=True)
+
+    for rank, case in enumerate(similar, 1):
+        meta   = case["metadata"]
+        struct = case.get("structured", {})
+        score  = case.get("score_pct", 0)
+        reasons = case.get("reasons", [])
+        score_color = "#3fb950" if score >= 70 else "#d29922" if score >= 45 else "#8b949e"
+
+        with st.expander(
+            f"#{rank} — {meta.get('title', case['case_id'])} · Match: {score:.0f}%",
+            expanded=(rank == 1)
+        ):
+            # Header row
+            st.markdown(f"""
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+  <span style="background:{score_color}22;border:1px solid {score_color};color:{score_color};
+    border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;">
+    {score:.0f}% similarity
+  </span>
+  <span style="background:#2d333b;color:#c9d1d9;border-radius:5px;padding:3px 10px;font-size:12px;">
+    {meta.get('household_type','').replace('_',' ').title()}
+  </span>
+  <span style="background:#2d333b;color:#c9d1d9;border-radius:5px;padding:3px 10px;font-size:12px;">
+    {meta.get('life_stage','').replace('_',' ').title()}
+  </span>
+  <span style="background:#2d333b;color:#8b949e;border-radius:5px;padding:3px 10px;font-size:12px;">
+    {meta.get('source','')}
+  </span>
+</div>""", unsafe_allow_html=True)
+
+            # Why matched
+            st.markdown('<div class="fp-section-header" style="font-size:12px;">Why This Case Matches</div>',
+                        unsafe_allow_html=True)
+            reason_html = "".join(
+                f'<span style="background:#1f6feb22;border:1px solid #1f6feb;color:#58a6ff;'
+                f'border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;display:inline-block;">'
+                f'✓ {r}</span>'
+                for r in reasons
+            )
+            st.markdown(f'<div style="margin-bottom:12px;">{reason_html}</div>', unsafe_allow_html=True)
+
+            # Key insights from structured summary
+            col_a, col_b = st.columns(2)
+            if struct.get("planning_issues"):
+                with col_a:
+                    st.markdown("**Key Planning Issues in This Case**")
+                    for iss in struct["planning_issues"][:4]:
+                        st.markdown(f"- {iss}")
+            if struct.get("candidate_recommendations"):
+                with col_b:
+                    st.markdown("**Recommendations That Worked**")
+                    for rec in struct["candidate_recommendations"][:4]:
+                        st.markdown(f"- {rec}")
+
+            # Outcome
+            outcome = meta.get("outcome", "")
+            if outcome:
+                st.markdown(f"""
+<div style="background:#0d1117;border-left:3px solid #3fb950;padding:10px 14px;border-radius:0 6px 6px 0;
+  font-size:13px;color:#c9d1d9;margin-top:10px;">
+  <strong style="color:#3fb950;">Case Outcome:</strong> {outcome}
+</div>""", unsafe_allow_html=True)
+
+            # Follow-up questions from this case
+            if struct.get("follow_up_questions"):
+                with st.expander("💬 Follow-up questions adapted from this case", expanded=False):
+                    for q in struct["follow_up_questions"][:4]:
+                        st.markdown(f"- {q}")
+
+            # Raw excerpt
+            raw = case.get("raw_excerpt", "")
+            if raw:
+                with st.expander("📄 Case Narrative Excerpt", expanded=False):
+                    st.markdown(f"""
+<div style="font-size:12px;color:#8b949e;background:#161b22;padding:12px;border-radius:6px;
+  line-height:1.7;white-space:pre-wrap;">{raw[:600]}…</div>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -449,9 +742,24 @@ def _tab_recommendation_report() -> None:
     quant    = st.session_state.fp_quant_checks
     scenarios= st.session_state.fp_scenarios
 
-    if st.button("🤖 Generate Planning Report (LLM)", key="fp_gen_report", type="primary", use_container_width=True):
-        with st.spinner("Retrieving relevant sources and generating report…"):
-            # Build a combined query from top issues
+    similar_cases = st.session_state.get("fp_similar_cases") or []
+
+    st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:#8b949e;">
+  📊 <strong style="color:#c9d1d9;">{len(issues)} issues</strong> identified &nbsp;·&nbsp;
+  🏛️ <strong style="color:#c9d1d9;">{len(similar_cases)} similar cases</strong> {'loaded' if similar_cases else '— visit Case Insights tab to load'} &nbsp;·&nbsp;
+  📚 <strong style="color:#c9d1d9;">{retriever.store_count()} doc chunks</strong> in knowledge base
+</div>""", unsafe_allow_html=True)
+
+    st.markdown('<div class="fp-cta-btn">', unsafe_allow_html=True)
+    gen_clicked = st.button(
+        "🤖 Generate AI Planning Report", key="fp_gen_report",
+        type="primary", use_container_width=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if gen_clicked:
+        with st.spinner("Retrieving sources and generating report…"):
             query = f"Financial planning for {profile.name}, age {profile.age}: " + \
                     "; ".join(iss.title for iss in issues[:4])
             retrieved = retriever.retrieve(
@@ -463,9 +771,10 @@ def _tab_recommendation_report() -> None:
             report = rpt.generate_report(
                 profile, issues, quant, scenarios, retrieved, client,
                 model=st.session_state.fp_model,
+                similar_cases=similar_cases if st.session_state.get("fp_use_cases", True) else None,
             )
             st.session_state.fp_report = report
-        st.success("Report generated.")
+        st.success("✅ Report generated — see below.")
 
     report = st.session_state.get("fp_report")
     if not report:
@@ -579,25 +888,80 @@ def _tab_explainability() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_settings() -> None:
+    import fp_case_retriever as case_ret
     st.markdown("#### ⚙️ Settings")
 
-    st.markdown("##### Model & Retrieval")
+    # ── LLM & Retrieval ──────────────────────────────────────────────────
+    st.markdown('<div class="fp-section-header">LLM & Retrieval</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     model = c1.selectbox("LLM Model",
                           ["gpt-4o-mini","gpt-4o","gpt-4-turbo"],
                           index=["gpt-4o-mini","gpt-4o","gpt-4-turbo"].index(
                               st.session_state.get("fp_model","gpt-4o-mini")),
                           key="fp_set_model")
-    top_k = c2.number_input("Retrieval Top-k", value=st.session_state.get("fp_top_k",8),
+    top_k = c2.number_input("Doc Retrieval Top-k", value=st.session_state.get("fp_top_k",8),
                              min_value=1, max_value=20, key="fp_set_topk")
+    use_cases = c3.checkbox("Use case library in report", value=st.session_state.get("fp_use_cases", True),
+                             key="fp_set_use_cases",
+                             help="Include similar cases in LLM report prompt for analogical reasoning")
 
-    if st.button("Apply Settings", key="fp_apply_settings"):
-        st.session_state.fp_model = model
-        st.session_state.fp_top_k = top_k
+    if st.button("💾 Apply Settings", key="fp_apply_settings"):
+        st.session_state.fp_model     = model
+        st.session_state.fp_top_k     = top_k
+        st.session_state.fp_use_cases = use_cases
         st.success("Settings saved.")
 
+    # ── Case Library Management ───────────────────────────────────────────
     st.markdown("---")
-    st.markdown("##### Rule Configuration Reference")
+    st.markdown('<div class="fp-section-header">Built-in Case Library</div>', unsafe_allow_html=True)
+
+    index = case_ret.load_case_index()
+    is_emb = case_ret.is_indexed()
+    st.markdown(f"""
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+  <div class="fp-metric" style="flex:1;min-width:120px;">
+    <div style="font-size:24px;font-weight:700;color:#58a6ff;">{len(index)}</div>
+    <div style="font-size:11px;color:#8b949e;">Total Cases</div>
+  </div>
+  <div class="fp-metric" style="flex:1;min-width:120px;">
+    <div style="font-size:24px;font-weight:700;color:{'#3fb950' if is_emb else '#d29922'};">{'Yes' if is_emb else 'No'}</div>
+    <div style="font-size:11px;color:#8b949e;">Embeddings Cached</div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    col_re, col_cl = st.columns(2)
+    with col_re:
+        client = _get_openai_client()
+        if st.button("🔄 Re-index Case Library", key="fp_reindex_cases", disabled=(not client)):
+            case_ret.clear_case_store()
+            with st.spinner("Re-embedding all cases…"):
+                store = case_ret.build_case_embeddings(client)
+            if store.get("has_embeddings"):
+                st.success(f"Re-indexed {store['count']} cases.")
+            else:
+                st.error(f"Failed: {store.get('error','unknown')}")
+    with col_cl:
+        if st.button("🗑️ Clear Case Cache", key="fp_clear_case_cache"):
+            case_ret.clear_case_store()
+            st.session_state.fp_similar_cases = None
+            st.success("Case cache cleared.")
+
+    if index:
+        with st.expander("View all cases in library", expanded=False):
+            import pandas as pd
+            df = pd.DataFrame([{
+                "ID": m["case_id"],
+                "Title": m["title"],
+                "Type": m["household_type"],
+                "Stage": m["life_stage"],
+                "Topics": ", ".join(m["major_topics"][:3]),
+                "Source": m.get("source",""),
+            } for m in index])
+            st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # ── Rule Configuration Reference ─────────────────────────────────────
+    st.markdown("---")
+    st.markdown('<div class="fp-section-header">Rule Thresholds</div>', unsafe_allow_html=True)
     rules_path = os.path.join(os.path.dirname(__file__), "data", "rule_configs", "planning_rules.json")
     if os.path.exists(rules_path):
         with open(rules_path) as f:
@@ -607,12 +971,9 @@ def _tab_settings() -> None:
         st.warning("planning_rules.json not found.")
 
     st.markdown("---")
-    st.markdown("##### Disclaimer")
-    st.info(
-        "This application is built for educational purposes as part of an AI Finance course. "
-        "It does not constitute financial, legal, or investment advice. "
-        "All outputs should be reviewed by a licensed Certified Financial Planner (CFP), "
-        "CPA, or attorney before acting on any recommendation."
+    st.caption(
+        "⚠️ This application is built for educational purposes only. "
+        "All outputs should be reviewed by a licensed CFP, CPA, or attorney before any action."
     )
 
 
@@ -622,38 +983,41 @@ def _tab_settings() -> None:
 
 def show_financial_planner() -> None:
     _init_state()
+    _fp_inject_css()
 
-    col_back, _ = st.columns([1, 11])
+    col_back, col_title = st.columns([1, 11])
     with col_back:
         if st.button("← Back", key="back_fp"):
             st.session_state.current_view = "home"
             st.rerun()
-
-    st.markdown("""
-<div style="padding: 10px 0 10px 0;">
-  <h2 style="color:#e6edf3;">🧭 Financial Planning Assistant</h2>
-  <p style="color:#8b949e;">
-    A case-grounded planning tool: structured gap analysis, rule-based checks,
-    scenario projections, and LLM-narrated recommendations — all grounded in uploaded
-    reference documents. For educational use only.
-  </p>
+    with col_title:
+        d = st.session_state.get("fp_profile_dict")
+        name_str = f" — {d['name']}" if d else ""
+        st.markdown(f"""
+<div style="padding:6px 0 4px 0;">
+  <span style="font-size:22px;font-weight:700;color:#e6edf3;">🧭 Financial Planning Assistant{name_str}</span>
+  <span style="font-size:12px;color:#8b949e;margin-left:12px;">
+  Hybrid rules engine · Built-in case library · Scenario projections · LLM narrative
+  </span>
 </div>""", unsafe_allow_html=True)
 
     tabs = st.tabs([
         "📋 Client Input",
-        "📚 Case Library",
-        "📊 Planning Analysis",
-        "📄 Recommendation Report",
+        "📊 Analysis",
+        "🏛️ Case Insights",
+        "📄 Report",
+        "📚 Knowledge Base",
         "🔍 Explainability",
         "⚙️ Settings",
     ])
 
     with tabs[0]: _tab_client_input()
-    with tabs[1]: _tab_case_library()
-    with tabs[2]: _tab_planning_analysis()
+    with tabs[1]: _tab_planning_analysis()
+    with tabs[2]: _tab_case_insights()
     with tabs[3]: _tab_recommendation_report()
-    with tabs[4]: _tab_explainability()
-    with tabs[5]: _tab_settings()
+    with tabs[4]: _tab_case_library()
+    with tabs[5]: _tab_explainability()
+    with tabs[6]: _tab_settings()
 
 
 # ── Markdown export helper ────────────────────────────────────────────────────

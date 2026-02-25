@@ -1,0 +1,83 @@
+{
+  "case_id": "case_07_small_business_owner",
+  "title": "Small Business Owner: Succession and Retirement Gap",
+  "year": 2024,
+  "client_profile": {
+    "name": "Carlos Hernandez",
+    "age": 48,
+    "location": "Phoenix, AZ",
+    "occupation": "HVAC business owner (14 employees)",
+    "marital_status": "Married",
+    "dependents": 3,
+    "household_type": "married_with_children",
+    "life_stage": "mid_career"
+  },
+  "financial_snapshot": {
+    "gross_income": 230000,
+    "net_monthly_income": 13800,
+    "monthly_expenses": 8200,
+    "monthly_surplus": 5600,
+    "total_assets": 640000,
+    "total_liabilities": 545000,
+    "net_worth": 95000,
+    "emergency_fund_months": 2.6,
+    "retirement_savings": 85000
+  },
+  "goals": [
+    "Build adequate retirement savings to retire at 55",
+    "Create a business succession plan",
+    "Protect business and personal assets with proper insurance",
+    "Reduce illiquid business concentration risk"
+  ],
+  "constraints": [
+    "50% of net worth in illiquid business equity",
+    "No qualified retirement plan for 12-year-old business",
+    "Business partner without buy-sell agreement",
+    "Family expenses consuming most surplus"
+  ],
+  "key_risks": [
+    "No buy-sell agreement — partner's death creates unworkable partnership with heirs",
+    "Key-man insurance lapsed — business credit line at risk",
+    "60% of net worth in illiquid single business",
+    "No disability insurance — income fully exposed"
+  ],
+  "planning_issues": [
+    {
+      "category": "RETIREMENT",
+      "severity": "CRITICAL",
+      "description": "$85K in IRA after 12 years of $230K income; Solo 401k can shelter $50,000+/year but was never established"
+    },
+    {
+      "category": "INSURANCE",
+      "severity": "CRITICAL",
+      "description": "No buy-sell agreement; key-man insurance expired 2 years ago; no owner disability insurance"
+    },
+    {
+      "category": "INVESTMENT",
+      "severity": "HIGH",
+      "description": "$310,000 business equity (50% stake) is 60% of net worth — illiquid, undiversified, single industry"
+    },
+    {
+      "category": "ESTATE",
+      "severity": "HIGH",
+      "description": "No succession plan — $620,000 business value at risk without transition planning"
+    }
+  ],
+  "key_recommendations": [
+    "Establish Solo 401k immediately; target $50,000/year contributions",
+    "Draft buy-sell agreement within 90 days — cross-purchase, life insurance funded",
+    "Reinstate key-man life insurance on both partners ($300-500K each)",
+    "Add disability buyout insurance for both partners",
+    "Engage M&A advisor for 5-year succession planning (target retirement at 55)"
+  ],
+  "follow_up_questions": [
+    "Business succession preference: third-party sale, family succession, or partner buyout?",
+    "Has the business been formally valued by a certified business appraiser?",
+    "Does James (partner) have a conflicting succession timeline?",
+    "Is key-man insurance a covenant requirement on the business credit line?"
+  ],
+  "outcome_summary": "Solo 401k established with $47,000 contributed year one. Buy-sell agreement signed and funded with $500K life policies on each partner. Key-man insurance reinstated.",
+  "key_lesson": "Small business owners systematically underfund personal retirement while over-concentrating in illiquid business equity. Solo 401k plus buy-sell agreement with life insurance is the minimum viable risk mitigation framework.",
+  "major_topics": ["retirement", "insurance", "investing", "estate"],
+  "similarity_tags": ["business_owner", "self_employed", "married", "mid_career", "buy_sell", "succession", "illiquid_concentration"]
+}
