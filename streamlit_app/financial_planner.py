@@ -204,8 +204,10 @@ def _tab_client_input() -> None:
         c1, c2, c3, c4 = st.columns(4)
         name     = c1.text_input("Full Name / Label",   value=d.get("name","Client"))
         age      = c2.number_input("Age",               value=int(d.get("age",35)),   min_value=18, max_value=90)
-        status   = c3.selectbox("Marital Status",       ["single","married","divorced","widowed"],
-                                 index=["single","married","divorced","widowed"].index(d.get("marital_status","single")))
+        _status_opts = ["single","married","divorced","widowed"]
+        _cur_status  = d.get("marital_status", "single")
+        status   = c3.selectbox("Marital Status", _status_opts,
+                                 index=_status_opts.index(_cur_status) if _cur_status in _status_opts else 0)
         deps     = c4.number_input("Dependents",        value=int(d.get("dependents",0)), min_value=0, max_value=20)
 
         c5, c6, c7 = st.columns(3)
@@ -275,8 +277,10 @@ def _tab_client_input() -> None:
         ret_age      = r_cols[2].number_input("Target Retirement Age",      value=int(ret.get("target_retirement_age",65)),    min_value=50,  max_value=80)
 
         st.markdown("##### Risk Tolerance & Situation")
-        risk  = st.selectbox("Risk Tolerance", ["conservative","moderate","aggressive"],
-                              index=["conservative","moderate","aggressive"].index(d.get("risk_tolerance","moderate")))
+        _risk_opts = ["conservative","moderate","aggressive"]
+        _cur_risk  = d.get("risk_tolerance", "moderate")
+        risk  = st.selectbox("Risk Tolerance", _risk_opts,
+                              index=_risk_opts.index(_cur_risk) if _cur_risk in _risk_opts else 1)
         situation = st.text_area("Situation Summary (free text)", value=d.get("situation_summary",""), height=90)
 
         submitted = st.form_submit_button("💾 Save Profile", use_container_width=True, type="primary")
