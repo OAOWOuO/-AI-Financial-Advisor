@@ -160,21 +160,22 @@ def _build_embed_text(meta: Dict, structured: Dict, raw: str) -> str:
         f"Household type: {meta.get('household_type', '')}",
         f"Life stage: {meta.get('life_stage', '')}",
         f"Topics: {', '.join(meta.get('major_topics', []))}",
-        f"Key issues: {'; '.join(meta.get('key_issues', []))}",
+        f"Key issues: {'; '.join(meta.get('key_issues', [])[:4])}",
     ]
     if structured:
         issues = structured.get("planning_issues", [])
         # Support both internal (candidate_recommendations) and external (key_recommendations) formats
         recs = structured.get("candidate_recommendations") or structured.get("key_recommendations", [])
         if issues:
-            issue_texts = [i if isinstance(i, str) else i.get("description", "") for i in issues[:6]]
+            issue_texts = [i if isinstance(i, str) else i.get("description", "") for i in issues[:4]]
             parts.append("Planning issues: " + "; ".join(issue_texts))
         if recs:
-            parts.append("Recommendations: " + "; ".join(recs[:5]))
-    # First 600 chars of raw narrative / text excerpt for semantic richness
+            parts.append("Recommendations: " + "; ".join(recs[:4]))
+    # First 400 chars of raw narrative / text excerpt for semantic richness
     if raw:
-        parts.append(raw[:600])
-    return "\n".join(parts)
+        parts.append(raw[:400])
+    # Cap total to ~2000 chars (~500 tokens) — well within the 8192-token embedding limit
+    return "\n".join(parts)[:2000]
 
 
 # ── Retrieval ─────────────────────────────────────────────────────────────────

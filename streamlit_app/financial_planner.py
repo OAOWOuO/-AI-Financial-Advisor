@@ -60,6 +60,7 @@ def _init_state() -> None:
         "fp_case_top_k":     3,
         "fp_case_mode":      "hybrid",
         "fp_use_cases":      True,
+        "fp_chat_history":   [],
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -70,12 +71,89 @@ def _init_state() -> None:
 
 def _fp_inject_css() -> None:
     st.markdown("""<style>
-/* ════ FP CTA buttons — prominent gradient ════ */
-.fp-cta-btn > div > button, .fp-cta-btn > button {
+
+/* ══════════════════════════════════════════════════
+   CTA BUTTONS — color-coded by action type
+══════════════════════════════════════════════════ */
+
+/* ── Amber/Gold → Run Analysis ── */
+.fp-cta-amber > div > button, .fp-cta-amber button {
+    background: linear-gradient(135deg, #92400e 0%, #d97706 40%, #fbbf24 100%) !important;
+    border: none !important;
+    color: #0d1117 !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.75rem 1.8rem !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 22px rgba(251,191,36,0.50), 0 4px 16px rgba(0,0,0,0.45) !important;
+    transition: all 0.22s ease !important;
+    width: 100% !important;
+}
+.fp-cta-amber > div > button:hover, .fp-cta-amber button:hover {
+    background: linear-gradient(135deg, #b45309 0%, #fbbf24 50%, #fcd34d 100%) !important;
+    box-shadow: 0 0 38px rgba(251,191,36,0.75), 0 6px 22px rgba(0,0,0,0.5) !important;
+    transform: translateY(-2px) !important;
+}
+.fp-cta-amber > div > button:active, .fp-cta-amber button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 0 14px rgba(251,191,36,0.35) !important;
+}
+
+/* ── Emerald/Green → Generate Report ── */
+.fp-cta-green > div > button, .fp-cta-green button {
+    background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #34d399 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.75rem 1.8rem !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 22px rgba(52,211,153,0.45), 0 4px 16px rgba(0,0,0,0.45) !important;
+    transition: all 0.22s ease !important;
+    width: 100% !important;
+}
+.fp-cta-green > div > button:hover, .fp-cta-green button:hover {
+    background: linear-gradient(135deg, #065f46 0%, #10b981 50%, #6ee7b7 100%) !important;
+    box-shadow: 0 0 38px rgba(52,211,153,0.70), 0 6px 22px rgba(0,0,0,0.5) !important;
+    transform: translateY(-2px) !important;
+}
+.fp-cta-green > div > button:active, .fp-cta-green button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 0 14px rgba(52,211,153,0.35) !important;
+}
+
+/* ── Purple/Violet → Find Cases ── */
+.fp-cta-purple > div > button, .fp-cta-purple button {
+    background: linear-gradient(135deg, #3b0764 0%, #7c3aed 50%, #a78bfa 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.75rem 1.8rem !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 22px rgba(124,58,237,0.50), 0 4px 16px rgba(0,0,0,0.45) !important;
+    transition: all 0.22s ease !important;
+    width: 100% !important;
+}
+.fp-cta-purple > div > button:hover, .fp-cta-purple button:hover {
+    background: linear-gradient(135deg, #4c1d95 0%, #8b5cf6 50%, #c4b5fd 100%) !important;
+    box-shadow: 0 0 38px rgba(124,58,237,0.72), 0 6px 22px rgba(0,0,0,0.5) !important;
+    transform: translateY(-2px) !important;
+}
+.fp-cta-purple > div > button:active, .fp-cta-purple button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 0 14px rgba(124,58,237,0.35) !important;
+}
+
+/* ── Blue (default / secondary) ── */
+.fp-cta-btn > div > button, .fp-cta-btn button {
     background: linear-gradient(135deg, #1a3a5c 0%, #1f6feb 100%) !important;
     border: 1px solid #388bfd !important;
     color: #ffffff !important;
-    font-size: 15px !important;
+    font-size: 14px !important;
     font-weight: 700 !important;
     letter-spacing: 0.4px !important;
     padding: 0.6rem 1.5rem !important;
@@ -83,16 +161,44 @@ def _fp_inject_css() -> None:
     box-shadow: 0 0 16px rgba(31,111,235,0.35) !important;
     transition: all 0.22s ease !important;
 }
-.fp-cta-btn > div > button:hover, .fp-cta-btn > button:hover {
+.fp-cta-btn > div > button:hover, .fp-cta-btn button:hover {
     background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%) !important;
     box-shadow: 0 0 28px rgba(56,139,253,0.55) !important;
     transform: translateY(-2px) !important;
 }
-.fp-cta-btn > div > button:active, .fp-cta-btn > button:active {
-    transform: translateY(0px) !important;
-    box-shadow: 0 0 10px rgba(31,111,235,0.25) !important;
+
+/* ══════════════════════════════════════════════════
+   WORKFLOW PROGRESS STEPS
+══════════════════════════════════════════════════ */
+.fp-workflow-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    align-items: center;
 }
-/* ════ Section headers with left accent ════ */
+.fp-step-done {
+    flex: 1;
+    background: #0d2a1a;
+    border: 1px solid #3fb950;
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    min-width: 72px;
+}
+.fp-step-pending {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    min-width: 72px;
+}
+.fp-step-arrow { color: #30363d; font-size: 16px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════
+   SECTION HEADERS & CARDS
+══════════════════════════════════════════════════ */
 .fp-section-header {
     border-left: 3px solid #388bfd;
     padding-left: 10px;
@@ -102,7 +208,6 @@ def _fp_inject_css() -> None:
     color: #e6edf3;
     letter-spacing: 0.2px;
 }
-/* ════ Status / severity badge ════ */
 .fp-badge {
     display: inline-block;
     border-radius: 4px;
@@ -112,7 +217,6 @@ def _fp_inject_css() -> None:
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
-/* ════ Issue row card ════ */
 .fp-issue-row {
     background: #0d1117;
     border: 1px solid #30363d;
@@ -123,7 +227,6 @@ def _fp_inject_css() -> None:
     align-items: flex-start;
     gap: 10px;
 }
-/* ════ Case insight card ════ */
 .fp-case-card {
     background: #0d1117;
     border: 1px solid #30363d;
@@ -133,7 +236,6 @@ def _fp_inject_css() -> None:
     transition: border-color 0.2s ease;
 }
 .fp-case-card:hover { border-color: #58a6ff; }
-/* ════ Metric card ════ */
 .fp-metric {
     background: #0d1117;
     border: 1px solid #30363d;
@@ -141,10 +243,35 @@ def _fp_inject_css() -> None:
     padding: 12px 14px;
     text-align: center;
 }
-/* ════ Tab container spacing ════ */
+
+/* ══════════════════════════════════════════════════
+   TAB STYLING
+══════════════════════════════════════════════════ */
 [data-testid="stTabs"] [data-testid="stTab"] {
     font-size: 13px !important;
+    font-weight: 600 !important;
 }
+[data-testid="stTabs"] [aria-selected="true"] {
+    border-bottom: 2px solid #58a6ff !important;
+}
+
+/* ══════════════════════════════════════════════════
+   CHAT INTERFACE
+══════════════════════════════════════════════════ */
+.fp-chat-container {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
+}
+[data-testid="stChatMessage"] {
+    background: #161b22 !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px !important;
+    border: 1px solid #21262d !important;
+}
+
 </style>""", unsafe_allow_html=True)
 
 
@@ -441,7 +568,7 @@ def _tab_planning_analysis() -> None:
 </div>""".format(profile.name, profile.age, profile.marital_status.capitalize(),
                  profile.total_annual_income()), unsafe_allow_html=True)
 
-    st.markdown('<div class="fp-cta-btn">', unsafe_allow_html=True)
+    st.markdown('<div class="fp-cta-amber">', unsafe_allow_html=True)
     run_clicked = st.button(
         "⚡ Run Full Planning Analysis", key="fp_run_analysis",
         type="primary", use_container_width=True
@@ -608,7 +735,7 @@ def _tab_case_insights() -> None:
         mode = "structured"
 
     with c1:
-        st.markdown('<div class="fp-cta-btn">', unsafe_allow_html=True)
+        st.markdown('<div class="fp-cta-purple">', unsafe_allow_html=True)
         find_clicked = st.button("🔍 Find Similar Cases", key="fp_find_cases",
                                   type="primary", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -618,7 +745,7 @@ def _tab_case_insights() -> None:
             if client and not is_emb and mode == "hybrid":
                 store = case_ret.build_case_embeddings(client)
                 if store.get("error"):
-                    st.warning(f"Embedding note: {store['error']}. Using structured matching.")
+                    # Silently fall back — structured matching still returns good results
                     mode = "structured"
             similar = case_ret.retrieve_similar_cases(
                 profile, issues or [], client or type("_", (), {"embeddings": None})(),
@@ -798,7 +925,7 @@ def _tab_recommendation_report() -> None:
   📚 <strong style="color:#c9d1d9;">{retriever.store_count()} doc chunks</strong> in knowledge base
 </div>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="fp-cta-btn">', unsafe_allow_html=True)
+    st.markdown('<div class="fp-cta-green">', unsafe_allow_html=True)
     gen_clicked = st.button(
         "🤖 Generate AI Planning Report", key="fp_gen_report",
         type="primary", use_container_width=True
@@ -885,6 +1012,92 @@ def _tab_recommendation_report() -> None:
     st.download_button("⬇️ Download Report (Markdown)", data=report_md,
                        file_name=f"planning_report_{report.client_name.replace(' ','_')}.md",
                        mime="text/markdown", key="fp_dl_report")
+
+    # ── AI Chat — ask questions about the plan ───────────────────────────────
+    st.markdown("---")
+    st.markdown("### 💬 Ask About Your Plan")
+    st.caption(
+        "Chat with AI about any part of this financial plan — dive deeper into "
+        "recommendations, trade-offs, timelines, or alternative strategies."
+    )
+
+    if not client:
+        st.info("Add your **OPENAI_API_KEY** to enable the chat assistant.")
+        return
+
+    # Build concise plan context (sent as system message)
+    _ctx_lines = [
+        f"CLIENT: {report.client_name} | {report.client_snapshot}",
+        f"\nEXECUTIVE SUMMARY:\n{report.executive_summary or 'N/A'}",
+        "\nKEY PLANNING ISSUES:",
+    ]
+    for _iss in (st.session_state.get("fp_issues") or [])[:6]:
+        if _iss.severity != "INFO":
+            _ctx_lines.append(f"  [{_iss.severity}] {_iss.category}: {_iss.title}")
+    _ctx_lines.append("\nPRIORITIZED RECOMMENDATIONS:")
+    for _rec in sorted(report.recommendations, key=lambda r: r.priority)[:6]:
+        _ctx_lines.append(f"  P{_rec.priority} ({_rec.timeline}): {_rec.action}")
+        _ctx_lines.append(f"    Why: {_rec.reason}")
+    if report.case_reasoning:
+        _ctx_lines.append(f"\nCASE REASONING:\n{report.case_reasoning[:500]}")
+    _plan_context = "\n".join(_ctx_lines)
+
+    _sys_msg = (
+        "You are a knowledgeable financial planning assistant (CFP-level) helping a planner "
+        "understand a client's financial plan. Be concise, specific, and cite plan details. "
+        "Do not give generic advice — always refer to the specific client situation below.\n\n"
+        f"PLAN CONTEXT:\n{_plan_context}"
+    )
+
+    # Render existing chat history
+    for _msg in st.session_state.fp_chat_history:
+        with st.chat_message(_msg["role"]):
+            st.markdown(_msg["content"])
+
+    # Chat input
+    _user_prompt = st.chat_input(
+        "Ask a question about this plan… e.g. 'Why should I prioritize the emergency fund first?'",
+        key="fp_chat_input"
+    )
+    if _user_prompt:
+        st.session_state.fp_chat_history.append({"role": "user", "content": _user_prompt})
+        with st.chat_message("user"):
+            st.markdown(_user_prompt)
+
+        _messages = [{"role": "system", "content": _sys_msg}]
+        _messages += [
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.fp_chat_history[:-1]
+        ]
+        _messages.append({"role": "user", "content": _user_prompt})
+
+        with st.chat_message("assistant"):
+            try:
+                def _chat_stream():
+                    for _chunk in client.chat.completions.create(
+                        model=st.session_state.get("fp_model", "gpt-4o-mini"),
+                        messages=_messages,
+                        max_tokens=700,
+                        stream=True,
+                    ):
+                        if _chunk.choices[0].delta.content:
+                            yield _chunk.choices[0].delta.content
+
+                _answer = st.write_stream(_chat_stream)
+                st.session_state.fp_chat_history.append(
+                    {"role": "assistant", "content": _answer}
+                )
+            except Exception as _e:
+                _err = f"Chat error: {_e}"
+                st.error(_err)
+                st.session_state.fp_chat_history.append(
+                    {"role": "assistant", "content": _err}
+                )
+
+    if st.session_state.fp_chat_history:
+        if st.button("🗑️ Clear chat history", key="fp_clear_chat"):
+            st.session_state.fp_chat_history = []
+            st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1087,6 +1300,30 @@ def show_financial_planner() -> None:
   Hybrid rules engine · Built-in case library · Scenario projections · LLM narrative
   </span>
 </div>""", unsafe_allow_html=True)
+
+    # ── Workflow progress bar ──────────────────────────────────────────────
+    _has_profile  = bool(st.session_state.get("fp_profile_dict"))
+    _has_analysis = bool(st.session_state.get("fp_issues"))
+    _has_cases    = bool(st.session_state.get("fp_similar_cases"))
+    _has_report   = bool(st.session_state.get("fp_report"))
+    def _step(icon, label, done):
+        cls = "fp-step-done" if done else "fp-step-pending"
+        mark = "✓" if done else "○"
+        tc   = "#3fb950" if done else "#6e7681"
+        return (f'<div class="{cls}">'
+                f'<div style="font-size:17px;">{icon}</div>'
+                f'<div style="font-size:10px;color:{tc};font-weight:700;margin-top:2px;">'
+                f'{mark} {label}</div></div>')
+    _arrow = '<div class="fp-step-arrow">→</div>'
+    st.markdown(
+        f'<div class="fp-workflow-bar">'
+        f'{_step("📋","Profile",_has_profile)}{_arrow}'
+        f'{_step("📊","Analysis",_has_analysis)}{_arrow}'
+        f'{_step("🏛️","Cases",_has_cases)}{_arrow}'
+        f'{_step("📄","Report",_has_report)}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
     tabs = st.tabs([
         "📋 Client Input",
