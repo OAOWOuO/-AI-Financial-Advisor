@@ -73,97 +73,91 @@ def _fp_inject_css() -> None:
     st.markdown("""<style>
 
 /* ══════════════════════════════════════════════════
-   CTA BUTTONS — color-coded by action type
+   CTA BUTTONS
+   NOTE: st.markdown() div-wrappers DON'T nest around
+   st.button() in Streamlit's DOM — they are siblings.
+   We target buttons directly via data-testid and via
+   adjacent-sibling selectors on marker spans.
 ══════════════════════════════════════════════════ */
 
-/* ── Amber/Gold → Run Analysis ── */
-.fp-cta-amber > div > button, .fp-cta-amber button {
-    background: linear-gradient(135deg, #92400e 0%, #d97706 40%, #fbbf24 100%) !important;
-    border: none !important;
-    color: #0d1117 !important;
-    font-size: 15px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.5px !important;
-    padding: 0.75rem 1.8rem !important;
-    border-radius: 10px !important;
-    box-shadow: 0 0 22px rgba(251,191,36,0.50), 0 4px 16px rgba(0,0,0,0.45) !important;
-    transition: all 0.22s ease !important;
-    width: 100% !important;
-}
-.fp-cta-amber > div > button:hover, .fp-cta-amber button:hover {
-    background: linear-gradient(135deg, #b45309 0%, #fbbf24 50%, #fcd34d 100%) !important;
-    box-shadow: 0 0 38px rgba(251,191,36,0.75), 0 6px 22px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
-.fp-cta-amber > div > button:active, .fp-cta-amber button:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 0 14px rgba(251,191,36,0.35) !important;
-}
-
-/* ── Emerald/Green → Generate Report ── */
-.fp-cta-green > div > button, .fp-cta-green button {
-    background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #34d399 100%) !important;
-    border: none !important;
+/* ── 1. GLOBAL: make ALL primary buttons vivid (guaranteed) ── */
+button[data-testid="baseButton-primary"],
+[data-testid="stButton"] > button[kind="primary"],
+div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%) !important;
     color: #ffffff !important;
     font-size: 15px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.5px !important;
-    padding: 0.75rem 1.8rem !important;
-    border-radius: 10px !important;
-    box-shadow: 0 0 22px rgba(52,211,153,0.45), 0 4px 16px rgba(0,0,0,0.45) !important;
-    transition: all 0.22s ease !important;
-    width: 100% !important;
-}
-.fp-cta-green > div > button:hover, .fp-cta-green button:hover {
-    background: linear-gradient(135deg, #065f46 0%, #10b981 50%, #6ee7b7 100%) !important;
-    box-shadow: 0 0 38px rgba(52,211,153,0.70), 0 6px 22px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
-.fp-cta-green > div > button:active, .fp-cta-green button:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 0 14px rgba(52,211,153,0.35) !important;
-}
-
-/* ── Purple/Violet → Find Cases ── */
-.fp-cta-purple > div > button, .fp-cta-purple button {
-    background: linear-gradient(135deg, #3b0764 0%, #7c3aed 50%, #a78bfa 100%) !important;
-    border: none !important;
-    color: #ffffff !important;
-    font-size: 15px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.5px !important;
-    padding: 0.75rem 1.8rem !important;
-    border-radius: 10px !important;
-    box-shadow: 0 0 22px rgba(124,58,237,0.50), 0 4px 16px rgba(0,0,0,0.45) !important;
-    transition: all 0.22s ease !important;
-    width: 100% !important;
-}
-.fp-cta-purple > div > button:hover, .fp-cta-purple button:hover {
-    background: linear-gradient(135deg, #4c1d95 0%, #8b5cf6 50%, #c4b5fd 100%) !important;
-    box-shadow: 0 0 38px rgba(124,58,237,0.72), 0 6px 22px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
-.fp-cta-purple > div > button:active, .fp-cta-purple button:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 0 14px rgba(124,58,237,0.35) !important;
-}
-
-/* ── Blue (default / secondary) ── */
-.fp-cta-btn > div > button, .fp-cta-btn button {
-    background: linear-gradient(135deg, #1a3a5c 0%, #1f6feb 100%) !important;
-    border: 1px solid #388bfd !important;
-    color: #ffffff !important;
-    font-size: 14px !important;
     font-weight: 700 !important;
     letter-spacing: 0.4px !important;
-    padding: 0.6rem 1.5rem !important;
-    border-radius: 8px !important;
-    box-shadow: 0 0 16px rgba(31,111,235,0.35) !important;
+    padding: 0.70rem 1.6rem !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #3b82f6 !important;
+    box-shadow: 0 0 18px rgba(59,130,246,0.60), 0 4px 14px rgba(0,0,0,0.45) !important;
     transition: all 0.22s ease !important;
+    width: 100% !important;
 }
-.fp-cta-btn > div > button:hover, .fp-cta-btn button:hover {
-    background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%) !important;
-    box-shadow: 0 0 28px rgba(56,139,253,0.55) !important;
+button[data-testid="baseButton-primary"]:hover,
+[data-testid="stButton"] > button[kind="primary"]:hover,
+div.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%) !important;
+    box-shadow: 0 0 32px rgba(59,130,246,0.85), 0 6px 20px rgba(0,0,0,0.5) !important;
+    transform: translateY(-2px) !important;
+}
+button[data-testid="baseButton-primary"]:active,
+div.stButton > button[kind="primary"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 0 12px rgba(59,130,246,0.35) !important;
+}
+
+/* ── 2. AMBER marker → Run Analysis button (adjacent sibling) ── */
+[data-testid="stMarkdown"]:has(.fp-pre-amber) + [data-testid="stButton"] button,
+.stMarkdown:has(.fp-pre-amber) + .stButton button,
+[data-testid="stMarkdown"]:has(.fp-pre-amber) + [data-testid="stButton"] button[data-testid="baseButton-primary"],
+.element-container:has(.fp-pre-amber) + .element-container button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #92400e 0%, #d97706 45%, #fbbf24 100%) !important;
+    color: #0d1117 !important;
+    border: none !important;
+    box-shadow: 0 0 22px rgba(251,191,36,0.60), 0 4px 16px rgba(0,0,0,0.45) !important;
+}
+[data-testid="stMarkdown"]:has(.fp-pre-amber) + [data-testid="stButton"] button:hover,
+.stMarkdown:has(.fp-pre-amber) + .stButton button:hover {
+    background: linear-gradient(135deg, #b45309 0%, #fbbf24 55%, #fde68a 100%) !important;
+    color: #0d1117 !important;
+    box-shadow: 0 0 40px rgba(251,191,36,0.85), 0 6px 22px rgba(0,0,0,0.5) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ── 3. GREEN marker → Generate Report button ── */
+[data-testid="stMarkdown"]:has(.fp-pre-green) + [data-testid="stButton"] button,
+.stMarkdown:has(.fp-pre-green) + .stButton button,
+[data-testid="stMarkdown"]:has(.fp-pre-green) + [data-testid="stButton"] button[data-testid="baseButton-primary"],
+.element-container:has(.fp-pre-green) + .element-container button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #34d399 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 0 22px rgba(52,211,153,0.55), 0 4px 16px rgba(0,0,0,0.45) !important;
+}
+[data-testid="stMarkdown"]:has(.fp-pre-green) + [data-testid="stButton"] button:hover,
+.stMarkdown:has(.fp-pre-green) + .stButton button:hover {
+    background: linear-gradient(135deg, #065f46 0%, #10b981 55%, #6ee7b7 100%) !important;
+    box-shadow: 0 0 40px rgba(52,211,153,0.80), 0 6px 22px rgba(0,0,0,0.5) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ── 4. PURPLE marker → Find Similar Cases button ── */
+[data-testid="stMarkdown"]:has(.fp-pre-purple) + [data-testid="stButton"] button,
+.stMarkdown:has(.fp-pre-purple) + .stButton button,
+[data-testid="stMarkdown"]:has(.fp-pre-purple) + [data-testid="stButton"] button[data-testid="baseButton-primary"],
+.element-container:has(.fp-pre-purple) + .element-container button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #3b0764 0%, #7c3aed 50%, #a78bfa 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 0 22px rgba(124,58,237,0.55), 0 4px 16px rgba(0,0,0,0.45) !important;
+}
+[data-testid="stMarkdown"]:has(.fp-pre-purple) + [data-testid="stButton"] button:hover,
+.stMarkdown:has(.fp-pre-purple) + .stButton button:hover {
+    background: linear-gradient(135deg, #4c1d95 0%, #8b5cf6 55%, #c4b5fd 100%) !important;
+    box-shadow: 0 0 40px rgba(124,58,237,0.80), 0 6px 22px rgba(0,0,0,0.5) !important;
     transform: translateY(-2px) !important;
 }
 
@@ -568,12 +562,11 @@ def _tab_planning_analysis() -> None:
 </div>""".format(profile.name, profile.age, profile.marital_status.capitalize(),
                  profile.total_annual_income()), unsafe_allow_html=True)
 
-    st.markdown('<div class="fp-cta-amber">', unsafe_allow_html=True)
+    st.markdown('<span class="fp-pre-amber"></span>', unsafe_allow_html=True)
     run_clicked = st.button(
         "⚡ Run Full Planning Analysis", key="fp_run_analysis",
         type="primary", use_container_width=True
     )
-    st.markdown('</div>', unsafe_allow_html=True)
 
     if run_clicked:
         with st.spinner("Running rules engine and scenario projections…"):
@@ -735,10 +728,9 @@ def _tab_case_insights() -> None:
         mode = "structured"
 
     with c1:
-        st.markdown('<div class="fp-cta-purple">', unsafe_allow_html=True)
+        st.markdown('<span class="fp-pre-purple"></span>', unsafe_allow_html=True)
         find_clicked = st.button("🔍 Find Similar Cases", key="fp_find_cases",
                                   type="primary", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     if find_clicked:
         with st.spinner(f"Indexing case library and retrieving top {top_k} matches…"):
@@ -925,12 +917,11 @@ def _tab_recommendation_report() -> None:
   📚 <strong style="color:#c9d1d9;">{retriever.store_count()} doc chunks</strong> in knowledge base
 </div>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="fp-cta-green">', unsafe_allow_html=True)
+    st.markdown('<span class="fp-pre-green"></span>', unsafe_allow_html=True)
     gen_clicked = st.button(
         "🤖 Generate AI Planning Report", key="fp_gen_report",
         type="primary", use_container_width=True
     )
-    st.markdown('</div>', unsafe_allow_html=True)
 
     if gen_clicked:
         with st.spinner("Retrieving sources and generating report…"):
