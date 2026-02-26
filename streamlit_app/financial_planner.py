@@ -72,94 +72,9 @@ def _init_state() -> None:
 def _fp_inject_css() -> None:
     st.markdown("""<style>
 
-/* ══════════════════════════════════════════════════
-   CTA BUTTONS
-   NOTE: st.markdown() div-wrappers DON'T nest around
-   st.button() in Streamlit's DOM — they are siblings.
-   We target buttons directly via data-testid and via
-   adjacent-sibling selectors on marker spans.
-══════════════════════════════════════════════════ */
-
-/* ── 1. GLOBAL: make ALL primary buttons vivid (guaranteed) ── */
-button[data-testid="baseButton-primary"],
-[data-testid="stButton"] > button[kind="primary"],
-div.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%) !important;
-    color: #ffffff !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.4px !important;
-    padding: 0.70rem 1.6rem !important;
-    border-radius: 10px !important;
-    border: 1.5px solid #3b82f6 !important;
-    box-shadow: 0 0 18px rgba(59,130,246,0.60), 0 4px 14px rgba(0,0,0,0.45) !important;
-    transition: all 0.22s ease !important;
-    width: 100% !important;
-}
-button[data-testid="baseButton-primary"]:hover,
-[data-testid="stButton"] > button[kind="primary"]:hover,
-div.stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%) !important;
-    box-shadow: 0 0 32px rgba(59,130,246,0.85), 0 6px 20px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
-button[data-testid="baseButton-primary"]:active,
-div.stButton > button[kind="primary"]:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 0 12px rgba(59,130,246,0.35) !important;
-}
-
-/* ── 2. AMBER marker → Run Analysis button (adjacent sibling) ── */
-[data-testid="stMarkdown"]:has(.fp-pre-amber) + [data-testid="stButton"] button,
-.stMarkdown:has(.fp-pre-amber) + .stButton button,
-[data-testid="stMarkdown"]:has(.fp-pre-amber) + [data-testid="stButton"] button[data-testid="baseButton-primary"],
-.element-container:has(.fp-pre-amber) + .element-container button[data-testid="baseButton-primary"] {
-    background: linear-gradient(135deg, #92400e 0%, #d97706 45%, #fbbf24 100%) !important;
-    color: #0d1117 !important;
-    border: none !important;
-    box-shadow: 0 0 22px rgba(251,191,36,0.60), 0 4px 16px rgba(0,0,0,0.45) !important;
-}
-[data-testid="stMarkdown"]:has(.fp-pre-amber) + [data-testid="stButton"] button:hover,
-.stMarkdown:has(.fp-pre-amber) + .stButton button:hover {
-    background: linear-gradient(135deg, #b45309 0%, #fbbf24 55%, #fde68a 100%) !important;
-    color: #0d1117 !important;
-    box-shadow: 0 0 40px rgba(251,191,36,0.85), 0 6px 22px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ── 3. GREEN marker → Generate Report button ── */
-[data-testid="stMarkdown"]:has(.fp-pre-green) + [data-testid="stButton"] button,
-.stMarkdown:has(.fp-pre-green) + .stButton button,
-[data-testid="stMarkdown"]:has(.fp-pre-green) + [data-testid="stButton"] button[data-testid="baseButton-primary"],
-.element-container:has(.fp-pre-green) + .element-container button[data-testid="baseButton-primary"] {
-    background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #34d399 100%) !important;
-    color: #ffffff !important;
-    border: none !important;
-    box-shadow: 0 0 22px rgba(52,211,153,0.55), 0 4px 16px rgba(0,0,0,0.45) !important;
-}
-[data-testid="stMarkdown"]:has(.fp-pre-green) + [data-testid="stButton"] button:hover,
-.stMarkdown:has(.fp-pre-green) + .stButton button:hover {
-    background: linear-gradient(135deg, #065f46 0%, #10b981 55%, #6ee7b7 100%) !important;
-    box-shadow: 0 0 40px rgba(52,211,153,0.80), 0 6px 22px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ── 4. PURPLE marker → Find Similar Cases button ── */
-[data-testid="stMarkdown"]:has(.fp-pre-purple) + [data-testid="stButton"] button,
-.stMarkdown:has(.fp-pre-purple) + .stButton button,
-[data-testid="stMarkdown"]:has(.fp-pre-purple) + [data-testid="stButton"] button[data-testid="baseButton-primary"],
-.element-container:has(.fp-pre-purple) + .element-container button[data-testid="baseButton-primary"] {
-    background: linear-gradient(135deg, #3b0764 0%, #7c3aed 50%, #a78bfa 100%) !important;
-    color: #ffffff !important;
-    border: none !important;
-    box-shadow: 0 0 22px rgba(124,58,237,0.55), 0 4px 16px rgba(0,0,0,0.45) !important;
-}
-[data-testid="stMarkdown"]:has(.fp-pre-purple) + [data-testid="stButton"] button:hover,
-.stMarkdown:has(.fp-pre-purple) + .stButton button:hover {
-    background: linear-gradient(135deg, #4c1d95 0%, #8b5cf6 55%, #c4b5fd 100%) !important;
-    box-shadow: 0 0 40px rgba(124,58,237,0.80), 0 6px 22px rgba(0,0,0,0.5) !important;
-    transform: translateY(-2px) !important;
-}
+/* Button colours are applied via JavaScript injection (_inject_button_styles)
+   which uses inline styles — the only approach that reliably works across all
+   Streamlit versions regardless of emotion-cache specificity. */
 
 /* ══════════════════════════════════════════════════
    WORKFLOW PROGRESS STEPS
@@ -267,6 +182,122 @@ div.stButton > button[kind="primary"]:active {
 }
 
 </style>""", unsafe_allow_html=True)
+
+
+# ── JS button style injection ─────────────────────────────────────────────────
+
+def _inject_button_styles() -> None:
+    """
+    Apply vivid gradient styles directly to CTA buttons via JavaScript inline styles.
+    This is the only reliable method across all Streamlit versions — CSS selectors
+    cannot reach buttons through emotion-cache wrappers, but inline styles always win.
+    Runs in a 0-height iframe (same-origin) with MutationObserver so styles persist
+    after every Streamlit re-render.
+    """
+    import streamlit.components.v1 as _components
+    _components.html("""
+<script>
+(function () {
+  var BTNS = [
+    {
+      match: 'Run Full Planning',
+      bg:     'linear-gradient(135deg,#d97706 0%,#f59e0b 50%,#fde047 100%)',
+      color:  '#0d1117',
+      border: 'none',
+      shadow: '0 0 22px rgba(245,158,11,.65),0 4px 14px rgba(0,0,0,.45)',
+      hoverBg:'linear-gradient(135deg,#f59e0b 0%,#fde047 100%)',
+    },
+    {
+      match: 'Generate AI Planning',
+      bg:     'linear-gradient(135deg,#059669 0%,#10b981 50%,#34d399 100%)',
+      color:  '#ffffff',
+      border: 'none',
+      shadow: '0 0 22px rgba(16,185,129,.60),0 4px 14px rgba(0,0,0,.45)',
+      hoverBg:'linear-gradient(135deg,#10b981 0%,#6ee7b7 100%)',
+    },
+    {
+      match: 'Find Similar Cases',
+      bg:     'linear-gradient(135deg,#7c3aed 0%,#8b5cf6 50%,#a78bfa 100%)',
+      color:  '#ffffff',
+      border: 'none',
+      shadow: '0 0 22px rgba(124,58,237,.60),0 4px 14px rgba(0,0,0,.45)',
+      hoverBg:'linear-gradient(135deg,#8b5cf6 0%,#c4b5fd 100%)',
+    }
+  ];
+
+  var BASE = {
+    fontWeight: '800',
+    fontSize:   '15px',
+    borderRadius:'10px',
+    padding:    '0.70rem 1.5rem',
+    transition: 'all 0.22s ease',
+    width:      '100%',
+    cursor:     'pointer',
+    letterSpacing: '0.3px',
+  };
+
+  function applyStyle(btn, cfg) {
+    btn.style.setProperty('background',     cfg.bg,     'important');
+    btn.style.setProperty('color',          cfg.color,  'important');
+    btn.style.setProperty('border',         cfg.border, 'important');
+    btn.style.setProperty('box-shadow',     cfg.shadow, 'important');
+    btn.style.setProperty('font-weight',    BASE.fontWeight,   'important');
+    btn.style.setProperty('font-size',      BASE.fontSize,     'important');
+    btn.style.setProperty('border-radius',  BASE.borderRadius, 'important');
+    btn.style.setProperty('padding',        BASE.padding,      'important');
+    btn.style.setProperty('transition',     BASE.transition,   'important');
+    btn.style.setProperty('width',          BASE.width,        'important');
+    btn.style.setProperty('cursor',         BASE.cursor,       'important');
+    btn.style.setProperty('letter-spacing', BASE.letterSpacing,'important');
+    /* hover via events (inline :hover can't be set via style prop) */
+    if (!btn._fpBound) {
+      var origBg  = cfg.bg;
+      var origShadow = cfg.shadow;
+      btn.addEventListener('mouseenter', function() {
+        btn.style.setProperty('background',  cfg.hoverBg, 'important');
+        btn.style.setProperty('transform', 'translateY(-2px)', 'important');
+        btn.style.setProperty('box-shadow',
+          origShadow.replace(/\.6[05]/,'0.90'), 'important');
+      });
+      btn.addEventListener('mouseleave', function() {
+        btn.style.setProperty('background', origBg, 'important');
+        btn.style.setProperty('transform', '', 'important');
+        btn.style.setProperty('box-shadow', origShadow, 'important');
+      });
+      btn._fpBound = true;
+    }
+  }
+
+  function run() {
+    try {
+      var doc = window.parent.document;
+      var buttons = doc.querySelectorAll('button');
+      buttons.forEach(function(btn) {
+        var txt = (btn.innerText || btn.textContent || '').trim();
+        BTNS.forEach(function(cfg) {
+          if (txt.indexOf(cfg.match) !== -1) { applyStyle(btn, cfg); }
+        });
+      });
+    } catch(e) {}
+  }
+
+  /* run immediately, then after render delays */
+  run();
+  setTimeout(run, 150);
+  setTimeout(run, 600);
+  setTimeout(run, 1500);
+
+  /* persist through Streamlit re-renders via MutationObserver */
+  try {
+    var observer = new MutationObserver(function(mutations) {
+      var changed = mutations.some(function(m) { return m.addedNodes.length > 0; });
+      if (changed) { run(); }
+    });
+    observer.observe(window.parent.document.body, { childList: true, subtree: true });
+  } catch(e) {}
+})();
+</script>
+""", height=0)
 
 
 # ── Colour palette ────────────────────────────────────────────────────────────
@@ -562,7 +593,6 @@ def _tab_planning_analysis() -> None:
 </div>""".format(profile.name, profile.age, profile.marital_status.capitalize(),
                  profile.total_annual_income()), unsafe_allow_html=True)
 
-    st.markdown('<span class="fp-pre-amber"></span>', unsafe_allow_html=True)
     run_clicked = st.button(
         "⚡ Run Full Planning Analysis", key="fp_run_analysis",
         type="primary", use_container_width=True
@@ -728,7 +758,6 @@ def _tab_case_insights() -> None:
         mode = "structured"
 
     with c1:
-        st.markdown('<span class="fp-pre-purple"></span>', unsafe_allow_html=True)
         find_clicked = st.button("🔍 Find Similar Cases", key="fp_find_cases",
                                   type="primary", use_container_width=True)
 
@@ -917,7 +946,6 @@ def _tab_recommendation_report() -> None:
   📚 <strong style="color:#c9d1d9;">{retriever.store_count()} doc chunks</strong> in knowledge base
 </div>""", unsafe_allow_html=True)
 
-    st.markdown('<span class="fp-pre-green"></span>', unsafe_allow_html=True)
     gen_clicked = st.button(
         "🤖 Generate AI Planning Report", key="fp_gen_report",
         type="primary", use_container_width=True
@@ -1275,6 +1303,7 @@ def _tab_settings() -> None:
 def show_financial_planner() -> None:
     _init_state()
     _fp_inject_css()
+    _inject_button_styles()
 
     col_back, col_title = st.columns([1, 11])
     with col_back:
