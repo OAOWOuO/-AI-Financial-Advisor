@@ -918,7 +918,7 @@ def _tab_explainability() -> None:
     {f'&nbsp;·&nbsp; {pg_str}' if pg_str else ''}
     &nbsp;·&nbsp; Source: <em>FPA Financial Planning Competition</em>
   </div>
-  {f'<div style="font-size:12px;color:#8b949e;margin-top:4px;">Clients: {struct.get("client_profile", {{}}).get("name","")}</div>' if struct.get("client_profile") else ''}
+  {f'<div style="font-size:12px;color:#8b949e;margin-top:4px;">Clients: {(struct.get("client_profile") or dict()).get("name","")}</div>' if struct.get("client_profile") else ''}
 </div>""", unsafe_allow_html=True)
 
     if not report:
@@ -967,11 +967,10 @@ def _tab_settings() -> None:
     # ── LLM & Retrieval ──────────────────────────────────────────────────
     st.markdown('<div class="fp-section-header">LLM & Retrieval</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    model = c1.selectbox("LLM Model",
-                          ["gpt-4o-mini","gpt-4o","gpt-4-turbo"],
-                          index=["gpt-4o-mini","gpt-4o","gpt-4-turbo"].index(
-                              st.session_state.get("fp_model","gpt-4o-mini")),
-                          key="fp_set_model")
+    _model_opts = ["gpt-4o-mini","gpt-4o","gpt-4-turbo"]
+    _cur_model  = st.session_state.get("fp_model", "gpt-4o-mini")
+    _model_idx  = _model_opts.index(_cur_model) if _cur_model in _model_opts else 0
+    model = c1.selectbox("LLM Model", _model_opts, index=_model_idx, key="fp_set_model")
     top_k = c2.number_input("Doc Retrieval Top-k", value=st.session_state.get("fp_top_k",8),
                              min_value=1, max_value=20, key="fp_set_topk")
     use_cases = c3.checkbox("Use case library in report", value=st.session_state.get("fp_use_cases", True),
@@ -1034,12 +1033,12 @@ def _tab_settings() -> None:
         with st.expander("View all cases in library", expanded=False):
             import pandas as pd
             df = pd.DataFrame([{
-                "ID": m["case_id"],
-                "Title": m["title"],
-                "Type": m["household_type"],
-                "Stage": m["life_stage"],
-                "Topics": ", ".join(m["major_topics"][:3]),
-                "Source": m.get("source",""),
+                "ID": m.get("case_id", ""),
+                "Title": m.get("title", ""),
+                "Type": m.get("household_type", ""),
+                "Stage": m.get("life_stage", ""),
+                "Topics": ", ".join((m.get("major_topics") or [])[:3]),
+                "Source": m.get("source", ""),
             } for m in index])
             st.dataframe(df, use_container_width=True, hide_index=True)
 
