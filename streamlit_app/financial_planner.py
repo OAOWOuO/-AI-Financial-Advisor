@@ -548,10 +548,10 @@ def _tab_case_insights() -> None:
     from fp_schemas import ClientProfile
     import fp_case_retriever as case_ret
 
-    st.markdown("#### 🏛️ Case Insights — Similar Cases from Built-in Library")
+    st.markdown("#### 🏛️ Case Insights — Similar Cases from Case Library")
     st.caption(
-        "The system retrieves the most analogous financial planning cases from the built-in library "
-        "and explains why they match. These cases inform — but do not replace — the deterministic rules engine."
+        "Retrieves the most analogous financial planning cases from the built-in library and real FPA competition cases. "
+        "Explains why each case matches and cites the source (filename + pages for PDF cases)."
     )
 
     client = _get_openai_client()
@@ -566,12 +566,21 @@ def _tab_case_insights() -> None:
 
     # ── Library status badge ─────────────────────────────────────────────
     index = case_ret.load_case_index()
-    n_cases = len(index)
-    is_emb  = case_ret.is_indexed()
+    n_cases  = len(index)
+    src_cnts = case_ret.case_count_by_source()
+    n_int    = src_cnts.get("internal", src_cnts.get("", 0))
+    n_ext    = sum(v for k, v in src_cnts.items() if k not in ("internal", ""))
+    is_emb   = case_ret.is_indexed()
     st.markdown(f"""
 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
   <span style="background:#1f6feb22;border:1px solid #1f6feb;color:#58a6ff;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;">
-    📚 {n_cases} built-in cases
+    📚 {n_cases} total cases
+  </span>
+  <span style="background:#2d333b;color:#c9d1d9;border-radius:5px;padding:4px 12px;font-size:12px;">
+    🏠 {n_int} internal
+  </span>
+  <span style="background:#2d333b;color:#c9d1d9;border-radius:5px;padding:4px 12px;font-size:12px;">
+    📄 {n_ext} FPA PDFs
   </span>
   <span style="background:{'#3fb95022' if is_emb else '#30363d'};border:1px solid {'#3fb950' if is_emb else '#30363d'};
     color:{'#3fb950' if is_emb else '#6e7681'};border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;">
@@ -622,14 +631,22 @@ def _tab_case_insights() -> None:
         if index:
             st.markdown('<div class="fp-section-header">Case Library Overview</div>', unsafe_allow_html=True)
             import pandas as pd
-            df = pd.DataFrame([{
-                "Title": m["title"],
-                "Household": m["household_type"].replace("_", " ").title(),
-                "Life Stage": m["life_stage"].replace("_", " ").title(),
-                "Topics": ", ".join(m["major_topics"][:3]),
-                "Income Range": f"${m['income_range'][0]/1e3:.0f}K–${m['income_range'][1]/1e3:.0f}K",
-            } for m in index])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            rows = []
+            for m in index:
+                ir = m.get("income_range", [])
+                src_type = m.get("source_type", "internal")
+                src_badge = "📄 FPA PDF" if src_type == "external_fpa_pdf" else "🏠 Internal"
+                rows.append({
+                    "Source": src_badge,
+                    "Title": m["title"],
+                    "Year": m.get("year", ""),
+                    "Household": m.get("household_type", "").replace("_", " ").title(),
+                    "Life Stage": m.get("life_stage", "").replace("_", " ").title(),
+                    "Topics": ", ".join(m.get("major_topics", [])[:3]),
+                    "Income Range": (f"${ir[0]/1e3:.0f}K–${ir[1]/1e3:.0f}K"
+                                     if len(ir) == 2 and ir[0] and ir[1] else "—"),
+                })
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         return
 
     # ── Results ───────────────────────────────────────────────────────────
@@ -637,14 +654,19 @@ def _tab_case_insights() -> None:
                 unsafe_allow_html=True)
 
     for rank, case in enumerate(similar, 1):
-        meta   = case["metadata"]
-        struct = case.get("structured", {})
-        score  = case.get("score_pct", 0)
-        reasons = case.get("reasons", [])
+        meta     = case["metadata"]
+        struct   = case.get("structured", {})
+        score    = case.get("score_pct", 0)
+        reasons  = case.get("reasons", [])
+        src_type = case.get("source_type", meta.get("source_type", "internal"))
+        citation = case.get("citation", "Built-in case library")
+        is_fpa   = src_type == "external_fpa_pdf"
         score_color = "#3fb950" if score >= 70 else "#d29922" if score >= 45 else "#8b949e"
+        src_color   = "#a371f7" if is_fpa else "#58a6ff"
+        src_label   = "📄 FPA PDF" if is_fpa else "🏠 Internal"
 
         with st.expander(
-            f"#{rank} — {meta.get('title', case['case_id'])} · Match: {score:.0f}%",
+            f"#{rank} — {meta.get('title', case['case_id'])} · {score:.0f}% match",
             expanded=(rank == 1)
         ):
             # Header row
@@ -654,6 +676,10 @@ def _tab_case_insights() -> None:
     border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;">
     {score:.0f}% similarity
   </span>
+  <span style="background:{src_color}22;border:1px solid {src_color};color:{src_color};
+    border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;">
+    {src_label}
+  </span>
   <span style="background:#2d333b;color:#c9d1d9;border-radius:5px;padding:3px 10px;font-size:12px;">
     {meta.get('household_type','').replace('_',' ').title()}
   </span>
@@ -661,8 +687,11 @@ def _tab_case_insights() -> None:
     {meta.get('life_stage','').replace('_',' ').title()}
   </span>
   <span style="background:#2d333b;color:#8b949e;border-radius:5px;padding:3px 10px;font-size:12px;">
-    {meta.get('source','')}
+    {meta.get('year', '')}
   </span>
+</div>
+<div style="font-size:11px;color:#8b949e;margin-bottom:12px;">
+  📎 <strong>Citation:</strong> {citation}
 </div>""", unsafe_allow_html=True)
 
             # Why matched
@@ -678,39 +707,53 @@ def _tab_case_insights() -> None:
 
             # Key insights from structured summary
             col_a, col_b = st.columns(2)
-            if struct.get("planning_issues"):
+            p_issues = struct.get("planning_issues", [])
+            recs = struct.get("candidate_recommendations") or struct.get("key_recommendations", [])
+            if p_issues:
                 with col_a:
                     st.markdown("**Key Planning Issues in This Case**")
-                    for iss in struct["planning_issues"][:4]:
-                        st.markdown(f"- {iss}")
-            if struct.get("candidate_recommendations"):
+                    for iss in p_issues[:4]:
+                        txt = iss if isinstance(iss, str) else iss.get("description", str(iss))
+                        st.markdown(f"- {txt}")
+            if recs:
                 with col_b:
                     st.markdown("**Recommendations That Worked**")
-                    for rec in struct["candidate_recommendations"][:4]:
+                    for rec in recs[:4]:
                         st.markdown(f"- {rec}")
 
-            # Outcome
-            outcome = meta.get("outcome", "")
+            # Outcome / Key lesson
+            outcome = meta.get("outcome") or struct.get("outcome_summary", "")
+            lesson  = struct.get("key_lesson", "")
             if outcome:
                 st.markdown(f"""
 <div style="background:#0d1117;border-left:3px solid #3fb950;padding:10px 14px;border-radius:0 6px 6px 0;
   font-size:13px;color:#c9d1d9;margin-top:10px;">
-  <strong style="color:#3fb950;">Case Outcome:</strong> {outcome}
+  <strong style="color:#3fb950;">Outcome:</strong> {outcome}
+</div>""", unsafe_allow_html=True)
+            if lesson:
+                st.markdown(f"""
+<div style="background:#0d1117;border-left:3px solid #d29922;padding:10px 14px;border-radius:0 6px 6px 0;
+  font-size:13px;color:#c9d1d9;margin-top:6px;">
+  <strong style="color:#d29922;">Key Lesson:</strong> {lesson}
 </div>""", unsafe_allow_html=True)
 
             # Follow-up questions from this case
-            if struct.get("follow_up_questions"):
+            fup = struct.get("follow_up_questions", [])
+            if fup:
                 with st.expander("💬 Follow-up questions adapted from this case", expanded=False):
-                    for q in struct["follow_up_questions"][:4]:
+                    for q in fup[:4]:
                         st.markdown(f"- {q}")
 
-            # Raw excerpt
+            # Raw excerpt / narrative
             raw = case.get("raw_excerpt", "")
             if raw:
-                with st.expander("📄 Case Narrative Excerpt", expanded=False):
+                label = "📄 Case Narrative Excerpt" if not is_fpa else "📄 PDF Text Excerpt"
+                with st.expander(label, expanded=False):
                     st.markdown(f"""
 <div style="font-size:12px;color:#8b949e;background:#161b22;padding:12px;border-radius:6px;
-  line-height:1.7;white-space:pre-wrap;">{raw[:600]}…</div>""", unsafe_allow_html=True)
+  line-height:1.7;white-space:pre-wrap;">{raw[:700]}…</div>""", unsafe_allow_html=True)
+                    if is_fpa:
+                        st.caption(f"Source: {citation} — FPA Financial Planning Competition")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -846,14 +889,44 @@ def _tab_recommendation_report() -> None:
 
 def _tab_explainability() -> None:
     st.markdown("#### 🔍 Explainability — Source-Based Reasoning")
-    st.caption("Shows which documents were retrieved, why they were relevant, and how they informed the recommendations.")
+    st.caption("Shows which documents were retrieved, why they were relevant, and how they informed the recommendations. Includes citations for external PDF cases.")
 
     report = st.session_state.get("fp_report")
+    similar_cases = st.session_state.get("fp_similar_cases") or []
+
+    # ── Case Citations (external PDF cases) ───────────────────────────────
+    fpa_cases = [c for c in similar_cases if c.get("source_type") == "external_fpa_pdf"]
+    if fpa_cases:
+        st.markdown("##### 📎 External Case Citations (FPA PDFs)")
+        for c in fpa_cases:
+            meta = c["metadata"]
+            struct = c.get("structured", {})
+            citation = c.get("citation", "")
+            score_pct = c.get("score_pct", 0)
+            pages = c.get("source_pages", [])
+            pg_str = f"Pages {pages[0]}–{pages[-1]}" if len(pages) > 1 else (f"Page {pages[0]}" if pages else "")
+            st.markdown(f"""
+<div style="background:#0d1117;border:1px solid #a371f7;border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+    <span style="background:#a371f722;border:1px solid #a371f7;color:#a371f7;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">📄 FPA PDF</span>
+    <span style="background:#2d333b;color:#c9d1d9;border-radius:4px;padding:2px 8px;font-size:11px;">{meta.get('year','')}</span>
+    <span style="background:#2d333b;color:#8b949e;border-radius:4px;padding:2px 8px;font-size:11px;">{score_pct:.0f}% match</span>
+  </div>
+  <div style="font-size:14px;color:#e6edf3;font-weight:600;margin-bottom:4px;">{meta.get('title','')}</div>
+  <div style="font-size:12px;color:#8b949e;">
+    📁 <code style="color:#a371f7;">{citation}</code>
+    {f'&nbsp;·&nbsp; {pg_str}' if pg_str else ''}
+    &nbsp;·&nbsp; Source: <em>FPA Financial Planning Competition</em>
+  </div>
+  {f'<div style="font-size:12px;color:#8b949e;margin-top:4px;">Clients: {struct.get("client_profile", {{}}).get("name","")}</div>' if struct.get("client_profile") else ''}
+</div>""", unsafe_allow_html=True)
+
     if not report:
-        st.info("Generate a report first (tab 4) to see source reasoning.")
+        st.info("Generate a report first (tab 4) to see document source reasoning.")
         return
 
     # Case reasoning narrative
+    st.markdown("---")
     st.markdown("##### Case Reasoning")
     st.markdown(f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 18px;font-size:14px;color:#c9d1d9;line-height:1.8;">
@@ -913,15 +986,26 @@ def _tab_settings() -> None:
 
     # ── Case Library Management ───────────────────────────────────────────
     st.markdown("---")
-    st.markdown('<div class="fp-section-header">Built-in Case Library</div>', unsafe_allow_html=True)
+    st.markdown('<div class="fp-section-header">Case Library</div>', unsafe_allow_html=True)
 
-    index = case_ret.load_case_index()
+    index  = case_ret.load_case_index()
     is_emb = case_ret.is_indexed()
+    src_cnts = case_ret.case_count_by_source()
+    n_int = sum(v for k, v in src_cnts.items() if k in ("internal", ""))
+    n_ext = sum(v for k, v in src_cnts.items() if k not in ("internal", ""))
     st.markdown(f"""
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
   <div class="fp-metric" style="flex:1;min-width:120px;">
     <div style="font-size:24px;font-weight:700;color:#58a6ff;">{len(index)}</div>
     <div style="font-size:11px;color:#8b949e;">Total Cases</div>
+  </div>
+  <div class="fp-metric" style="flex:1;min-width:120px;">
+    <div style="font-size:24px;font-weight:700;color:#58a6ff;">{n_int}</div>
+    <div style="font-size:11px;color:#8b949e;">🏠 Internal</div>
+  </div>
+  <div class="fp-metric" style="flex:1;min-width:120px;">
+    <div style="font-size:24px;font-weight:700;color:#a371f7;">{n_ext}</div>
+    <div style="font-size:11px;color:#8b949e;">📄 FPA PDFs</div>
   </div>
   <div class="fp-metric" style="flex:1;min-width:120px;">
     <div style="font-size:24px;font-weight:700;color:{'#3fb950' if is_emb else '#d29922'};">{'Yes' if is_emb else 'No'}</div>

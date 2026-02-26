@@ -1,0 +1,66 @@
+{
+  "case_id": "fpa_fpc_2014",
+  "title": "Scanlon Family: Buyout Decision and College Funding",
+  "year": 2014,
+  "source_type": "external_fpa_pdf",
+  "source": "FPA Financial Planning Competition",
+  "source_file": "FPA_FPC_2014.pdf",
+  "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202014%20Case%20Study.pdf",
+  "source_pages": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "client_profile": {
+    "name": "Calvin and Ellen Scanlon",
+    "household_type": "married",
+    "life_stage": "pre_retirement"
+  },
+  "financial_snapshot": {
+    "gross_income": 0,
+    "income_range_max": 71000
+  },
+  "age_range": [
+    58,
+    61
+  ],
+  "income_range": [],
+  "household_type": "married",
+  "life_stage": "pre_retirement",
+  "major_topics": [
+    "goals",
+    "cash_flow",
+    "retirement",
+    "insurance",
+    "education"
+  ],
+  "key_issues": [
+    "Ellen's decision on accepting a buyout offer from her company.",
+    "Calvin's recent layoff and reduced income expectations.",
+    "Funding college education for their two children.",
+    "Ellen's concerns about financial security in case of her untimely death."
+  ],
+  "planning_issues": [
+    "Evaluate the impact of Ellen's buyout on their financial situation.",
+    "Determine the best investment strategy for their retirement funds.",
+    "Assess the adequacy of their life insurance coverage.",
+    "Plan for college expenses for both children without incurring debt."
+  ],
+  "key_recommendations": [
+    "Accept the buyout offer and utilize the severance pay wisely.",
+    "Invest the lump-sum distribution from the buyout into a diversified portfolio.",
+    "Increase contributions to the children's 529 plans to cover college costs.",
+    "Consider additional life insurance for Calvin to ensure family security."
+  ],
+  "candidate_recommendations": [
+    "Accept the buyout offer and utilize the severance pay wisely.",
+    "Invest the lump-sum distribution from the buyout into a diversified portfolio.",
+    "Increase contributions to the children's 529 plans to cover college costs.",
+    "Consider additional life insurance for Calvin to ensure family security."
+  ],
+  "outcome_summary": null,
+  "key_lesson": "Understanding the importance of planning for both immediate financial needs and long-term goals is crucial for families in transition.",
+  "raw_text_excerpt": "Calvin and Ellen Scanlon have come to you to evaluate whether Ellen should accept a buyout currently being offered by her company. She is a copy editor at Teem Publications. Several years ago, Teem Publications merged with a high-flying tech company. The merger was disastrous and the company’s stock has finally recovered to the levels it was 15 years ago. This latest round of buyout offers is to cut expenses to remain profitable and competitive. Ellen is very eager to accept the offer as morale at the company is extremely low. The lowest in the 20 years she has worked there. She and Calvin have been married for 25 years. Ellen is 61 and Calvin is 58. She is often kidded about “robbing the cradle.” Ellen is in excellent health. They have two children. Francine is 17 years old and a senior in high school. Seth is 14 and a freshman at the same high school that Francine attends. Both of the children are intelligent and outgoing. They plan on attending college upon completion of high school."
+}

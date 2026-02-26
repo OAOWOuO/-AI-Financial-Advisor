@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-_BASE = os.path.join(os.path.dirname(__file__), "data", "cases")
-RAW_DIR    = os.path.join(_BASE, "raw")
-STRUCT_DIR = os.path.join(_BASE, "structured")
-INDEX_PATH = os.path.join(_BASE, "index", "case_index.json")
+_BASE       = os.path.join(os.path.dirname(__file__), "data", "cases")
+RAW_DIR     = os.path.join(_BASE, "raw")
+RAW_EXT_DIR = os.path.join(_BASE, "raw_external")   # gitignored PDFs
+STRUCT_DIR  = os.path.join(_BASE, "structured")
+INDEX_PATH  = os.path.join(_BASE, "index", "case_index.json")
 EMBED_MODEL = "text-embedding-3-small"
 
 _CAT_TO_TOPIC = {
@@ -74,14 +75,29 @@ def load_structured_summary(case_id: str) -> Dict:
     return {}
 
 def load_raw_case(case_id: str) -> str:
+    """Return raw narrative text.  MD file for internal cases; raw_text_excerpt from JSON for external."""
     path = os.path.join(RAW_DIR, f"{case_id}.md")
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             return f.read()
-    return ""
+    # Fallback: use the raw_text_excerpt stored in the structured summary (external PDF cases)
+    structured = load_structured_summary(case_id)
+    return structured.get("raw_text_excerpt", "")
+
+def is_external(case_id: str) -> bool:
+    """True if the case comes from an external PDF source (not a built-in MD narrative)."""
+    return not os.path.exists(os.path.join(RAW_DIR, f"{case_id}.md"))
 
 def case_count() -> int:
     return len(load_case_index())
+
+def case_count_by_source() -> Dict[str, int]:
+    """Return {source_type: count} for Settings display."""
+    counts: Dict[str, int] = {}
+    for entry in load_case_index():
+        st_ = entry.get("source_type", "internal")
+        counts[st_] = counts.get(st_, 0) + 1
+    return counts
 
 
 # ── Embedding builder ─────────────────────────────────────────────────────────
@@ -148,13 +164,16 @@ def _build_embed_text(meta: Dict, structured: Dict, raw: str) -> str:
     ]
     if structured:
         issues = structured.get("planning_issues", [])
-        recs   = structured.get("candidate_recommendations", [])
+        # Support both internal (candidate_recommendations) and external (key_recommendations) formats
+        recs = structured.get("candidate_recommendations") or structured.get("key_recommendations", [])
         if issues:
-            parts.append("Planning issues: " + "; ".join(issues[:6]))
+            issue_texts = [i if isinstance(i, str) else i.get("description", "") for i in issues[:6]]
+            parts.append("Planning issues: " + "; ".join(issue_texts))
         if recs:
             parts.append("Recommendations: " + "; ".join(recs[:5]))
-    # First 600 chars of raw narrative for semantic richness
-    parts.append(raw[:600])
+    # First 600 chars of raw narrative / text excerpt for semantic richness
+    if raw:
+        parts.append(raw[:600])
     return "\n".join(parts)
 
 
@@ -199,18 +218,42 @@ def retrieve_similar_cases(
         e /= np.linalg.norm(e) + 1e-10
         sim = float(q @ e)
         reasons = _explain_match(profile, issues, case)
-        scored.append({
-            "case_id":     case["case_id"],
-            "metadata":    case["metadata"],
-            "structured":  case["structured"],
-            "raw_excerpt": case["raw"][:800],
-            "score":       round(sim, 4),
-            "score_pct":   round(sim * 100, 1),
-            "reasons":     reasons,
-        })
+        scored.append(_make_result(case, round(sim, 4), reasons))
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]
+
+
+def _make_result(case: Dict, score: float, reasons: List[str]) -> Dict:
+    """Build a standardised result dict with source/citation fields."""
+    meta = case["metadata"]
+    structured = case["structured"]
+    source_type = meta.get("source_type") or structured.get("source_type") or "internal"
+    source_file = meta.get("source_file") or structured.get("source_file") or ""
+    source_pages = meta.get("source_pages") or structured.get("source_pages") or []
+
+    # Build human-readable citation string
+    if source_file and source_pages:
+        pg_str = f"pp. {source_pages[0]}–{source_pages[-1]}" if len(source_pages) > 1 else f"p. {source_pages[0]}"
+        citation = f"{source_file}, {pg_str}"
+    elif source_file:
+        citation = source_file
+    else:
+        citation = "Built-in case library"
+
+    return {
+        "case_id":     case["case_id"],
+        "metadata":    meta,
+        "structured":  structured,
+        "raw_excerpt": (case.get("raw") or "")[:800],
+        "score":       round(score, 4),
+        "score_pct":   round(score * 100, 1),
+        "reasons":     reasons,
+        "source_type": source_type,
+        "source_file": source_file,
+        "source_pages": source_pages,
+        "citation":    citation,
+    }
 
 
 def _build_query(profile, issues) -> str:
@@ -304,15 +347,7 @@ def _rule_based_match(profile, issues, cases, top_k) -> List[Dict]:
             score += 0.10
 
         reasons = _explain_match(profile, issues, case)
-        scored.append({
-            "case_id":     case["case_id"],
-            "metadata":    meta,
-            "structured":  case["structured"],
-            "raw_excerpt": case["raw"][:800],
-            "score":       round(min(score, 1.0), 4),
-            "score_pct":   round(min(score, 1.0) * 100, 1),
-            "reasons":     reasons,
-        })
+        scored.append(_make_result(case, round(min(score, 1.0), 4), reasons))
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]

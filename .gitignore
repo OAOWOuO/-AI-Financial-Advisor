@@ -73,3 +73,7 @@ app/backend/alembic/versions/__pycache__/
 # Allow the ChromaDB vector store to be committed so the deployed app works
 !index/chroma.sqlite3
 streamlit_app/.streamlit/secrets.toml
+
+# ── External FPA case PDFs & extracted text (keep raw_external/.gitkeep) ──────
+streamlit_app/data/cases/raw_external/*.pdf
+streamlit_app/data/cases/raw_external/*.txt

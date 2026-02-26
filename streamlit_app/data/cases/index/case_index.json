@@ -6,10 +6,25 @@
     "source": "CFP Board Case Studies",
     "household_type": "single",
     "life_stage": "early_career",
-    "age_range": [24, 32],
-    "income_range": [50000, 85000],
-    "major_topics": ["debt", "retirement", "cash_flow", "emergency_fund"],
-    "key_issues": ["high student loan DTI", "no retirement savings", "insufficient emergency fund"],
+    "age_range": [
+      24,
+      32
+    ],
+    "income_range": [
+      50000,
+      85000
+    ],
+    "major_topics": [
+      "debt",
+      "retirement",
+      "cash_flow",
+      "emergency_fund"
+    ],
+    "key_issues": [
+      "high student loan DTI",
+      "no retirement savings",
+      "insufficient emergency fund"
+    ],
     "outcome": "Loan refinancing + 401k auto-enrollment increased net worth 18% in 2 years"
   },
   {
@@ -19,10 +34,25 @@
     "source": "FPA Journal Case Studies",
     "household_type": "married",
     "life_stage": "family_formation",
-    "age_range": [34, 42],
-    "income_range": [100000, 180000],
-    "major_topics": ["goals", "retirement", "tax", "insurance"],
-    "key_issues": ["underfunded 529 plans", "competing retirement vs college goals", "life insurance gap"],
+    "age_range": [
+      34,
+      42
+    ],
+    "income_range": [
+      100000,
+      180000
+    ],
+    "major_topics": [
+      "goals",
+      "retirement",
+      "tax",
+      "insurance"
+    ],
+    "key_issues": [
+      "underfunded 529 plans",
+      "competing retirement vs college goals",
+      "life insurance gap"
+    ],
     "outcome": "529 monthly contributions + Roth IRA ladder reduced long-term tax drag by $85K"
   },
   {
@@ -32,10 +62,25 @@
     "source": "Journal of Financial Planning",
     "household_type": "married",
     "life_stage": "pre_retirement",
-    "age_range": [52, 58],
-    "income_range": [160000, 250000],
-    "major_topics": ["retirement", "insurance", "estate", "tax"],
-    "key_issues": ["retirement gap in conservative scenario", "no LTC insurance", "concentrated employer stock"],
+    "age_range": [
+      52,
+      58
+    ],
+    "income_range": [
+      160000,
+      250000
+    ],
+    "major_topics": [
+      "retirement",
+      "insurance",
+      "estate",
+      "tax"
+    ],
+    "key_issues": [
+      "retirement gap in conservative scenario",
+      "no LTC insurance",
+      "concentrated employer stock"
+    ],
     "outcome": "Catch-up contributions + LTC policy + stock diversification closed 90% of retirement gap"
   },
   {
@@ -45,10 +90,26 @@
     "source": "NAPFA Case Collection",
     "household_type": "single",
     "life_stage": "mid_career",
-    "age_range": [30, 40],
-    "income_range": [70000, 130000],
-    "major_topics": ["cash_flow", "tax", "retirement", "emergency_fund"],
-    "key_issues": ["no employer match", "variable monthly income", "insufficient emergency fund for self-employed", "quarterly tax underpayment"],
+    "age_range": [
+      30,
+      40
+    ],
+    "income_range": [
+      70000,
+      130000
+    ],
+    "major_topics": [
+      "cash_flow",
+      "tax",
+      "retirement",
+      "emergency_fund"
+    ],
+    "key_issues": [
+      "no employer match",
+      "variable monthly income",
+      "insufficient emergency fund for self-employed",
+      "quarterly tax underpayment"
+    ],
     "outcome": "SEP-IRA maximization + 9-month EF buffer + quarterly tax calendar eliminated late-payment penalties"
   },
   {
@@ -58,10 +119,26 @@
     "source": "CFP Board Case Studies",
     "household_type": "single",
     "life_stage": "mid_career",
-    "age_range": [38, 48],
-    "income_range": [60000, 95000],
-    "major_topics": ["insurance", "goals", "debt", "estate"],
-    "key_issues": ["single income dependency", "inadequate life and disability insurance", "college savings gap", "outdated estate documents"],
+    "age_range": [
+      38,
+      48
+    ],
+    "income_range": [
+      60000,
+      95000
+    ],
+    "major_topics": [
+      "insurance",
+      "goals",
+      "debt",
+      "estate"
+    ],
+    "key_issues": [
+      "single income dependency",
+      "inadequate life and disability insurance",
+      "college savings gap",
+      "outdated estate documents"
+    ],
     "outcome": "Term life + disability insurance + 529 plan setup reduced single-income financial vulnerability significantly"
   },
   {
@@ -71,10 +148,26 @@
     "source": "FPA Journal Case Studies",
     "household_type": "married",
     "life_stage": "early_career",
-    "age_range": [28, 38],
-    "income_range": [200000, 400000],
-    "major_topics": ["investing", "tax", "retirement", "estate"],
-    "key_issues": ["concentrated employer stock", "backdoor Roth eligibility unused", "no estate plan", "AMT exposure"],
+    "age_range": [
+      28,
+      38
+    ],
+    "income_range": [
+      200000,
+      400000
+    ],
+    "major_topics": [
+      "investing",
+      "tax",
+      "retirement",
+      "estate"
+    ],
+    "key_issues": [
+      "concentrated employer stock",
+      "backdoor Roth eligibility unused",
+      "no estate plan",
+      "AMT exposure"
+    ],
     "outcome": "Mega backdoor Roth + RSU vesting schedule + I-bonds diversification reduced tax drag by $42K/yr"
   },
   {
@@ -84,10 +177,26 @@
     "source": "Journal of Financial Planning",
     "household_type": "married",
     "life_stage": "mid_career",
-    "age_range": [44, 54],
-    "income_range": [140000, 220000],
-    "major_topics": ["retirement", "estate", "tax", "investing"],
-    "key_issues": ["business asset concentration", "no qualified retirement plan", "no buy-sell agreement", "key-person insurance expired"],
+    "age_range": [
+      44,
+      54
+    ],
+    "income_range": [
+      140000,
+      220000
+    ],
+    "major_topics": [
+      "retirement",
+      "estate",
+      "tax",
+      "investing"
+    ],
+    "key_issues": [
+      "business asset concentration",
+      "no qualified retirement plan",
+      "no buy-sell agreement",
+      "key-person insurance expired"
+    ],
     "outcome": "Solo 401k + buy-sell agreement funded by life insurance created viable succession pathway"
   },
   {
@@ -97,10 +206,26 @@
     "source": "AICPA PFP Section Cases",
     "household_type": "single",
     "life_stage": "retirement",
-    "age_range": [65, 75],
-    "income_range": [60000, 90000],
-    "major_topics": ["retirement", "estate", "tax", "insurance"],
-    "key_issues": ["RMD tax management", "state estate tax threshold", "charitable giving strategy", "long-term care funding"],
+    "age_range": [
+      65,
+      75
+    ],
+    "income_range": [
+      60000,
+      90000
+    ],
+    "major_topics": [
+      "retirement",
+      "estate",
+      "tax",
+      "insurance"
+    ],
+    "key_issues": [
+      "RMD tax management",
+      "state estate tax threshold",
+      "charitable giving strategy",
+      "long-term care funding"
+    ],
     "outcome": "QCD strategy + charitable trust reduced estate tax exposure while funding charitable legacy goals"
   },
   {
@@ -110,10 +235,26 @@
     "source": "Military Financial Advisors Association",
     "household_type": "married",
     "life_stage": "early_career",
-    "age_range": [25, 35],
-    "income_range": [55000, 90000],
-    "major_topics": ["retirement", "insurance", "goals", "cash_flow"],
-    "key_issues": ["TSP under-contribution", "deployment tax exclusion underutilized", "SGLI adequacy", "PCS moves prevent homebuying"],
+    "age_range": [
+      25,
+      35
+    ],
+    "income_range": [
+      55000,
+      90000
+    ],
+    "major_topics": [
+      "retirement",
+      "insurance",
+      "goals",
+      "cash_flow"
+    ],
+    "key_issues": [
+      "TSP under-contribution",
+      "deployment tax exclusion underutilized",
+      "SGLI adequacy",
+      "PCS moves prevent homebuying"
+    ],
     "outcome": "Roth TSP maximization + combat zone Roth conversion + VA loan planning reduced lifetime tax burden by $67K"
   },
   {
@@ -123,10 +264,26 @@
     "source": "CFP Board Case Studies",
     "household_type": "single",
     "life_stage": "early_career",
-    "age_range": [27, 36],
-    "income_range": [70000, 110000],
-    "major_topics": ["debt", "goals", "cash_flow", "insurance"],
-    "key_issues": ["down payment competing with emergency fund", "DTI at upper limit", "PMI avoidance strategy", "rent vs buy analysis"],
+    "age_range": [
+      27,
+      36
+    ],
+    "income_range": [
+      70000,
+      110000
+    ],
+    "major_topics": [
+      "debt",
+      "goals",
+      "cash_flow",
+      "insurance"
+    ],
+    "key_issues": [
+      "down payment competing with emergency fund",
+      "DTI at upper limit",
+      "PMI avoidance strategy",
+      "rent vs buy analysis"
+    ],
     "outcome": "20% down payment + HFA first-time buyer program eliminated PMI and saved $28K in lifetime costs"
   },
   {
@@ -136,10 +293,26 @@
     "source": "NAPFA Case Collection",
     "household_type": "single",
     "life_stage": "early_career",
-    "age_range": [26, 36],
-    "income_range": [40000, 65000],
-    "major_topics": ["insurance", "tax", "retirement", "cash_flow"],
-    "key_issues": ["no employer health insurance", "self-employment tax burden", "no retirement savings", "irregular income cash flow"],
+    "age_range": [
+      26,
+      36
+    ],
+    "income_range": [
+      40000,
+      65000
+    ],
+    "major_topics": [
+      "insurance",
+      "tax",
+      "retirement",
+      "cash_flow"
+    ],
+    "key_issues": [
+      "no employer health insurance",
+      "self-employment tax burden",
+      "no retirement savings",
+      "irregular income cash flow"
+    ],
     "outcome": "ACA silver plan + SEP-IRA + biweekly income smoothing eliminated quarterly tax surprises"
   },
   {
@@ -149,10 +322,477 @@
     "source": "Journal of Financial Planning",
     "household_type": "married",
     "life_stage": "mid_career",
-    "age_range": [40, 50],
-    "income_range": [90000, 150000],
-    "major_topics": ["investing", "tax", "estate", "goals"],
-    "key_issues": ["windfall paralysis", "stepped-up cost basis opportunity", "sudden wealth syndrome", "liquidity vs investment allocation"],
+    "age_range": [
+      40,
+      50
+    ],
+    "income_range": [
+      90000,
+      150000
+    ],
+    "major_topics": [
+      "investing",
+      "tax",
+      "estate",
+      "goals"
+    ],
+    "key_issues": [
+      "windfall paralysis",
+      "stepped-up cost basis opportunity",
+      "sudden wealth syndrome",
+      "liquidity vs investment allocation"
+    ],
     "outcome": "12-month decision delay rule + systematic DCA + irrevocable trust prevented behavioral wealth destruction"
+  },
+  {
+    "case_id": "fpa_fpc_2025",
+    "title": "Krag Family: Newlywed Financial Planning",
+    "year": 2025,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2025.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC25%20Case%20Study.pdf",
+    "source_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "household_type": "married",
+    "life_stage": "family_formation",
+    "age_range": [
+      35,
+      38
+    ],
+    "income_range": [
+      422250,
+      422250
+    ],
+    "major_topics": [
+      "cash_flow",
+      "debt",
+      "retirement",
+      "goals"
+    ],
+    "key_issues": [
+      "High student loan debt totaling $467,000.",
+      "Desire to buy a home but unsure of affordability.",
+      "Need for a financial plan to combine finances.",
+      "Interest in starting a family within 2-3 years."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2024",
+    "title": "Johnson Family: Pre-Retirement and Education Planning",
+    "year": 2024,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2024.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC24%20Case%20Study%20Final%20Copy.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "household_type": "married",
+    "life_stage": "pre_retirement",
+    "age_range": [
+      48,
+      52
+    ],
+    "income_range": [
+      60000,
+      180000
+    ],
+    "major_topics": [
+      "retirement",
+      "education",
+      "cash_flow",
+      "insurance"
+    ],
+    "key_issues": [
+      "Variable income from Priya's self-employment affecting cash flow.",
+      "Concerns about funding children's college education.",
+      "Need for a comprehensive retirement plan.",
+      "Review of existing trust document for estate planning."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2023",
+    "title": "Rogers Family: Pre-Retirement Planning",
+    "year": 2023,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2023.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2023-02/FPC23%20Case%20Study%20-%20The%20Rogers%20Retire_FINAL.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "household_type": "married",
+    "life_stage": "pre_retirement",
+    "age_range": [
+      55,
+      58
+    ],
+    "income_range": [
+      142000,
+      142000
+    ],
+    "major_topics": [
+      "retirement",
+      "insurance",
+      "estate",
+      "goals",
+      "cash_flow"
+    ],
+    "key_issues": [
+      "Conflicting advice from previous planners",
+      "Concerns about retirement income and inflation",
+      "Need for estate planning and will finalization",
+      "Desire to fund grandchildren's education",
+      "Potential future healthcare costs",
+      "Concerns about aging parents' care"
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2022",
+    "title": "Sky Jay: Financial Planning for an Emerging Artist",
+    "year": 2022,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2022.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2022-02/2022%20FPC%20Case%20Study%20Final.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "household_type": "single",
+    "life_stage": "mid_career",
+    "age_range": [
+      35,
+      35
+    ],
+    "income_range": [
+      120000,
+      2000000
+    ],
+    "major_topics": [
+      "income",
+      "debt",
+      "insurance",
+      "retirement",
+      "tax",
+      "goals"
+    ],
+    "key_issues": [
+      "High student loan debt of approximately $120,000 with minimal progress on repayment.",
+      "Significant credit card debt of $15,000 at a high interest rate of 19.5%.",
+      "Lack of retirement accounts and understanding of retirement planning.",
+      "No estate planning or will in place despite concerns for family support.",
+      "Uncertainty about tax implications from high income and art sales."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2021",
+    "title": "Beverly-Conley Family: Financial Planning for New Parents",
+    "year": 2021,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2021.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-02/FPC21%20Case%20Study%20Final.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "household_type": "married",
+    "life_stage": "family_formation",
+    "age_range": [
+      29,
+      35
+    ],
+    "income_range": [
+      300000,
+      350000
+    ],
+    "major_topics": [
+      "debt",
+      "cash_flow",
+      "insurance",
+      "retirement",
+      "goals"
+    ],
+    "key_issues": [
+      "Significant drop in Krista's income due to the pandemic.",
+      "High credit card debt of $20,000.",
+      "Need for estate planning as they are expecting their first child.",
+      "Interest in socially responsible investing and stock options.",
+      "Desire to budget without feeling restricted."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2020",
+    "title": "Miner and John: Complex Financial Planning for Blended Family",
+    "year": 2020,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2020.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2020-05/FPC20%20Case%20Study.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "household_type": "married",
+    "life_stage": "mid_career",
+    "age_range": [],
+    "income_range": [
+      290000,
+      450000
+    ],
+    "major_topics": [
+      "debt",
+      "insurance",
+      "retirement",
+      "estate",
+      "cash_flow"
+    ],
+    "key_issues": [
+      "High monthly expenses of $54,000",
+      "James has credit card debt of $10,000 at high interest",
+      "Margaret's desire for business succession planning for her daughter",
+      "Need for a new home construction costing $3,000,000",
+      "Concerns about James's pension stability",
+      "Support for Maverick and his daughter Maddie",
+      "Funding for Molly's living expenses and education"
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2019",
+    "title": "Jackson Family: Education and Retirement Planning",
+    "year": 2019,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2019.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202019%20Case%20Study.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "household_type": "married",
+    "life_stage": "family_formation",
+    "age_range": [
+      38,
+      40
+    ],
+    "income_range": [
+      59400,
+      124400
+    ],
+    "major_topics": [
+      "retirement",
+      "education",
+      "goals",
+      "insurance",
+      "cash_flow"
+    ],
+    "key_issues": [
+      "Retirement income goal of $8,000 per month in today's dollars.",
+      "Funding for children's education at Eastern State University.",
+      "Saving for Brianna's wedding with a target of $15,000.",
+      "Current debt levels including mortgage and auto loans.",
+      "Insurance coverage adequacy for life and disability."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2018",
+    "title": "Berman Family: Wealth Building and Education Funding",
+    "year": 2018,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2018.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202018%20Case%20Study.pdf",
+    "source_pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "household_type": "married_with_children",
+    "life_stage": "mid_career",
+    "age_range": [
+      43,
+      46
+    ],
+    "income_range": [
+      240000,
+      240000
+    ],
+    "major_topics": [
+      "goals",
+      "retirement",
+      "insurance",
+      "cash_flow"
+    ],
+    "key_issues": [
+      "Concern about funding children's college education",
+      "Inadequate life and disability insurance coverage",
+      "Lack of estate planning documents",
+      "Uncertainty about investment allocation for future goals"
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2016",
+    "title": "Callahan Family: Retirement and Investment Planning",
+    "year": 2016,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2016.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202016%20Case%20Study.pdf",
+    "source_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "household_type": "married",
+    "life_stage": "pre_retirement",
+    "age_range": [
+      55,
+      56
+    ],
+    "income_range": [],
+    "major_topics": [
+      "retirement",
+      "investing",
+      "goals",
+      "insurance"
+    ],
+    "key_issues": [
+      "Retirement timing: Considering the possibility of retiring sooner than planned.",
+      "Long-term care: Need for a plan to avoid burdening children.",
+      "Investment alignment: Need to align 403(b) investment options with risk tolerances.",
+      "Education funding: Interest in contributing to grandchildren's college education."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2015",
+    "title": "Collins Family: Financial Planning for Retirement and Business",
+    "year": 2015,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2015.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC15%20Case%20Study.pdf",
+    "source_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "household_type": "married_with_children",
+    "life_stage": "mid_career",
+    "age_range": [
+      36,
+      37
+    ],
+    "income_range": [
+      175000,
+      175000
+    ],
+    "major_topics": [
+      "retirement",
+      "goals",
+      "cash_flow",
+      "insurance"
+    ],
+    "key_issues": [
+      "Mark's employment status and income generation options.",
+      "Callie's business cash flow management and salary structure.",
+      "Decision on whether to sell their North Carolina home and buy in California.",
+      "Funding for children's college education.",
+      "Planning for Mark's aging mother."
+    ],
+    "outcome": ""
+  },
+  {
+    "case_id": "fpa_fpc_2014",
+    "title": "Scanlon Family: Buyout Decision and College Funding",
+    "year": 2014,
+    "source": "FPA Financial Planning Competition",
+    "source_type": "external_fpa_pdf",
+    "source_file": "FPA_FPC_2014.pdf",
+    "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202014%20Case%20Study.pdf",
+    "source_pages": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "household_type": "married",
+    "life_stage": "pre_retirement",
+    "age_range": [
+      58,
+      61
+    ],
+    "income_range": [],
+    "major_topics": [
+      "goals",
+      "cash_flow",
+      "retirement",
+      "insurance",
+      "education"
+    ],
+    "key_issues": [
+      "Ellen's decision on accepting a buyout offer from her company.",
+      "Calvin's recent layoff and reduced income expectations.",
+      "Funding college education for their two children.",
+      "Ellen's concerns about financial security in case of her untimely death."
+    ],
+    "outcome": ""
   }
 ]

@@ -1,0 +1,67 @@
+{
+  "case_id": "fpa_fpc_2016",
+  "title": "Callahan Family: Retirement and Investment Planning",
+  "year": 2016,
+  "source_type": "external_fpa_pdf",
+  "source": "FPA Financial Planning Competition",
+  "source_file": "FPA_FPC_2016.pdf",
+  "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202016%20Case%20Study.pdf",
+  "source_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "client_profile": {
+    "name": "David and Ellie Callahan",
+    "household_type": "married",
+    "life_stage": "pre_retirement"
+  },
+  "financial_snapshot": {
+    "gross_income": 255000,
+    "income_range_max": null
+  },
+  "age_range": [
+    55,
+    56
+  ],
+  "income_range": [],
+  "household_type": "married",
+  "life_stage": "pre_retirement",
+  "major_topics": [
+    "retirement",
+    "investing",
+    "goals",
+    "insurance"
+  ],
+  "key_issues": [
+    "Retirement timing: Considering the possibility of retiring sooner than planned.",
+    "Long-term care: Need for a plan to avoid burdening children.",
+    "Investment alignment: Need to align 403(b) investment options with risk tolerances.",
+    "Education funding: Interest in contributing to grandchildren's college education."
+  ],
+  "planning_issues": [
+    "Assessing retirement readiness based on current assets and liabilities.",
+    "Evaluating the adequacy of insurance coverage for long-term care and life insurance.",
+    "Determining the impact of current expenses on retirement savings.",
+    "Identifying investment options that match their risk tolerance."
+  ],
+  "key_recommendations": [
+    "Review and adjust investment allocations in the 403(b) plans to align with risk tolerances.",
+    "Develop a long-term care plan to ensure financial independence.",
+    "Create a savings plan for future grandchildren's education.",
+    "Consider strategies to reduce expenses to enhance retirement savings."
+  ],
+  "candidate_recommendations": [
+    "Review and adjust investment allocations in the 403(b) plans to align with risk tolerances.",
+    "Develop a long-term care plan to ensure financial independence.",
+    "Create a savings plan for future grandchildren's education.",
+    "Consider strategies to reduce expenses to enhance retirement savings."
+  ],
+  "outcome_summary": null,
+  "key_lesson": null,
+  "raw_text_excerpt": "David and Ellie Callahan have come to you for help regarding their primary goal of retirement as well as considering how to address any potential need for long term care. David (56) and Ellie (55), are both non-union employees of Johns Hopkins Hospital (JHH). David joined JHH as an administrator in 1991, and Ellie joined in 2010 in an office role. They have two adult children, Michael (27) and Allison (24). Michael is married to Kelly (27) and they have a son, Brandon (1). Now that Michael and Allison are out of college, the Callahan’s would like to take another look at their goal of retirement. They have each generally figured to retire when David turned 65. However, with David’s pension, and a reduction in expenses with both the kids now out of the house, they wonder if they might have the option to retire sooner."
+}

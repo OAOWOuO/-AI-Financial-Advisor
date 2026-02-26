@@ -1,0 +1,71 @@
+{
+  "case_id": "fpa_fpc_2024",
+  "title": "Johnson Family: Pre-Retirement and Education Planning",
+  "year": 2024,
+  "source_type": "external_fpa_pdf",
+  "source": "FPA Financial Planning Competition",
+  "source_file": "FPA_FPC_2024.pdf",
+  "source_url": "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC24%20Case%20Study%20Final%20Copy.pdf",
+  "source_pages": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "client_profile": {
+    "name": "Priya and Bob Johnson",
+    "household_type": "married",
+    "life_stage": "pre_retirement"
+  },
+  "financial_snapshot": {
+    "gross_income": 60000,
+    "income_range_max": 180000
+  },
+  "age_range": [
+    48,
+    52
+  ],
+  "income_range": [
+    60000,
+    180000
+  ],
+  "household_type": "married",
+  "life_stage": "pre_retirement",
+  "major_topics": [
+    "retirement",
+    "education",
+    "cash_flow",
+    "insurance"
+  ],
+  "key_issues": [
+    "Variable income from Priya's self-employment affecting cash flow.",
+    "Concerns about funding children's college education.",
+    "Need for a comprehensive retirement plan.",
+    "Review of existing trust document for estate planning."
+  ],
+  "planning_issues": [
+    "Assessing the adequacy of current savings for college education.",
+    "Evaluating the impact of Priya's variable income on family finances.",
+    "Determining the best approach for retirement savings and investments.",
+    "Considering health insurance options and their implications.",
+    "Reviewing the mortgage and potential refinancing options."
+  ],
+  "key_recommendations": [
+    "Create a detailed budget to identify areas for increased savings.",
+    "Develop a comprehensive retirement plan that includes both Priya and Bob's income.",
+    "Explore options for maximizing contributions to college savings plans.",
+    "Review and update the trust document to ensure it meets current needs.",
+    "Consider the implications of leasing versus buying new vehicles."
+  ],
+  "candidate_recommendations": [
+    "Create a detailed budget to identify areas for increased savings.",
+    "Develop a comprehensive retirement plan that includes both Priya and Bob's income.",
+    "Explore options for maximizing contributions to college savings plans.",
+    "Review and update the trust document to ensure it meets current needs.",
+    "Consider the implications of leasing versus buying new vehicles."
+  ],
+  "outcome_summary": null,
+  "key_lesson": "Understanding the importance of proactive financial planning as families transition into new life stages.",
+  "raw_text_excerpt": "Meet your new clients, Priya (48) and Bob (52) Johnson. Priya moved to the United States to attend UCLA, which is where she met Bob. Priya and Bob have been married for 25 years and have two children, Hunter (16) and Sam (14). They live in Santa Clara, California where Bob was born and raised. Priya and Bob have self managed their personal finances and never worked with a financial planner before. Several of their college friends get together every year for Bob’s birthday in December. As they were catching up with their friends on their lives and children, it suddenly hit Priya and Bob that they would become empty nesters in just 4 years!! They weren’t sure whether they would be financially ready to support their children’s education and their lives as empty nesters. Then Susie and Johnny Bell, Priya and Bob’s college best friends, told them they should meet with you; The Bell’s have been working with you for 7 years and introduced Priya and Bob to you two weeks ago. Priya is a digital marketer and is self-employed. She has variable income every month that ranges from $5,000 to $15,000/month. She worked at an advertising agency for a decade and has enjoyed working on her own as it has given her flexibility with her family while also earning an income. As her kids graduate, Priya expects to put more energy into her company and expects it to grow, eventually hiring employees and expanding across industries. Right now, she is the only employee and will hire independent contractors to do work as needed. Bob works as a commercial insurance agency and he has a base salary of $125,000 with a bonus depending upon how well his insurance agency has done. There have been years where he didn’t receive a bonus and years where he received up to a $30,000 bonus. Bob is happy in his job and while he may be up for a promotion in a few years, he’s not sure he would want to take it."
+}

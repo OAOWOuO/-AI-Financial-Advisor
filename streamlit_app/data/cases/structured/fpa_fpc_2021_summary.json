@@ -1,0 +1,76 @@
+{
+  "case_id": "fpa_fpc_2021",
+  "title": "Beverly-Conley Family: Financial Planning for New Parents",
+  "year": 2021,
+  "source_type": "external_fpa_pdf",
+  "source": "FPA Financial Planning Competition",
+  "source_file": "FPA_FPC_2021.pdf",
+  "source_url": "https://www.financialplanningassociation.org/sites/default/files/2021-02/FPC21%20Case%20Study%20Final.pdf",
+  "source_pages": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "client_profile": {
+    "name": "Nick Beverly and Krista Conley",
+    "household_type": "married",
+    "life_stage": "family_formation"
+  },
+  "financial_snapshot": {
+    "gross_income": 300000,
+    "income_range_max": 350000
+  },
+  "age_range": [
+    29,
+    35
+  ],
+  "income_range": [
+    300000,
+    350000
+  ],
+  "household_type": "married",
+  "life_stage": "family_formation",
+  "major_topics": [
+    "debt",
+    "cash_flow",
+    "insurance",
+    "retirement",
+    "goals"
+  ],
+  "key_issues": [
+    "Significant drop in Krista's income due to the pandemic.",
+    "High credit card debt of $20,000.",
+    "Need for estate planning as they are expecting their first child.",
+    "Interest in socially responsible investing and stock options.",
+    "Desire to budget without feeling restricted."
+  ],
+  "planning_issues": [
+    "Krista's income has decreased significantly, impacting their cash flow.",
+    "They have a mortgage balance of $510,000 at a 6% interest rate.",
+    "They are considering education funding for their upcoming child.",
+    "Nick is unsure about managing his stock options and retirement planning.",
+    "They need to address their credit card debt."
+  ],
+  "key_recommendations": [
+    "Create a budget that accommodates their lifestyle while addressing debt.",
+    "Explore options for estate planning, including wills and trusts.",
+    "Consider setting up a SEP IRA for Krista to take advantage of tax benefits.",
+    "Evaluate and manage Nick's stock options and retirement contributions.",
+    "Develop a plan for education funding for their child."
+  ],
+  "candidate_recommendations": [
+    "Create a budget that accommodates their lifestyle while addressing debt.",
+    "Explore options for estate planning, including wills and trusts.",
+    "Consider setting up a SEP IRA for Krista to take advantage of tax benefits.",
+    "Evaluate and manage Nick's stock options and retirement contributions.",
+    "Develop a plan for education funding for their child."
+  ],
+  "outcome_summary": null,
+  "key_lesson": "Understanding the balance between enjoying life now and planning for future financial stability is crucial for young families.",
+  "raw_text_excerpt": "Meet your new clients, Nick Beverly (35) and Krista Conley (29). While Nick has interacted with his company’s 401k representative, this is the first time he and Krista will be working with a Financial Planner. They are excited to get the process started with you. For Krista, Instagram is a way of life. After dropping out of college she spent her early twenties as a full-time nomad and found a way to build a 6-figure blog to support a lifestyle that enabled her to travel around the world and get paid to post about it. Krista “lives for the now.” She is free-spirited, creative, talented and warm; people naturally gravitate to her. Nick is a respected Senior Project Engineer and followed a more traditional and very rigorous path. He attended Massachusetts Institute of Technology, graduating with a degree in Urban Science and Planning with Computer Science and minor in Energy Studies. After completing his work at MIT, he went on to earn an MBA. He is determined, fiercely loyal and likes to take things one step at a time. Nick really enjoys his work at EnCorp and is excited for the future. In early 2017, at the suggestion of a college buddy, Nick joined Instagram to follow socially responsible investors and companies. After a few weeks of exploring Nick found Krista and began liking her photos. They then exchanged flirty “likes” and DMs and spent hours on Facetime. One month later they met in person and it was love at first sight. They were married in June 2017 in Bora Bora on the beach and have been blissfully married for three and half years. After a two-month honeymoon they purchased a beautiful $750,000 home in Scottsdale, AZ that checked all their boxes, even though it was a little over their budget. Their mortgage is a 30-year term with a balance of $510,000 at a 6% interest rate. They’ve had some trouble with their credit in the past but have been working diligently to improve it. Krista even reached out to a credit building service to see if they wanted to sponsor her."
+}

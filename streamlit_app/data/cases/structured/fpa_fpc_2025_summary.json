@@ -1,0 +1,72 @@
+{
+  "case_id": "fpa_fpc_2025",
+  "title": "Krag Family: Newlywed Financial Planning",
+  "year": 2025,
+  "source_type": "external_fpa_pdf",
+  "source": "FPA Financial Planning Competition",
+  "source_file": "FPA_FPC_2025.pdf",
+  "source_url": "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC25%20Case%20Study.pdf",
+  "source_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "client_profile": {
+    "name": "Jamie and Aimee Krag",
+    "household_type": "married",
+    "life_stage": "family_formation"
+  },
+  "financial_snapshot": {
+    "gross_income": 422250,
+    "income_range_max": 422250
+  },
+  "age_range": [
+    35,
+    38
+  ],
+  "income_range": [
+    422250,
+    422250
+  ],
+  "household_type": "married",
+  "life_stage": "family_formation",
+  "major_topics": [
+    "cash_flow",
+    "debt",
+    "retirement",
+    "goals"
+  ],
+  "key_issues": [
+    "High student loan debt totaling $467,000.",
+    "Desire to buy a home but unsure of affordability.",
+    "Need for a financial plan to combine finances.",
+    "Interest in starting a family within 2-3 years."
+  ],
+  "planning_issues": [
+    "Evaluate the impact of student loans on future financial goals.",
+    "Determine the feasibility of home purchase in San Mateo County.",
+    "Assess retirement savings and early retirement possibilities.",
+    "Explore options for a postnup agreement."
+  ],
+  "key_recommendations": [
+    "Create a comprehensive budget to manage cash flow effectively.",
+    "Consider refinancing student loans for better interest rates.",
+    "Explore home buying options and affordability analysis.",
+    "Set up a family savings plan for future children's education."
+  ],
+  "candidate_recommendations": [
+    "Create a comprehensive budget to manage cash flow effectively.",
+    "Consider refinancing student loans for better interest rates.",
+    "Explore home buying options and affordability analysis.",
+    "Set up a family savings plan for future children's education."
+  ],
+  "outcome_summary": null,
+  "key_lesson": "Understanding clients' values and goals is crucial for effective financial planning.",
+  "raw_text_excerpt": "Meet your new clients, Jamie and Aimee! They got married in Tahoe earlier this year and have many questions for you. This is their first time working with a financial planner. They found you on FPA’s PlannerSearch. Jamie Krag (38) is a software engineer with one of the leading social media companies. He earns a base salary of $230,000 with a 15% bonus and a 50% RSU. Depending on his team’s overall performance and his contribution, his bonus can be more than 15%, but he is confident he will receive at least a 15% bonus every year. His RSU is refreshed every year with a 4-year vesting schedule. This is his 4th year with the company. Aimee Smith-Krag (35) is a pharmacist working full-time at a regional hospital, earning $135,000 annually. On weekends, she supplements her income by working at local pharmacies, earning $65 per hour. She averages 350 hours per year in her weekend role. They haven’t fully combined their finances. Combining their finances before year-end is one of their many goals. They have one joint account, which they’re using to pay for their living expenses. Based on a few months of actual living expenses as newlyweds, they expect their all-in annual living expenses to be approximately $106,000. They prepared a summary of income and expenses for you to review. They each have a credit card, earning travel points. They put most of their living expenses on their cards and paid them off every month. This year will be their first year filing taxes as married couple."
+}
