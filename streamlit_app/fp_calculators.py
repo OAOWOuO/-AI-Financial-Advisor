@@ -205,6 +205,151 @@ def calc_goal_monthly_savings_needed(
     return round(max(0.0, monthly), 2)
 
 
+# ── Social Security estimate ──────────────────────────────────────────────────
+
+def estimate_social_security_benefit(
+    age: int,
+    gross_annual_income: float,
+    claiming_age: int = 67,
+) -> float:
+    """
+    Rough annual Social Security benefit estimate in today's dollars.
+    Uses SSA average replacement rates (NOT the actual AIME/PIA formula).
+
+    Replacement rates by income tier (FRA = 67):
+      ≤ $30k → ~54%  |  $30–60k → ~40%  |  $60–120k → ~30%  |  > $120k → ~27%
+    Capped at 2024 maximum of ~$52,000/yr at FRA.
+
+    Claiming age adjustments (vs FRA=67):
+      Age 62: −30% | 65: −13.3% | 67: 0% | 70: +24%
+
+    NOTE: Educational approximation only. Use SSA.gov for actual estimates.
+    """
+    income = gross_annual_income
+    if income <= 0:
+        return 0.0
+
+    # Replacement rate by income tier
+    if income <= 30_000:
+        rate = 0.54
+    elif income <= 60_000:
+        rate = 0.40
+    elif income <= 120_000:
+        rate = 0.30
+    else:
+        rate = 0.27
+
+    annual_benefit = min(income * rate, 52_000.0)
+
+    # Claiming age adjustment relative to FRA (67)
+    _age_adj = {62: -0.300, 63: -0.250, 64: -0.167, 65: -0.133, 66: -0.067,
+                67:  0.000, 68:  0.080, 69:  0.160, 70:  0.240}
+    adj = _age_adj.get(max(62, min(70, claiming_age)), 0.0)
+    return round(annual_benefit * (1 + adj), 2)
+
+
+def check_401k_limit(annual_employee_contrib: float, age: int) -> Dict[str, Any]:
+    """
+    Check whether employee 401k contributions exceed IRS 2024 limits.
+    Catch-up contributions allowed for age >= 50.
+
+    Returns:
+        over_limit (bool), limit (float), excess (float), catch_up_eligible (bool)
+    """
+    catch_up = age >= 50
+    limit = 30_500.0 if catch_up else 23_000.0
+    excess = max(0.0, annual_employee_contrib - limit)
+    return {
+        "over_limit":        excess > 0,
+        "limit":             limit,
+        "excess":            round(excess, 2),
+        "catch_up_eligible": catch_up,
+    }
+
+
+def calc_avalanche_payoff(
+    debts: list,          # list of {"name": str, "balance": float, "rate": float, "min_payment": float}
+    extra_monthly: float = 0.0,
+) -> Dict[str, Any]:
+    """
+    Debt avalanche: extra payments applied to highest-interest debt first.
+    Returns months to full payoff and total interest paid.
+    Capped at 360 months (30 years).
+    """
+    import copy
+    d = [x for x in copy.deepcopy(debts) if x.get("balance", 0) > 0]
+    if not d:
+        return {"months": 0, "total_interest": 0.0}
+
+    months = 0
+    total_interest = 0.0
+
+    while any(x["balance"] > 0 for x in d) and months < 360:
+        months += 1
+        # Sort highest rate first for extra payment targeting
+        active_sorted = sorted([x for x in d if x["balance"] > 0], key=lambda x: -x["rate"])
+        remaining_extra = extra_monthly
+
+        for debt in d:
+            if debt["balance"] <= 0:
+                continue
+            interest = debt["balance"] * (debt["rate"] / 12)
+            total_interest += interest
+            debt["balance"] += interest
+            payment = min(debt["min_payment"], debt["balance"])
+            debt["balance"] = round(max(0.0, debt["balance"] - payment), 2)
+
+        for debt in active_sorted:
+            if debt["balance"] <= 0 or remaining_extra <= 0:
+                break
+            paid = min(remaining_extra, debt["balance"])
+            debt["balance"] = round(max(0.0, debt["balance"] - paid), 2)
+            remaining_extra -= paid
+
+    return {"months": months, "total_interest": round(total_interest, 2)}
+
+
+def calc_snowball_payoff(
+    debts: list,
+    extra_monthly: float = 0.0,
+) -> Dict[str, Any]:
+    """
+    Debt snowball: extra payments applied to smallest-balance debt first.
+    Returns months to full payoff and total interest paid.
+    Capped at 360 months.
+    """
+    import copy
+    d = [x for x in copy.deepcopy(debts) if x.get("balance", 0) > 0]
+    if not d:
+        return {"months": 0, "total_interest": 0.0}
+
+    months = 0
+    total_interest = 0.0
+
+    while any(x["balance"] > 0 for x in d) and months < 360:
+        months += 1
+        active_sorted = sorted([x for x in d if x["balance"] > 0], key=lambda x: x["balance"])
+        remaining_extra = extra_monthly
+
+        for debt in d:
+            if debt["balance"] <= 0:
+                continue
+            interest = debt["balance"] * (debt["rate"] / 12)
+            total_interest += interest
+            debt["balance"] += interest
+            payment = min(debt["min_payment"], debt["balance"])
+            debt["balance"] = round(max(0.0, debt["balance"] - payment), 2)
+
+        for debt in active_sorted:
+            if debt["balance"] <= 0 or remaining_extra <= 0:
+                break
+            paid = min(remaining_extra, debt["balance"])
+            debt["balance"] = round(max(0.0, debt["balance"] - paid), 2)
+            remaining_extra -= paid
+
+    return {"months": months, "total_interest": round(total_interest, 2)}
+
+
 # ── Tax estimates (rough) ─────────────────────────────────────────────────────
 
 def estimate_effective_tax_rate(gross_annual_income: float, filing_status: str = "single") -> float:
@@ -230,3 +375,16 @@ def estimate_effective_tax_rate(gross_annual_income: float, filing_status: str =
         if income <= 150000:   return 0.22
         if income <= 250000:   return 0.26
         return 0.32
+
+
+def calc_total_tax_rate(
+    gross_annual_income: float,
+    filing_status: str = "single",
+    state_income_tax_rate: float = 0.0,
+) -> float:
+    """
+    Combined effective tax rate = federal effective rate + state flat rate.
+    Capped at 0.60 to prevent unrealistic results.
+    """
+    federal = estimate_effective_tax_rate(gross_annual_income, filing_status)
+    return min(federal + state_income_tax_rate, 0.60)

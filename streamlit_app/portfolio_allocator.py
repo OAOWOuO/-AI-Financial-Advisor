@@ -1004,6 +1004,15 @@ def get_selected_analysts():
 st.write("# 📊 AI Portfolio Allocator")
 st.caption("v5.9 | Yahoo Finance (15-20 min delayed)")
 
+st.warning(
+    "**Educational / Simulation Tool** — Analyst signals are algorithmically simulated "
+    "for illustrative purposes only. They are **not** based on real research, fundamental "
+    "analysis, or live market data. Allocations, signals, and scores should **not** be "
+    "used as investment advice. Always consult a licensed financial professional before "
+    "making investment decisions.",
+    icon="⚠️",
+)
+
 # ============== TABS ==============
 tab_signals, tab_portfolio, tab_analytics, tab_performance, tab_events, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
     "📈 Signals", "💼 Portfolio", "📊 Analytics", "🏆 Performance", "📅 Events & Income", "📋 Trades", "🧠 Analysts", "🔍 Securities", "⚙️ Settings"

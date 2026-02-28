@@ -184,8 +184,9 @@ class ClientProfile:
     goals:      List[Goal]     = field(default_factory=list)
 
     # Preferences
-    risk_tolerance:   str = "moderate"
-    situation_summary: str = ""
+    risk_tolerance:   str   = "moderate"
+    situation_summary: str  = ""
+    state_income_tax_rate: float = 0.0   # user-supplied state effective tax rate (e.g. 0.05 for 5%)
 
     # ── Derived helpers ──────────────────────────────────────
     def gross_monthly_income(self) -> float:
@@ -285,8 +286,9 @@ class ClientProfile:
             for g in d.get("goals", [])
         ]
 
-        profile.risk_tolerance    = d.get("risk_tolerance", "moderate")
-        profile.situation_summary = d.get("situation_summary", "")
+        profile.risk_tolerance         = d.get("risk_tolerance", "moderate")
+        profile.situation_summary      = d.get("situation_summary", "")
+        profile.state_income_tax_rate  = float(d.get("state_income_tax_rate", 0.0))
         return profile
 
 
@@ -328,10 +330,15 @@ class ScenarioProjection:
     name:              str    # Conservative / Balanced / Aggressive
     assumptions:       Dict[str, Any]
     retirement_corpus: float  # projected value at retirement
-    corpus_needed:     float  # needed for target income
+    corpus_needed:     float  # needed for target income (net of SS)
     gap:               float  # corpus_needed - retirement_corpus (positive = shortfall)
-    monthly_savings_needed: float
+    monthly_savings_needed: float   # additional savings to close remaining gap
     summary:           str
+    # ── enrichment fields ──────────────────────────────────────────────────
+    base_monthly_contrib:    float = 0.0   # current monthly contribution (no boost)
+    boosted_monthly_contrib: float = 0.0   # monthly contribution including scenario boost
+    ss_annual_benefit:       float = 0.0   # estimated SS annual benefit (today's $)
+    corpus_growth: Optional[List[float]] = None  # year-by-year projected balance list
 
 
 @dataclass

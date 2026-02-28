@@ -162,12 +162,55 @@ class RulesEngine:
                 action_hint = "Pay off credit cards before investing beyond 401k match.",
             ))
 
+        # Debt payoff strategy comparison (Avalanche vs Snowball)
+        consumer_debts = []
+        if p.liabilities.credit_cards > 0:
+            consumer_debts.append({
+                "name": "Credit Cards", "balance": p.liabilities.credit_cards,
+                "rate": 0.22, "min_payment": max(25.0, p.monthly_debt_payments.credit_cards),
+            })
+        if p.liabilities.car_loans > 0:
+            consumer_debts.append({
+                "name": "Car Loans", "balance": p.liabilities.car_loans,
+                "rate": 0.07, "min_payment": max(25.0, p.monthly_debt_payments.car),
+            })
+        if p.liabilities.student_loans > 0:
+            consumer_debts.append({
+                "name": "Student Loans", "balance": p.liabilities.student_loans,
+                "rate": 0.06, "min_payment": max(25.0, p.monthly_debt_payments.student_loans),
+            })
+        if len(consumer_debts) >= 2:
+            avalanche = calc.calc_avalanche_payoff(consumer_debts, extra_monthly=0)
+            snowball   = calc.calc_snowball_payoff(consumer_debts,  extra_monthly=0)
+            interest_saved = snowball["total_interest"] - avalanche["total_interest"]
+            a_yrs = avalanche["months"] // 12
+            a_mo  = avalanche["months"] % 12
+            s_yrs = snowball["months"] // 12
+            s_mo  = snowball["months"] % 12
+            if interest_saved > 100:
+                issues.append(PlanningIssue(
+                    category    = IssueCategory.DEBT,
+                    severity    = IssueSeverity.LOW,
+                    title       = "Debt payoff strategy: Avalanche saves more interest",
+                    detail      = (
+                        f"**Avalanche** (highest-rate first): payoff in {a_yrs}y {a_mo}m, "
+                        f"total interest ${avalanche['total_interest']:,.0f}.\n"
+                        f"**Snowball** (smallest-balance first): payoff in {s_yrs}y {s_mo}m, "
+                        f"total interest ${snowball['total_interest']:,.0f}.\n"
+                        f"Choosing Avalanche over Snowball saves ~${interest_saved:,.0f} in interest. "
+                        "Use Snowball if motivation from quick wins matters more than math."
+                    ),
+                    metric_value= f"Save ${interest_saved:,.0f}",
+                    benchmark   = "Avalanche (max interest savings)",
+                    action_hint = "Apply any extra monthly cash flow to the highest-rate debt first.",
+                ))
+
         return issues
 
     def _check_cash_flow(self, p: ClientProfile) -> List[PlanningIssue]:
         issues = []
         gm   = p.gross_monthly_income()
-        tax_rate = 0.22 if p.marital_status == "married" else 0.25
+        tax_rate = calc.calc_total_tax_rate(p.total_annual_income(), p.marital_status, p.state_income_tax_rate)
         cf   = calc.calc_monthly_cash_flow(
             gm, p.monthly_expenses.total(),
             p.monthly_debt_payments.total(), tax_rate
@@ -283,11 +326,28 @@ class RulesEngine:
         issues = []
         r = self.rules["retirement"]
 
-        years_to_ret = max(0, p.retirement.target_retirement_age - p.age)
+        years_to_ret   = max(0, p.retirement.target_retirement_age - p.age)
         annual_contrib = p.gross_annual_income * (p.retirement.contribution_rate_pct / 100)
         employer_match = p.gross_annual_income * (p.retirement.employer_match_pct / 100)
 
-        # Check if capturing full employer match
+        # ── 401k annual limit check (IRS 2024) ──────────────────────────────
+        lim = calc.check_401k_limit(annual_contrib, p.age)
+        if lim["over_limit"]:
+            issues.append(PlanningIssue(
+                category    = IssueCategory.RETIREMENT,
+                severity    = IssueSeverity.HIGH,
+                title       = "401k contribution exceeds IRS annual limit",
+                detail      = (f"Calculated employee contribution of ${annual_contrib:,.0f}/yr "
+                               f"exceeds the 2024 IRS limit of ${lim['limit']:,.0f} "
+                               f"({'catch-up eligible' if lim['catch_up_eligible'] else 'standard limit, age < 50'}). "
+                               f"Excess: ${lim['excess']:,.0f}. "
+                               "Over-contributing triggers a 6% excise tax on excess amounts."),
+                metric_value= f"${annual_contrib:,.0f}/yr",
+                benchmark   = f"≤ ${lim['limit']:,.0f}/yr (2024 IRS limit)",
+                action_hint = "Reduce contribution rate to stay within IRS limits; redirect excess to a Roth IRA or taxable brokerage.",
+            ))
+
+        # ── Check employer match capture ─────────────────────────────────────
         if (p.retirement.employer_match_pct > 0
                 and p.retirement.contribution_rate_pct < p.retirement.employer_match_pct):
             issues.append(PlanningIssue(
@@ -303,15 +363,24 @@ class RulesEngine:
                 action_hint = f"Increase 401k contribution to at least {p.retirement.employer_match_pct:.0f}% immediately.",
             ))
 
-        # Retirement savings trajectory
-        current_balance = p.assets.retirement_total()
+        # ── Retirement savings trajectory ────────────────────────────────────
+        current_balance    = p.assets.retirement_total()
+        inflation_rate     = r["inflation_assumption"]
         balanced_projection = calc.calc_retirement_projection(
             current_balance, annual_contrib + employer_match,
-            years_to_ret, r["balanced_real_return"], r["inflation_assumption"]
+            years_to_ret, r["balanced_real_return"], inflation_rate
         )
-        target_income  = p.total_annual_income() * r["replacement_ratio"]
-        corpus_needed  = calc.calc_retirement_corpus_needed(target_income, r["safe_withdrawal_rate"])
-        gap = corpus_needed - balanced_projection["corpus_nominal"]
+
+        # SS benefit reduces the income gap that personal savings must cover
+        ss_benefit         = calc.estimate_social_security_benefit(
+            p.age, p.total_annual_income(), claiming_age=67)
+        # Inflate target income to retirement year, then subtract SS (also inflated)
+        raw_target         = p.total_annual_income() * r["replacement_ratio"]
+        target_income_fut  = raw_target * ((1 + inflation_rate) ** years_to_ret)
+        ss_future          = ss_benefit * ((1 + inflation_rate) ** years_to_ret)
+        net_target_income  = max(0.0, target_income_fut - ss_future)
+        corpus_needed      = calc.calc_retirement_corpus_needed(net_target_income, r["safe_withdrawal_rate"])
+        gap                = corpus_needed - balanced_projection["corpus_nominal"]
 
         if gap > 0 and years_to_ret > 0:
             severity = IssueSeverity.HIGH if gap > corpus_needed * 0.3 else IssueSeverity.MEDIUM
@@ -319,10 +388,10 @@ class RulesEngine:
                 category    = IssueCategory.RETIREMENT,
                 severity    = severity,
                 title       = "Projected retirement corpus below target",
-                detail      = (f"At current savings rate, the balanced-scenario projection is "
-                               f"${balanced_projection['corpus_nominal']:,.0f} at age {p.retirement.target_retirement_age}. "
-                               f"Target corpus (80% income, 4% SWR): ${corpus_needed:,.0f}. "
-                               f"Projected shortfall: ${gap:,.0f}."),
+                detail      = (f"Balanced-scenario projection: ${balanced_projection['corpus_nominal']:,.0f} "
+                               f"at age {p.retirement.target_retirement_age}. "
+                               f"Target corpus (80% income net of est. SS ${ss_benefit:,.0f}/yr, 4% SWR): "
+                               f"${corpus_needed:,.0f}. Projected shortfall: ${gap:,.0f}."),
                 metric_value= f"Projected: ${balanced_projection['corpus_nominal']:,.0f}",
                 benchmark   = f"Target: ${corpus_needed:,.0f}",
                 action_hint = "Consider increasing savings rate, delaying retirement, or adjusting income targets.",
@@ -333,9 +402,24 @@ class RulesEngine:
                 severity    = IssueSeverity.INFO,
                 title       = "Retirement savings trajectory looks adequate",
                 detail      = (f"Balanced-scenario projection: ${balanced_projection['corpus_nominal']:,.0f}. "
-                               f"Target: ${corpus_needed:,.0f}. On track."),
+                               f"Target (net of est. SS ${ss_benefit:,.0f}/yr): ${corpus_needed:,.0f}. On track."),
                 metric_value= f"Projected: ${balanced_projection['corpus_nominal']:,.0f}",
                 benchmark   = f"Target: ${corpus_needed:,.0f}",
+            ))
+
+        # ── Social Security info note ─────────────────────────────────────────
+        if p.age < 67 and ss_benefit > 0:
+            issues.append(PlanningIssue(
+                category    = IssueCategory.RETIREMENT,
+                severity    = IssueSeverity.INFO,
+                title       = "Social Security benefit estimated",
+                detail      = (f"Estimated SS benefit at FRA (age 67): ~${ss_benefit:,.0f}/yr "
+                               f"(${ss_benefit/12:,.0f}/mo) in today's dollars. "
+                               "Claiming at 62 reduces this by ~30%; at 70 increases it by ~24%. "
+                               "Verify your actual benefit at ssa.gov/myaccount."),
+                metric_value= f"~${ss_benefit:,.0f}/yr",
+                benchmark   = "Verify at ssa.gov",
+                action_hint = "Delay claiming to age 70 if possible — each year of delay adds ~8% in benefits.",
             ))
 
         return issues
@@ -374,8 +458,9 @@ class RulesEngine:
     def _check_goals(self, p: ClientProfile) -> List[PlanningIssue]:
         issues = []
         gm = p.gross_monthly_income()
+        tax_rate = calc.calc_total_tax_rate(p.total_annual_income(), p.marital_status, p.state_income_tax_rate)
         monthly_surplus = calc.calc_monthly_cash_flow(
-            gm, p.monthly_expenses.total(), p.monthly_debt_payments.total()
+            gm, p.monthly_expenses.total(), p.monthly_debt_payments.total(), tax_rate
         )
 
         for goal in p.goals:

@@ -201,27 +201,27 @@ def _inject_button_styles() -> None:
   var BTNS = [
     {
       match: 'Run Full Planning',
-      bg:     'linear-gradient(135deg,#d97706 0%,#f59e0b 50%,#fde047 100%)',
-      color:  '#0d1117',
+      bg:     'linear-gradient(135deg,#92400e 0%,#b45309 55%,#d97706 100%)',
+      color:  '#fef3c7',
       border: 'none',
-      shadow: '0 0 22px rgba(245,158,11,.65),0 4px 14px rgba(0,0,0,.45)',
-      hoverBg:'linear-gradient(135deg,#f59e0b 0%,#fde047 100%)',
+      shadow: '0 2px 10px rgba(146,64,14,.45),0 1px 4px rgba(0,0,0,.35)',
+      hoverBg:'linear-gradient(135deg,#b45309 0%,#d97706 100%)',
     },
     {
       match: 'Generate AI Planning',
-      bg:     'linear-gradient(135deg,#059669 0%,#10b981 50%,#34d399 100%)',
-      color:  '#ffffff',
+      bg:     'linear-gradient(135deg,#064e3b 0%,#065f46 55%,#047857 100%)',
+      color:  '#d1fae5',
       border: 'none',
-      shadow: '0 0 22px rgba(16,185,129,.60),0 4px 14px rgba(0,0,0,.45)',
-      hoverBg:'linear-gradient(135deg,#10b981 0%,#6ee7b7 100%)',
+      shadow: '0 2px 10px rgba(6,78,59,.45),0 1px 4px rgba(0,0,0,.35)',
+      hoverBg:'linear-gradient(135deg,#065f46 0%,#059669 100%)',
     },
     {
       match: 'Find Similar Cases',
-      bg:     'linear-gradient(135deg,#7c3aed 0%,#8b5cf6 50%,#a78bfa 100%)',
-      color:  '#ffffff',
+      bg:     'linear-gradient(135deg,#3b0764 0%,#4c1d95 55%,#6d28d9 100%)',
+      color:  '#ede9fe',
       border: 'none',
-      shadow: '0 0 22px rgba(124,58,237,.60),0 4px 14px rgba(0,0,0,.45)',
-      hoverBg:'linear-gradient(135deg,#8b5cf6 0%,#c4b5fd 100%)',
+      shadow: '0 2px 10px rgba(76,29,149,.45),0 1px 4px rgba(0,0,0,.35)',
+      hoverBg:'linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%)',
     }
   ];
 
@@ -257,7 +257,7 @@ def _inject_button_styles() -> None:
         btn.style.setProperty('background',  cfg.hoverBg, 'important');
         btn.style.setProperty('transform', 'translateY(-2px)', 'important');
         btn.style.setProperty('box-shadow',
-          origShadow.replace(/\.6[05]/,'0.90'), 'important');
+          origShadow.replace(/\\.6[05]/,'0.90'), 'important');
       });
       btn.addEventListener('mouseleave', function() {
         btn.style.setProperty('background', origBg, 'important');
@@ -428,12 +428,22 @@ def _tab_client_input() -> None:
         match_rate   = r_cols[1].number_input("Employer Match (%)",         value=float(ret.get("employer_match_pct",0)),      min_value=0.0, max_value=20.0, step=0.5)
         ret_age      = r_cols[2].number_input("Target Retirement Age",      value=int(ret.get("target_retirement_age",65)),    min_value=50,  max_value=80)
 
-        st.markdown("##### Risk Tolerance & Situation")
+        st.markdown("##### Risk Tolerance, Tax & Situation")
         _risk_opts = ["conservative","moderate","aggressive"]
         _cur_risk  = d.get("risk_tolerance", "moderate")
-        risk  = st.selectbox("Risk Tolerance", _risk_opts,
-                              index=_risk_opts.index(_cur_risk) if _cur_risk in _risk_opts else 1)
-        situation = st.text_area("Situation Summary (free text)", value=d.get("situation_summary",""), height=90)
+        rtax_cols  = st.columns([2, 2, 1])
+        risk  = rtax_cols[0].selectbox("Risk Tolerance", _risk_opts,
+                                        index=_risk_opts.index(_cur_risk) if _cur_risk in _risk_opts else 1)
+        state_tax = rtax_cols[1].selectbox(
+            "State Income Tax (est.)",
+            options=[0.00, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.13],
+            index=[0.00, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.13].index(
+                float(d.get("state_income_tax_rate", 0.0))
+            ) if float(d.get("state_income_tax_rate", 0.0)) in [0.00, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.13] else 0,
+            format_func=lambda x: f"{x*100:.0f}% (No state tax)" if x == 0 else f"{x*100:.0f}%",
+            help="Common ranges: TX/FL=0%, NC=4%, VA=5%, NY=6%, CA=9-13%",
+        )
+        situation = st.text_area("Situation Summary (free text)", value=d.get("situation_summary",""), height=80)
 
         submitted = st.form_submit_button("💾 Save Profile", use_container_width=True, type="primary")
 
@@ -457,6 +467,7 @@ def _tab_client_input() -> None:
                            "target_retirement_age": ret_age},
             "goals": d.get("goals", []),
             "risk_tolerance": risk, "situation_summary": situation,
+            "state_income_tax_rate": state_tax,
         }
         # Reset downstream results when profile changes
         for k in ["fp_issues","fp_quant_checks","fp_scenarios","fp_report"]:
@@ -672,14 +683,42 @@ def _tab_planning_analysis() -> None:
     # ── Scenarios ───────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown('<div class="fp-section-header">Retirement Scenario Projections</div>', unsafe_allow_html=True)
+
+    # SS note (shared across all scenarios)
+    if scenarios and scenarios[0].ss_annual_benefit > 0:
+        ss_val = scenarios[0].ss_annual_benefit
+        st.caption(
+            f"🏛️ Est. Social Security benefit at FRA (age 67): **~${ss_val:,.0f}/yr** "
+            f"(${ss_val/12:,.0f}/mo) in today's dollars — already deducted from corpus targets below. "
+            "Verify at [ssa.gov/myaccount](https://www.ssa.gov/myaccount/)."
+        )
+
     sc_cols = st.columns(3)
     sc_colors = {"Conservative": "#58a6ff", "Balanced": "#d29922", "Aggressive": "#3fb950"}
     for col, scenario in zip(sc_cols, scenarios):
-        c = sc_colors.get(scenario.name, "#8b949e")
+        c         = sc_colors.get(scenario.name, "#8b949e")
         gap_color = "#3fb950" if scenario.gap <= 0 else "#f85149"
         gap_icon  = "✅" if scenario.gap <= 0 else "⚠️"
         gap_label = f"Surplus ${abs(scenario.gap):,.0f}" if scenario.gap <= 0 else f"Shortfall ${scenario.gap:,.0f}"
         assump_str = " · ".join(f"{k}: {v}" for k, v in list(scenario.assumptions.items())[:3])
+
+        # Contribution display: current → boosted
+        base_mo    = scenario.base_monthly_contrib
+        boosted_mo = scenario.boosted_monthly_contrib
+        extra_mo   = scenario.monthly_savings_needed
+        if extra_mo > 0:
+            total_target = boosted_mo + extra_mo
+            savings_html = (
+                f'<div style="font-size:11px;color:#8b949e;margin-top:6px;background:#161b22;'
+                f'padding:6px 8px;border-radius:4px;">'
+                f'Currently: <strong style="color:#c9d1d9;">${base_mo:,.0f}</strong>/mo &nbsp;→&nbsp; '
+                f'Need: <strong style="color:{gap_color};">${total_target:,.0f}</strong>/mo'
+                f'<br><span style="font-size:10px;color:#6e7681;">'
+                f'(+${extra_mo:,.0f}/mo on top of {scenario.name.lower()} boost)</span></div>'
+            )
+        else:
+            savings_html = '<div style="font-size:11px;color:#3fb950;margin-top:6px;">✓ On track at current savings rate</div>'
+
         with col:
             st.markdown(f"""
 <div style="background:#0d1117;border:1px solid {c};border-radius:10px;padding:18px;text-align:center;">
@@ -688,10 +727,70 @@ def _tab_planning_analysis() -> None:
   <div style="font-size:11px;color:#6e7681;text-transform:uppercase;letter-spacing:.5px;">Projected Corpus</div>
   <div style="font-size:26px;font-weight:700;color:#e6edf3;margin:6px 0;">${scenario.retirement_corpus:,.0f}</div>
   <div style="background:#21262d;height:1px;margin:10px 0;"></div>
-  <div style="font-size:11px;color:#8b949e;">Target: <span style="color:#c9d1d9;">${scenario.corpus_needed:,.0f}</span></div>
+  <div style="font-size:11px;color:#8b949e;">Target (net SS): <span style="color:#c9d1d9;">${scenario.corpus_needed:,.0f}</span></div>
   <div style="font-size:15px;font-weight:700;color:{gap_color};margin-top:10px;">{gap_icon} {gap_label}</div>
-  {f'<div style="font-size:11px;color:#8b949e;margin-top:6px;background:#161b22;padding:6px 8px;border-radius:4px;">+${scenario.monthly_savings_needed:,.0f}/mo needed</div>' if scenario.monthly_savings_needed > 0 else '<div style="font-size:11px;color:#3fb950;margin-top:6px;">On track</div>'}
+  {savings_html}
 </div>""", unsafe_allow_html=True)
+
+    # ── Projected retirement balance growth chart ────────────────────────────
+    import pandas as pd
+    import altair as alt
+
+    years_to_ret = max(1, profile.retirement.target_retirement_age - profile.age)
+    chart_rows = []
+    for scenario in scenarios:
+        if scenario.corpus_growth:
+            for yr, val in enumerate(scenario.corpus_growth):
+                chart_rows.append({
+                    "Year": profile_obj.age + yr,
+                    "Balance ($)": val,
+                    "Scenario": scenario.name,
+                })
+
+    if chart_rows:
+        chart_df = pd.DataFrame(chart_rows)
+        balanced  = next((s for s in scenarios if s.name == "Balanced"), None)
+        color_map = {"Conservative": "#58a6ff", "Balanced": "#d29922", "Aggressive": "#3fb950"}
+
+        lines = alt.Chart(chart_df).mark_line(strokeWidth=2.5).encode(
+            x=alt.X("Year:Q", title="Age", axis=alt.Axis(format="d")),
+            y=alt.Y("Balance ($):Q", title="Projected Balance ($)",
+                    axis=alt.Axis(format="$,.0f")),
+            color=alt.Color(
+                "Scenario:N",
+                scale=alt.Scale(domain=list(color_map.keys()), range=list(color_map.values())),
+                legend=alt.Legend(orient="top-left"),
+            ),
+            tooltip=[
+                alt.Tooltip("Year:Q", title="Age"),
+                alt.Tooltip("Scenario:N"),
+                alt.Tooltip("Balance ($):Q", title="Balance", format="$,.0f"),
+            ],
+        )
+
+        layers = [lines]
+        if balanced:
+            target_line = alt.Chart(
+                pd.DataFrame([{"target": balanced.corpus_needed}])
+            ).mark_rule(color="#6e7681", strokeDash=[6, 3], strokeWidth=1.5).encode(
+                y=alt.Y("target:Q")
+            )
+            layers.append(target_line)
+
+        chart = alt.layer(*layers).properties(
+            title=alt.TitleParams(
+                text="Projected Retirement Balance by Scenario",
+                subtitle="Dashed line = Balanced corpus target (net of est. Social Security)",
+                color="#e6edf3", subtitleColor="#8b949e",
+            ),
+            height=280,
+            background="#0d1117",
+            padding={"left": 10, "right": 10, "top": 10, "bottom": 10},
+        ).configure_axis(
+            gridColor="#21262d", labelColor="#8b949e", titleColor="#8b949e",
+        ).configure_view(strokeColor="#30363d")
+
+        st.altair_chart(chart, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1114,9 +1213,22 @@ def _tab_recommendation_report() -> None:
                 )
 
     if st.session_state.fp_chat_history:
-        if st.button("🗑️ Clear chat history", key="fp_clear_chat"):
+        _chat_cols = st.columns([1, 1])
+        if _chat_cols[0].button("🗑️ Clear chat history", key="fp_clear_chat"):
             st.session_state.fp_chat_history = []
             st.rerun()
+        # Export chat history as Markdown
+        _chat_md_lines = [f"# Financial Planning Chat — {report.client_name}\n"]
+        for _msg in st.session_state.fp_chat_history:
+            _role = "**You**" if _msg["role"] == "user" else "**AI Advisor**"
+            _chat_md_lines.append(f"{_role}:\n{_msg['content']}\n")
+        _chat_cols[1].download_button(
+            "⬇️ Export Chat (Markdown)",
+            data="\n---\n".join(_chat_md_lines),
+            file_name=f"chat_{report.client_name.replace(' ','_')}.md",
+            mime="text/markdown",
+            key="fp_dl_chat",
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════

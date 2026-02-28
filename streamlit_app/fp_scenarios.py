@@ -48,47 +48,81 @@ SCENARIO_CONFIGS = {
 }
 
 
+def _build_growth_series(
+    current_balance: float,
+    annual_contrib: float,
+    years: int,
+    annual_return: float,
+) -> List[float]:
+    """Year-by-year projected retirement balance (index 0 = today)."""
+    series = [current_balance]
+    bal = current_balance
+    for _ in range(years):
+        bal = bal * (1 + annual_return) + annual_contrib
+        series.append(round(bal, 0))
+    return series
+
+
 def generate_scenarios(profile: ClientProfile) -> List[ScenarioProjection]:
     """
-    For each scenario, project retirement corpus and compare to corpus needed.
+    For each scenario, project retirement corpus and compare to corpus needed
+    (net of estimated Social Security benefit).
     Returns a list of ScenarioProjection sorted Conservative → Balanced → Aggressive.
     """
-    years_to_ret = max(1, profile.retirement.target_retirement_age - profile.age)
-    base_annual_contrib = calc.calc_annual_contribution(profile)
-    total_income = profile.total_annual_income()
+    years_to_ret  = max(1, profile.retirement.target_retirement_age - profile.age)
+    total_income  = profile.total_annual_income()
+    employer_match_base = profile.gross_annual_income * (profile.retirement.employer_match_pct / 100)
+
+    # Base contribution (no scenario boost) for display purposes
+    base_employee_contrib = profile.gross_annual_income * (profile.retirement.contribution_rate_pct / 100)
+    base_total_annual     = base_employee_contrib + employer_match_base
+    base_monthly          = base_total_annual / 12
+
+    # Social Security estimate (today's dollars, FRA=67)
+    ss_annual = calc.estimate_social_security_benefit(profile.age, total_income, claiming_age=67)
 
     projections = []
     for name, cfg in SCENARIO_CONFIGS.items():
         boosted_rate = min(
             profile.retirement.contribution_rate_pct / 100 + cfg["savings_boost"],
-            0.30   # cap at 30% contribution rate
+            0.30   # cap at 30%
         )
-        employer_match = profile.gross_annual_income * (profile.retirement.employer_match_pct / 100)
-        annual_contrib = profile.gross_annual_income * boosted_rate + employer_match
+        annual_contrib   = profile.gross_annual_income * boosted_rate + employer_match_base
+        boosted_monthly  = annual_contrib / 12
 
         proj = calc.calc_retirement_projection(
-            current_balance    = profile.assets.retirement_total(),
-            annual_contribution= annual_contrib,
-            years_to_retirement= years_to_ret,
-            annual_return      = cfg["return"],
-            inflation          = cfg["inflation"],
+            current_balance     = profile.assets.retirement_total(),
+            annual_contribution = annual_contrib,
+            years_to_retirement = years_to_ret,
+            annual_return       = cfg["return"],
+            inflation           = cfg["inflation"],
         )
 
-        target_income  = total_income * cfg["replacement"]
-        corpus_needed  = calc.calc_retirement_corpus_needed(target_income, cfg["swr"])
-        gap            = corpus_needed - proj["corpus_nominal"]
+        # Target income in future nominal dollars; subtract inflation-adjusted SS benefit
+        target_income_today = total_income * cfg["replacement"]
+        target_income_fut   = target_income_today * ((1 + cfg["inflation"]) ** years_to_ret)
+        ss_future           = ss_annual * ((1 + cfg["inflation"]) ** years_to_ret)
+        net_target_income   = max(0.0, target_income_fut - ss_future)
+        corpus_needed       = calc.calc_retirement_corpus_needed(net_target_income, cfg["swr"])
+        gap                 = corpus_needed - proj["corpus_nominal"]
 
-        # Monthly savings needed to close gap (additional above current)
-        extra_needed = max(0.0, gap)
+        # Additional monthly savings needed to close any remaining gap
+        extra_needed  = max(0.0, gap)
         monthly_extra = calc.calc_goal_monthly_savings_needed(
             extra_needed, 0.0, years_to_ret * 12, cfg["return"] / 12
         ) if extra_needed > 0 else 0.0
 
-        # Build human-readable summary
+        # Year-by-year growth series for charting
+        growth_series = _build_growth_series(
+            profile.assets.retirement_total(), annual_contrib, years_to_ret, cfg["return"]
+        )
+
         if gap <= 0:
             status_txt = f"On track — projected surplus of ${abs(gap):,.0f}."
         else:
-            status_txt = f"Projected shortfall of ${gap:,.0f}. Would need ~${monthly_extra:,.0f}/month extra savings."
+            status_txt = (f"Projected shortfall of ${gap:,.0f} "
+                          f"(after SS ~${ss_annual:,.0f}/yr credit). "
+                          f"Would need ~${monthly_extra:,.0f}/month additional savings.")
 
         projections.append(ScenarioProjection(
             name               = name,
@@ -99,17 +133,22 @@ def generate_scenarios(profile: ClientProfile) -> List[ScenarioProjection]:
                 "Income replacement":     f"{cfg['replacement']*100:.0f}%",
                 "Safe withdrawal rate":   f"{cfg['swr']*100:.1f}%",
             },
-            retirement_corpus  = proj["corpus_nominal"],
-            corpus_needed      = corpus_needed,
-            gap                = gap,
-            monthly_savings_needed = monthly_extra,
-            summary            = (
+            retirement_corpus       = proj["corpus_nominal"],
+            corpus_needed           = corpus_needed,
+            gap                     = gap,
+            monthly_savings_needed  = monthly_extra,
+            base_monthly_contrib    = round(base_monthly, 2),
+            boosted_monthly_contrib = round(boosted_monthly, 2),
+            ss_annual_benefit       = ss_annual,
+            corpus_growth           = growth_series,
+            summary                 = (
                 f"{cfg['description']} "
+                f"Est. SS benefit: ${ss_annual:,.0f}/yr. "
                 f"Projected corpus at age {profile.retirement.target_retirement_age}: "
                 f"${proj['corpus_nominal']:,.0f}. "
-                f"Target corpus ({cfg['replacement']*100:.0f}% replacement, "
-                f"{cfg['swr']*100:.1f}% SWR): ${corpus_needed:,.0f}. "
-                + status_txt
+                f"Target corpus ({cfg['replacement']*100:.0f}% income, net of SS, "
+                f"{years_to_ret}yr inflation adj., {cfg['swr']*100:.1f}% SWR): "
+                f"${corpus_needed:,.0f}. " + status_txt
             ),
         ))
 
