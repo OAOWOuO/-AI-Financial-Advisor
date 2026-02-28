@@ -366,7 +366,15 @@ def _tab_guide() -> None:
 - Click **Load Sample** in the Client Input tab and choose a profile
   (Young Professional / Married Family / Pre-Retirement)
 
-**Option B — Enter manually**:
+**Option B — 🤖 Auto-fill from a document** (fastest for real cases):
+1. Expand **"🤖 Auto-fill from Document (AI)"** at the top of the Client Input tab
+2. Upload a PDF, Word (.docx), or text file describing the client's finances
+   (e.g. a case study, financial summary, or class handout)
+3. Click **Extract & Preview** — the AI reads the document and fills in all fields it can find
+4. Review the extracted values and check the missing-fields warning
+5. Click **✅ Apply to Form** to populate the form, then scroll down to verify and click **Save Profile**
+
+**Option C — Enter manually**:
 1. Set basic info: Name, Age, Marital Status, Dependents, Risk Tolerance, State Tax Rate
 2. Fill in income (gross annual, spouse, other)
 3. Fill in monthly expenses by category
@@ -378,7 +386,7 @@ def _tab_guide() -> None:
 9. Add financial goals (emergency fund, home purchase, college savings, etc.)
 10. Click **Save Profile**
 
-**Tip:** You can also upload a JSON file if you've previously saved a profile.
+**Tip:** You can also upload a previously saved JSON file to reload a profile instantly.
 """)
 
     with st.expander("Step 2 — Run the Analysis", expanded=False):
@@ -479,6 +487,152 @@ making the AI reasoning transparent and auditable.
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# AI PROFILE EXTRACTION HELPER
+# ══════════════════════════════════════════════════════════════════════════════
+
+_EXTRACT_SCHEMA_HINT = """\
+Return ONLY a JSON object with exactly these keys (use 0 / false / "" for unknown values):
+{
+  "name": "string",
+  "age": int,
+  "marital_status": "single|married|divorced|widowed",
+  "dependents": int,
+  "gross_annual_income": float,
+  "spouse_annual_income": float,
+  "other_annual_income": float,
+  "state_income_tax_rate": float,
+  "monthly_expenses": {
+    "housing": float, "food": float, "transportation": float,
+    "utilities": float, "healthcare": float, "childcare": float,
+    "entertainment": float, "personal": float, "subscriptions": float, "other": float
+  },
+  "assets": {
+    "checking_savings": float, "investments_brokerage": float,
+    "retirement_401k": float, "retirement_ira": float,
+    "real_estate_equity": float, "other": float
+  },
+  "liabilities": {
+    "mortgage": float, "car_loans": float, "student_loans": float,
+    "credit_cards": float, "other": float
+  },
+  "monthly_debt_payments": {
+    "mortgage": float, "car": float, "student_loans": float,
+    "credit_cards": float, "other": float
+  },
+  "insurance": {
+    "has_health": bool, "has_life": bool, "life_coverage_amount": float,
+    "has_disability": bool, "has_renters_homeowners": bool
+  },
+  "retirement": {
+    "contribution_rate_pct": float,
+    "employer_match_pct": float,
+    "target_retirement_age": int
+  },
+  "goals": [
+    {"type": "string", "description": "string", "target_amount": float,
+     "timeline_months": int, "priority": int}
+  ],
+  "risk_tolerance": "conservative|moderate|aggressive",
+  "situation_summary": "string"
+}"""
+
+_EXTRACT_SYSTEM = (
+    "You are a financial data extraction assistant. "
+    "Read the provided document and extract every financial figure you can find. "
+    "Output ONLY valid JSON — no explanation, no markdown fences, no extra text. "
+    "If a value is not mentioned, use 0 for numbers, false for booleans, and '' for strings. "
+    "Infer reasonable values where the document is ambiguous (e.g. monthly = annual / 12). "
+    "For situation_summary, write 2-3 sentences summarising the client's situation in your own words."
+)
+
+
+def _read_doc_text(file_bytes: bytes, filename: str) -> tuple[str, str]:
+    """Extract plain text from PDF / Word / TXT. Returns (text, error)."""
+    import io, re
+    ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
+    try:
+        if ext == "pdf":
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(file_bytes))
+            pages = [p.extract_text() or "" for p in reader.pages]
+            return "\n".join(pages).strip(), ""
+        elif ext in ("docx", "doc"):
+            from docx import Document as _DocxDoc
+            doc = _DocxDoc(io.BytesIO(file_bytes))
+            paras = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+            for tbl in doc.tables:
+                for row in tbl.rows:
+                    row_txt = " | ".join(c.text.strip() for c in row.cells if c.text.strip())
+                    if row_txt:
+                        paras.append(row_txt)
+            return "\n".join(paras), ""
+        elif ext in ("txt", "md"):
+            return file_bytes.decode("utf-8", errors="replace"), ""
+        else:
+            return "", f"Unsupported format '.{ext}'. Use PDF, Word (.docx), or TXT."
+    except Exception as e:
+        return "", str(e)
+
+
+def _ai_extract_profile(file_bytes: bytes, filename: str, openai_client) -> tuple[dict, list[str]]:
+    """
+    Ask GPT to extract a ClientProfile-compatible dict from document text.
+    Returns (profile_dict, missing_fields_list).
+    """
+    import json as _json
+
+    text, err = _read_doc_text(file_bytes, filename)
+    if err:
+        raise ValueError(err)
+    if not text.strip():
+        raise ValueError("No readable text found in this document.")
+
+    # Truncate to ~12 000 chars to stay well within token limits
+    truncated = text[:12_000]
+    if len(text) > 12_000:
+        truncated += "\n[... document truncated for length ...]"
+
+    prompt = (
+        f"Extract financial planning data from the document below.\n\n"
+        f"SCHEMA TO FOLLOW:\n{_EXTRACT_SCHEMA_HINT}\n\n"
+        f"DOCUMENT:\n{truncated}"
+    )
+
+    resp = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": _EXTRACT_SYSTEM},
+            {"role": "user",   "content": prompt},
+        ],
+        temperature=0.0,
+        max_tokens=1500,
+    )
+    raw = resp.choices[0].message.content or ""
+
+    # Strip markdown fences if GPT wrapped the JSON anyway
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+
+    profile_dict = _json.loads(raw)   # raises json.JSONDecodeError if malformed
+
+    # Identify fields that are still at default / zero so user knows to check them
+    missing: list[str] = []
+    if not profile_dict.get("name"):              missing.append("name")
+    if not profile_dict.get("age"):               missing.append("age")
+    if not profile_dict.get("gross_annual_income"):missing.append("gross_annual_income")
+    assets = profile_dict.get("assets", {})
+    if all(v == 0 for v in assets.values()):       missing.append("assets (all zero)")
+    goals = profile_dict.get("goals", [])
+    if not goals:                                  missing.append("goals")
+
+    return profile_dict, missing
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — CLIENT INPUT
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -510,6 +664,71 @@ def _tab_client_input() -> None:
             for k in ["fp_issues","fp_quant_checks","fp_scenarios","fp_report","fp_retrieved_docs"]:
                 st.session_state[k] = None if k != "fp_retrieved_docs" else []
             st.rerun()
+
+    # ── AI Auto-fill from document ───────────────────────────────────────────
+    with st.expander("🤖 Auto-fill from Document (AI)", expanded=False):
+        st.caption(
+            "Upload a PDF, Word (.docx), or text file describing the client's finances. "
+            "The AI will read it and auto-fill the form. Review the extracted values before saving."
+        )
+        ai_doc = st.file_uploader(
+            "Upload client document",
+            type=["pdf", "docx", "txt", "md"],
+            key="fp_ai_doc_upload",
+        )
+        if ai_doc:
+            if st.button("🔍 Extract & Preview", key="fp_ai_extract_btn"):
+                _client = _get_openai_client()
+                if not _client:
+                    st.error("OpenAI client unavailable — cannot run extraction.")
+                else:
+                    with st.spinner(f"Reading {ai_doc.name} and extracting financial data…"):
+                        try:
+                            _extracted, _missing = _ai_extract_profile(
+                                ai_doc.read(), ai_doc.name, _client
+                            )
+                            st.session_state["fp_ai_extracted"] = _extracted
+                            st.session_state["fp_ai_missing"]   = _missing
+                        except Exception as _ex:
+                            st.error(f"Extraction failed: {_ex}")
+                            st.session_state.pop("fp_ai_extracted", None)
+
+        # Show preview if extraction completed
+        if st.session_state.get("fp_ai_extracted"):
+            _ext = st.session_state["fp_ai_extracted"]
+            _miss = st.session_state.get("fp_ai_missing", [])
+
+            st.success("✅ Extraction complete — review the values below before applying.")
+
+            # Key numbers at a glance
+            _prev_cols = st.columns(4)
+            _prev_cols[0].metric("Name", _ext.get("name") or "—")
+            _prev_cols[1].metric("Age", _ext.get("age") or "—")
+            _prev_cols[2].metric("Gross Income",
+                f"${_ext.get('gross_annual_income', 0):,.0f}/yr")
+            _prev_cols[3].metric("Net Worth",
+                f"${sum(_ext.get('assets',{}).values()) - sum(_ext.get('liabilities',{}).values()):,.0f}")
+
+            with st.expander("Full extracted JSON", expanded=False):
+                st.json(_ext)
+
+            if _miss:
+                st.warning(
+                    "⚠️ The following fields were **not found** in the document and default to 0 — "
+                    f"please fill them in manually: **{', '.join(_miss)}**"
+                )
+
+            if st.button("✅ Apply to Form", key="fp_ai_apply_btn", type="primary"):
+                st.session_state.fp_profile_dict = _ext
+                st.session_state.pop("fp_ai_extracted", None)
+                st.session_state.pop("fp_ai_missing",   None)
+                st.success("Profile applied! Scroll down to review and save.")
+                st.rerun()
+
+            if st.button("✖ Discard", key="fp_ai_discard_btn"):
+                st.session_state.pop("fp_ai_extracted", None)
+                st.session_state.pop("fp_ai_missing",   None)
+                st.rerun()
 
     st.divider()
 
