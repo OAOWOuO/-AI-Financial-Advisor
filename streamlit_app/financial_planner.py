@@ -751,7 +751,7 @@ def _tab_planning_analysis() -> None:
         if scenario.corpus_growth:
             for yr, val in enumerate(scenario.corpus_growth):
                 chart_rows.append({
-                    "Year": profile_obj.age + yr,
+                    "Year": profile.age + yr,
                     "Balance ($)": val,
                     "Scenario": scenario.name,
                 })
