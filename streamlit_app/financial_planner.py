@@ -367,12 +367,13 @@ def _tab_guide() -> None:
   (Young Professional / Married Family / Pre-Retirement)
 
 **Option B — 🤖 Auto-fill from a document** (fastest for real cases):
-1. Expand **"🤖 Auto-fill from Document (AI)"** at the top of the Client Input tab
+1. In the Client Input tab, use the **"Upload file to auto-fill"** uploader
 2. Upload a PDF, Word (.docx), or text file describing the client's finances
    (e.g. a case study, financial summary, or class handout)
-3. Click **Extract & Preview** — the AI reads the document and fills in all fields it can find
+3. Click **🔍 Extract & Preview** — the AI reads the document and fills in all fields it can find
 4. Review the extracted values and check the missing-fields warning
 5. Click **✅ Apply to Form** to populate the form, then scroll down to verify and click **Save Profile**
+6. *(If you have a previously saved JSON profile, upload that instead — it loads instantly without AI)*
 
 **Option C — Enter manually**:
 1. Set basic info: Name, Age, Marital Status, Dependents, Risk Tolerance, State Tax Rate
@@ -652,10 +653,23 @@ def _tab_client_input() -> None:
             st.success(f"Loaded: {sel}")
 
     with col_up:
-        uploaded = st.file_uploader("Or upload a client JSON", type=["json"], key="fp_profile_upload")
-        if uploaded:
-            st.session_state.fp_profile_dict = json.load(uploaded)
-            st.success("Profile loaded from file.")
+        up_file = st.file_uploader(
+            "Upload file to auto-fill",
+            type=["json", "pdf", "docx", "txt", "md"],
+            key="fp_profile_upload",
+            help="JSON → loads instantly · PDF / Word / TXT → AI extracts the numbers",
+        )
+        if up_file:
+            _ext_name = up_file.name.lower().rsplit(".", 1)[-1]
+            if _ext_name == "json":
+                st.session_state.fp_profile_dict = json.load(up_file)
+                st.session_state.pop("fp_ai_extracted", None)
+                st.session_state.pop("fp_ai_missing", None)
+                st.success("Profile loaded from JSON.")
+            else:
+                # Store bytes so the button press can re-read them
+                st.session_state["fp_ai_pending_bytes"] = up_file.read()
+                st.session_state["fp_ai_pending_name"]  = up_file.name
 
     with col_clear:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
@@ -663,72 +677,62 @@ def _tab_client_input() -> None:
             st.session_state.fp_profile_dict = None
             for k in ["fp_issues","fp_quant_checks","fp_scenarios","fp_report","fp_retrieved_docs"]:
                 st.session_state[k] = None if k != "fp_retrieved_docs" else []
+            for k in ["fp_ai_extracted","fp_ai_missing","fp_ai_pending_bytes","fp_ai_pending_name"]:
+                st.session_state.pop(k, None)
             st.rerun()
 
-    # ── AI Auto-fill from document ───────────────────────────────────────────
-    with st.expander("🤖 Auto-fill from Document (AI)", expanded=False):
-        st.caption(
-            "Upload a PDF, Word (.docx), or text file describing the client's finances. "
-            "The AI will read it and auto-fill the form. Review the extracted values before saving."
-        )
-        ai_doc = st.file_uploader(
-            "Upload client document",
-            type=["pdf", "docx", "txt", "md"],
-            key="fp_ai_doc_upload",
-        )
-        if ai_doc:
-            if st.button("🔍 Extract & Preview", key="fp_ai_extract_btn"):
-                _client = _get_openai_client()
-                if not _client:
-                    st.error("OpenAI client unavailable — cannot run extraction.")
-                else:
-                    with st.spinner(f"Reading {ai_doc.name} and extracting financial data…"):
-                        try:
-                            _extracted, _missing = _ai_extract_profile(
-                                ai_doc.read(), ai_doc.name, _client
-                            )
-                            st.session_state["fp_ai_extracted"] = _extracted
-                            st.session_state["fp_ai_missing"]   = _missing
-                        except Exception as _ex:
-                            st.error(f"Extraction failed: {_ex}")
-                            st.session_state.pop("fp_ai_extracted", None)
+    # ── AI extraction flow (shown whenever a non-JSON file is pending) ────────
+    if st.session_state.get("fp_ai_pending_bytes"):
+        _pname = st.session_state["fp_ai_pending_name"]
+        st.info(f"📄 **{_pname}** ready — click below to extract financial data with AI.")
+        if st.button("🔍 Extract & Preview", key="fp_ai_extract_btn"):
+            _client = _get_openai_client()
+            if not _client:
+                st.error("OpenAI client unavailable — cannot run extraction.")
+            else:
+                with st.spinner(f"Reading {_pname} and extracting financial data…"):
+                    try:
+                        _extracted, _missing = _ai_extract_profile(
+                            st.session_state["fp_ai_pending_bytes"], _pname, _client
+                        )
+                        st.session_state["fp_ai_extracted"] = _extracted
+                        st.session_state["fp_ai_missing"]   = _missing
+                    except Exception as _ex:
+                        st.error(f"Extraction failed: {_ex}")
+                        st.session_state.pop("fp_ai_extracted", None)
 
-        # Show preview if extraction completed
-        if st.session_state.get("fp_ai_extracted"):
-            _ext = st.session_state["fp_ai_extracted"]
-            _miss = st.session_state.get("fp_ai_missing", [])
+    # Preview panel
+    if st.session_state.get("fp_ai_extracted"):
+        _ext  = st.session_state["fp_ai_extracted"]
+        _miss = st.session_state.get("fp_ai_missing", [])
 
-            st.success("✅ Extraction complete — review the values below before applying.")
+        st.success("✅ Extraction complete — review the values below before applying.")
+        _prev_cols = st.columns(4)
+        _prev_cols[0].metric("Name",         _ext.get("name") or "—")
+        _prev_cols[1].metric("Age",          _ext.get("age")  or "—")
+        _prev_cols[2].metric("Gross Income", f"${_ext.get('gross_annual_income', 0):,.0f}/yr")
+        _prev_cols[3].metric("Net Worth",
+            f"${sum(_ext.get('assets',{}).values()) - sum(_ext.get('liabilities',{}).values()):,.0f}")
 
-            # Key numbers at a glance
-            _prev_cols = st.columns(4)
-            _prev_cols[0].metric("Name", _ext.get("name") or "—")
-            _prev_cols[1].metric("Age", _ext.get("age") or "—")
-            _prev_cols[2].metric("Gross Income",
-                f"${_ext.get('gross_annual_income', 0):,.0f}/yr")
-            _prev_cols[3].metric("Net Worth",
-                f"${sum(_ext.get('assets',{}).values()) - sum(_ext.get('liabilities',{}).values()):,.0f}")
+        with st.expander("Full extracted JSON", expanded=False):
+            st.json(_ext)
 
-            with st.expander("Full extracted JSON", expanded=False):
-                st.json(_ext)
+        if _miss:
+            st.warning(
+                "⚠️ The following fields were **not found** in the document and default to 0 — "
+                f"please fill them in manually after applying: **{', '.join(_miss)}**"
+            )
 
-            if _miss:
-                st.warning(
-                    "⚠️ The following fields were **not found** in the document and default to 0 — "
-                    f"please fill them in manually: **{', '.join(_miss)}**"
-                )
-
-            if st.button("✅ Apply to Form", key="fp_ai_apply_btn", type="primary"):
-                st.session_state.fp_profile_dict = _ext
-                st.session_state.pop("fp_ai_extracted", None)
-                st.session_state.pop("fp_ai_missing",   None)
-                st.success("Profile applied! Scroll down to review and save.")
-                st.rerun()
-
-            if st.button("✖ Discard", key="fp_ai_discard_btn"):
-                st.session_state.pop("fp_ai_extracted", None)
-                st.session_state.pop("fp_ai_missing",   None)
-                st.rerun()
+        _act_cols = st.columns([1, 1, 6])
+        if _act_cols[0].button("✅ Apply to Form", key="fp_ai_apply_btn", type="primary"):
+            st.session_state.fp_profile_dict = _ext
+            for k in ["fp_ai_extracted","fp_ai_missing","fp_ai_pending_bytes","fp_ai_pending_name"]:
+                st.session_state.pop(k, None)
+            st.rerun()
+        if _act_cols[1].button("✖ Discard", key="fp_ai_discard_btn"):
+            for k in ["fp_ai_extracted","fp_ai_missing","fp_ai_pending_bytes","fp_ai_pending_name"]:
+                st.session_state.pop(k, None)
+            st.rerun()
 
     st.divider()
 
