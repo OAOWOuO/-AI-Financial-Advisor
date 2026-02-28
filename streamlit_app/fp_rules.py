@@ -198,7 +198,9 @@ class RulesEngine:
                         f"**Snowball** (smallest-balance first): payoff in {s_yrs}y {s_mo}m, "
                         f"total interest ${snowball['total_interest']:,.0f}.\n"
                         f"Choosing Avalanche over Snowball saves ~${interest_saved:,.0f} in interest. "
-                        "Use Snowball if motivation from quick wins matters more than math."
+                        "Use Snowball if motivation from quick wins matters more than math.\n"
+                        "⚠️ Rates used are estimates (CC≈22%, car≈7%, student loans≈6%). "
+                        "Check your statements for actual rates."
                     ),
                     metric_value= f"Save ${interest_saved:,.0f}",
                     benchmark   = "Avalanche (max interest savings)",
@@ -416,10 +418,45 @@ class RulesEngine:
                 detail      = (f"Estimated SS benefit at FRA (age 67): ~${ss_benefit:,.0f}/yr "
                                f"(${ss_benefit/12:,.0f}/mo) in today's dollars. "
                                "Claiming at 62 reduces this by ~30%; at 70 increases it by ~24%. "
-                               "Verify your actual benefit at ssa.gov/myaccount."),
+                               "⚠️ This estimate assumes a full career at your current income level "
+                               "and may overstate benefits for younger workers or those with gaps in employment. "
+                               "Visit ssa.gov/myaccount for your actual projected benefit."),
                 metric_value= f"~${ss_benefit:,.0f}/yr",
                 benchmark   = "Verify at ssa.gov",
                 action_hint = "Delay claiming to age 70 if possible — each year of delay adds ~8% in benefits.",
+            ))
+
+        # ── Roth IRA income eligibility check ────────────────────────────────
+        total_income = p.total_annual_income()
+        married      = p.marital_status in ("married", "widowed")
+        roth_start   = 230_000 if married else 146_000
+        roth_end     = 240_000 if married else 161_000
+        filing_label = "married filing jointly" if married else "single"
+        if total_income > roth_end:
+            issues.append(PlanningIssue(
+                category    = IssueCategory.RETIREMENT,
+                severity    = IssueSeverity.MEDIUM,
+                title       = "Income likely exceeds Roth IRA eligibility limit",
+                detail      = (f"For 2024, Roth IRA contributions phase out at "
+                               f"${roth_start:,}–${roth_end:,} ({filing_label}). "
+                               f"Your estimated income of ${total_income:,.0f} makes direct Roth IRA contributions ineligible. "
+                               "Consider the Backdoor Roth IRA strategy (nondeductible Traditional IRA → Roth conversion)."),
+                metric_value= f"${total_income:,.0f}/yr",
+                benchmark   = f"< ${roth_start:,} for full Roth eligibility",
+                action_hint = "Use Backdoor Roth IRA: contribute to Traditional IRA (nondeductible), then convert to Roth.",
+            ))
+        elif total_income > roth_start:
+            issues.append(PlanningIssue(
+                category    = IssueCategory.RETIREMENT,
+                severity    = IssueSeverity.LOW,
+                title       = "Income in Roth IRA phase-out range",
+                detail      = (f"For 2024, Roth IRA contributions phase out at "
+                               f"${roth_start:,}–${roth_end:,} ({filing_label}). "
+                               f"Your income of ${total_income:,.0f} allows only a partial direct Roth IRA contribution. "
+                               "Consider a partial contribution or the Backdoor Roth strategy."),
+                metric_value= f"${total_income:,.0f}/yr",
+                benchmark   = f"< ${roth_start:,} for full Roth eligibility",
+                action_hint = "Calculate your reduced Roth contribution limit or use Backdoor Roth strategy.",
             ))
 
         return issues
@@ -466,15 +503,21 @@ class RulesEngine:
         for goal in p.goals:
             if goal.target_amount <= 0 or goal.timeline_months <= 0:
                 continue
+            # Inflate target for goals with multi-year horizons (3% annual inflation)
+            years = goal.timeline_months / 12
+            inflation_factor = (1 + 0.03) ** years if years > 1 else 1.0
+            inflated_target  = round(goal.target_amount * inflation_factor, 0)
             needed = calc.calc_goal_monthly_savings_needed(
-                goal.target_amount, 0.0, goal.timeline_months
+                inflated_target, 0.0, goal.timeline_months
             )
+            inflation_note = (f" (inflated from ${goal.target_amount:,.0f} at 3%/yr)"
+                              if inflated_target > goal.target_amount else "")
             if needed > monthly_surplus * 0.50:
                 issues.append(PlanningIssue(
                     category    = IssueCategory.GOALS,
                     severity    = IssueSeverity.MEDIUM,
                     title       = f"Goal may be challenging: {goal.description}",
-                    detail      = (f"Reaching ${goal.target_amount:,.0f} in {goal.timeline_months} months "
+                    detail      = (f"Reaching ${inflated_target:,.0f}{inflation_note} in {goal.timeline_months} months "
                                    f"requires saving ~${needed:,.0f}/month, "
                                    f"which represents {needed/gm*100:.0f}% of gross monthly income."),
                     metric_value= f"Needs ${needed:,.0f}/month",

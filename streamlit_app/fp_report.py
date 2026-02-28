@@ -83,7 +83,9 @@ def build_quant_checks(profile: ClientProfile) -> List[QuantCheck]:
     ))
 
     # Cash flow
-    tax_rate = 0.22 if profile.marital_status == "married" else 0.25
+    tax_rate = calc.calc_total_tax_rate(
+        profile.total_annual_income(), profile.marital_status, profile.state_income_tax_rate
+    )
     cf = calc.calc_monthly_cash_flow(gm, monthly_exp, profile.monthly_debt_payments.total(), tax_rate)
     checks.append(QuantCheck(
         label     = "Estimated Monthly Cash Flow",

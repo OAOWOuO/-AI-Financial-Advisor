@@ -60,6 +60,7 @@
     {"type": "estate_planning", "description": "Review/update wills, beneficiaries, and trust structures", "target_amount": 0, "timeline_months": 6, "priority": 2},
     {"type": "ltc_planning", "description": "Assess long-term care insurance need", "target_amount": 0, "timeline_months": 12, "priority": 3}
   ],
+  "state_income_tax_rate": 0.0,
   "risk_tolerance": "conservative",
   "situation_summary": "High-earning couple, 10 years from target retirement. Kids are grown and independent. Mortgage will be paid off in 8 years. No long-term care insurance — significant coverage gap given age. Estate documents are 15 years old and haven't been reviewed. Social Security optimization strategy not yet planned. Pension: none. Relies entirely on 401k/IRA/brokerage for retirement income."
 }

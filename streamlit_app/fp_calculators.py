@@ -82,27 +82,44 @@ def calc_life_insurance_coverage_ratio(coverage: float, gross_annual_income: flo
 
 # ── Net worth ────────────────────────────────────────────────────────────────
 
+_NW_BENCHMARK_FALLBACK = {30: 0.5, 35: 1.0, 40: 2.0, 45: 3.0,
+                           50: 5.0, 55: 8.0, 60: 12.0, 65: 15.0}
+
+
+def _load_nw_benchmarks() -> Dict[int, float]:
+    """Load Stanley-Danko benchmarks from planning_rules.json; fall back to hardcoded values."""
+    import os, json
+    rules_path = os.path.join(os.path.dirname(__file__), "data", "rule_configs", "planning_rules.json")
+    try:
+        with open(rules_path, encoding="utf-8") as f:
+            rules = json.load(f)
+        raw = rules.get("net_worth_targets", {}).get("by_age", {})
+        return {int(k): float(v) for k, v in raw.items()}
+    except Exception:
+        return _NW_BENCHMARK_FALLBACK
+
+
 def calc_net_worth_target(age: int, gross_annual_income: float) -> float:
     """
     Target net worth using Stanley-Danko benchmark, interpolated linearly.
-    Source: "The Millionaire Next Door" income-proportional benchmarks.
+    Source: planning_rules.json → net_worth_targets.by_age
+    ("The Millionaire Next Door" income-proportional benchmarks).
     """
-    _benchmarks = {30: 0.5, 35: 1.0, 40: 2.0, 45: 3.0,
-                   50: 5.0, 55: 8.0, 60: 12.0, 65: 15.0}
-    if age <= 30:
-        return gross_annual_income * 0.5
-    if age >= 65:
-        return gross_annual_income * 15.0
+    benchmarks = _load_nw_benchmarks() or _NW_BENCHMARK_FALLBACK
+    ages = sorted(benchmarks.keys())
+    if age <= ages[0]:
+        return gross_annual_income * benchmarks[ages[0]]
+    if age >= ages[-1]:
+        return gross_annual_income * benchmarks[ages[-1]]
     # Linear interpolation between bracket ages
-    ages = sorted(_benchmarks.keys())
     for i in range(len(ages) - 1):
         a0, a1 = ages[i], ages[i + 1]
         if a0 <= age <= a1:
-            m0, m1 = _benchmarks[a0], _benchmarks[a1]
+            m0, m1 = benchmarks[a0], benchmarks[a1]
             frac = (age - a0) / (a1 - a0)
             mult = m0 + frac * (m1 - m0)
             return round(gross_annual_income * mult, 2)
-    return gross_annual_income * _benchmarks[ages[-1]]
+    return gross_annual_income * benchmarks[ages[-1]]
 
 
 # ── Retirement projection ─────────────────────────────────────────────────────

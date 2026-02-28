@@ -702,10 +702,15 @@ def _tab_planning_analysis() -> None:
         gap_label = f"Surplus ${abs(scenario.gap):,.0f}" if scenario.gap <= 0 else f"Shortfall ${scenario.gap:,.0f}"
         assump_str = " · ".join(f"{k}: {v}" for k, v in list(scenario.assumptions.items())[:3])
 
-        # Contribution display: current → boosted
+        # Contribution display: current → boosted, with scenario boost explanation
         base_mo    = scenario.base_monthly_contrib
         boosted_mo = scenario.boosted_monthly_contrib
         extra_mo   = scenario.monthly_savings_needed
+        _boost_pct_map = {"Conservative": 0, "Balanced": 2, "Aggressive": 5}
+        boost_pct  = _boost_pct_map.get(scenario.name, 0)
+        boost_note = (f"+{boost_pct}% savings rate boost already assumed in this scenario"
+                      if boost_pct > 0 else "at your current savings rate")
+
         if extra_mo > 0:
             total_target = boosted_mo + extra_mo
             savings_html = (
@@ -714,10 +719,14 @@ def _tab_planning_analysis() -> None:
                 f'Currently: <strong style="color:#c9d1d9;">${base_mo:,.0f}</strong>/mo &nbsp;→&nbsp; '
                 f'Need: <strong style="color:{gap_color};">${total_target:,.0f}</strong>/mo'
                 f'<br><span style="font-size:10px;color:#6e7681;">'
-                f'(+${extra_mo:,.0f}/mo on top of {scenario.name.lower()} boost)</span></div>'
+                f'+${extra_mo:,.0f}/mo additional gap · {boost_note}</span></div>'
             )
         else:
-            savings_html = '<div style="font-size:11px;color:#3fb950;margin-top:6px;">✓ On track at current savings rate</div>'
+            on_track_note = f" (assumes {boost_pct}% rate increase)" if boost_pct > 0 else ""
+            savings_html = (
+                f'<div style="font-size:11px;color:#3fb950;margin-top:6px;">'
+                f'✓ On track{on_track_note}</div>'
+            )
 
         with col:
             st.markdown(f"""
