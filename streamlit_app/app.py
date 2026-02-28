@@ -643,8 +643,11 @@ with ft_col3:
 <div class="ft-data-item">• AI analysis: OpenAI API</div>
 <div class="ft-data-item">• Equity universe: US-listed stocks only</div>
 <div class="ft-data-item">• Data accuracy not guaranteed</div>
+<div class="ft-data-item">• Planning methodology: Bengen (1994) 4% SWR; Stanley &amp; Danko (1996) net worth benchmarks; CFPB DTI standards; SSA replacement rates; IRS 2024 limits</div>
 <span class="ft-legal-note">Past performance is not indicative of future results.
-Not affiliated with any financial institution.<br><br>
+Not affiliated with any financial institution.<br>
+Base framework: <a href="https://github.com/virattt/ai-hedge-fund" target="_blank"
+style="color:#3b82f6 !important;text-decoration:none;">virattt/ai-hedge-fund</a><br><br>
 Source code: <a href="https://github.com/OAOWOuO/-AI-Financial-Advisor" target="_blank"
 style="color:#3b82f6 !important;text-decoration:none;">github.com/OAOWOuO/-AI-Financial-Advisor</a></span>
 """, unsafe_allow_html=True)

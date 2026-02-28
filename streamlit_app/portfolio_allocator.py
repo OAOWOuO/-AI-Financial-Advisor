@@ -2729,4 +2729,4 @@ with tab_settings:
 
 # ============== FOOTER ==============
 st.divider()
-st.caption("AI Portfolio Allocator v5.5 | Educational Use Only | Not Financial Advice")
+st.caption("AI Portfolio Allocator v5.9 | Educational Use Only | Not Financial Advice | Data: Yahoo Finance (yfinance)")

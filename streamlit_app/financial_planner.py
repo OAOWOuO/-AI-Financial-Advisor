@@ -631,6 +631,12 @@ def _tab_planning_analysis() -> None:
 
     # ── Quantitative checks ─────────────────────────────────────────────────
     st.markdown("##### Quantitative Checks")
+    st.caption(
+        "Methodology sources: DTI standard — CFPB | Net worth benchmark — Stanley & Danko, "
+        "*The Millionaire Next Door* (1996) | Safe withdrawal rate — Bengen (1994) 4% rule | "
+        "Social Security estimates — SSA average replacement rates ([ssa.gov](https://www.ssa.gov/myaccount/)) | "
+        "401(k) limits — IRS 2024 Publication 560"
+    )
     for q in quant:
         sc = _COLORS.get(q.status, "#8b949e")
         st.markdown(f"""

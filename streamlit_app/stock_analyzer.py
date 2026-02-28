@@ -1727,6 +1727,15 @@ def show_stock_analyzer():
         st.write("# 📈 Stock Analyzer")
         st.caption("Technical & Fundamental Analysis with Price Forecasting")
 
+    st.warning(
+        "**Educational / Research Tool** — All analysis, scores, valuations, and forecasts are "
+        "algorithmically generated for illustrative purposes only. They are **not** professional "
+        "investment advice and should **not** be used as the sole basis for any investment decision. "
+        "Market data sourced from Yahoo Finance (yfinance, 15–20 min delayed). "
+        "Always consult a licensed financial professional before investing.",
+        icon="⚠️",
+    )
+
     if 'inst_data' not in st.session_state:
         st.session_state.inst_data = None
 
