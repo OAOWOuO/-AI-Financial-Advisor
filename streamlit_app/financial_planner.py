@@ -797,7 +797,7 @@ def _tab_planning_analysis() -> None:
             padding={"left": 10, "right": 10, "top": 10, "bottom": 10},
         ).configure_axis(
             gridColor="#21262d", labelColor="#8b949e", titleColor="#8b949e",
-        ).configure_view(strokeColor="#30363d")
+        ).configure_view(stroke="#30363d")
 
         st.altair_chart(chart, use_container_width=True)
 
