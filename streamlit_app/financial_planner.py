@@ -1347,10 +1347,14 @@ def _tab_recommendation_report() -> None:
         f"PLAN CONTEXT:\n{_plan_context}"
     )
 
+    def _md(text: str) -> None:
+        """Render markdown with $ signs escaped to prevent Streamlit LaTeX interpretation."""
+        st.markdown(text.replace("$", "\\$"))
+
     # Render existing chat history
     for _msg in st.session_state.fp_chat_history:
         with st.chat_message(_msg["role"]):
-            st.markdown(_msg["content"])
+            _md(_msg["content"])
 
     # Chat input
     _user_prompt = st.chat_input(
@@ -1360,7 +1364,7 @@ def _tab_recommendation_report() -> None:
     if _user_prompt:
         st.session_state.fp_chat_history.append({"role": "user", "content": _user_prompt})
         with st.chat_message("user"):
-            st.markdown(_user_prompt)
+            _md(_user_prompt)
 
         _messages = [{"role": "system", "content": _sys_msg}]
         _messages += [
@@ -1371,17 +1375,23 @@ def _tab_recommendation_report() -> None:
 
         with st.chat_message("assistant"):
             try:
-                def _chat_stream():
-                    for _chunk in client.chat.completions.create(
-                        model=st.session_state.get("fp_model", "gpt-4o-mini"),
-                        messages=_messages,
-                        max_tokens=700,
-                        stream=True,
-                    ):
-                        if _chunk.choices[0].delta.content:
-                            yield _chunk.choices[0].delta.content
-
-                _answer = st.write_stream(_chat_stream)
+                # Stream chunks manually so we can escape $ signs in real time
+                _placeholder = st.empty()
+                _chunks: list[str] = []
+                for _chunk in client.chat.completions.create(
+                    model=st.session_state.get("fp_model", "gpt-4o-mini"),
+                    messages=_messages,
+                    max_tokens=700,
+                    stream=True,
+                ):
+                    _delta = _chunk.choices[0].delta.content
+                    if _delta:
+                        _chunks.append(_delta)
+                        _placeholder.markdown(
+                            "".join(_chunks).replace("$", "\\$") + "▌"
+                        )
+                _answer = "".join(_chunks)
+                _placeholder.markdown(_answer.replace("$", "\\$"))
                 st.session_state.fp_chat_history.append(
                     {"role": "assistant", "content": _answer}
                 )
