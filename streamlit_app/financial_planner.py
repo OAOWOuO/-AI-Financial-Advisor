@@ -384,13 +384,11 @@ def _tab_guide() -> None:
     with st.expander("Step 2 — Run the Analysis", expanded=False):
         st.markdown("""
 1. Go to the **📊 Analysis** tab
-2. Click **▶ Run Analysis** — this runs the rules engine (no API key needed)
+2. Click **▶ Run Analysis** to execute the rules engine
 3. Review the **Quantitative Checks** — each ratio is flagged OK / WARNING / CRITICAL
 4. Review the **Planning Issues** — sorted by severity (Critical → High → Medium → Low → Info)
 5. Scroll down to see the **Retirement Scenario Projections** (Conservative / Balanced / Aggressive)
    and the **Year-by-Year Balance Growth Chart**
-
-**No API key required for this step.** All calculations are deterministic and happen locally.
 """)
 
     with st.expander("Step 3 — Generate the Report", expanded=False):
@@ -399,7 +397,7 @@ def _tab_guide() -> None:
 - Browse the built-in case library of 12 reference client scenarios
 - Analogous cases are automatically matched to your profile
 
-**Report tab** (requires OpenAI API key):
+**Report tab:**
 1. Go to the **📄 Report** tab
 2. Click **Generate Report** — the LLM writes the narrative sections using the rules engine output
 3. The report includes:
@@ -451,10 +449,6 @@ making the AI reasoning transparent and auditable.
     st.markdown("---")
     st.markdown("##### Frequently Asked Questions")
     faqs = [
-        ("Do I need an API key?",
-         "Only for the Report tab and document embedding. The rules engine (Analysis tab) "
-         "runs entirely locally with no API key. Add your OpenAI API key in the app settings "
-         "or via Streamlit Secrets (`OPENAI_API_KEY`)."),
         ("Is my data saved?",
          "No. All data is stored in your browser session (st.session_state) and is cleared "
          "when you close or refresh the page. Nothing is written to disk or sent to any server "
@@ -466,8 +460,8 @@ making the AI reasoning transparent and auditable.
          "Always verify with a licensed CFP, CPA, or attorney."),
         ("Why are my documents not affecting the report?",
          "Make sure you clicked **Index Documents** after uploading — uploading alone does not "
-         "embed the content. You also need an OpenAI API key for embedding. After indexing, "
-         "regenerate the report so the retrieval step can use your documents."),
+         "embed the content. After indexing, regenerate the report so the retrieval step "
+         "can use your documents."),
         ("Can I use sample profiles as a starting point?",
          "Yes — load a sample profile, then edit any fields and click **Save Profile** to "
          "overwrite it with your own data before running the analysis."),
