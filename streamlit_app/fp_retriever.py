@@ -5,7 +5,7 @@ Architecture: in-memory numpy cosine similarity (no external vector DB required)
 Documents are stored in st.session_state across a browser session.
 Each chunk carries rich metadata: source_type, topic, reliability_level, date.
 
-Supports: PDF, Markdown, TXT, HTML (text portion).
+Supports: PDF, Markdown, TXT, HTML (text portion), Word (.docx).
 """
 from __future__ import annotations
 import io, os, hashlib
@@ -136,8 +136,31 @@ def ingest_bytes(
         except Exception as e:
             return 0, f"Failed to parse HTML: {e}"
 
+    elif ext in ("docx", "doc"):
+        try:
+            from docx import Document as DocxDocument
+            doc = DocxDocument(io.BytesIO(file_bytes))
+            # Group paragraphs into logical "pages" (~50 paragraphs each for chunking)
+            paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+            # Also pull text from tables
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = " | ".join(c.text.strip() for c in row.cells if c.text.strip())
+                    if row_text:
+                        paragraphs.append(row_text)
+            if not paragraphs:
+                return 0, "No text found in this Word document."
+            page_size = 50   # paragraphs per virtual page
+            for page_num, start in enumerate(range(0, len(paragraphs), page_size), start=1):
+                page_text = "\n".join(paragraphs[start: start + page_size])
+                all_chunks.extend(_chunk_text(page_text, filename, page_num, base_meta))
+        except ImportError:
+            return 0, "python-docx is not installed. Run: pip install python-docx"
+        except Exception as e:
+            return 0, f"Failed to read Word document: {e}"
+
     else:
-        return 0, f"Unsupported file type '.{ext}'. Supported: pdf, md, txt, html."
+        return 0, f"Unsupported file type '.{ext}'. Supported: pdf, docx, md, txt, html."
 
     if not all_chunks:
         return 0, "No text could be extracted from this file."

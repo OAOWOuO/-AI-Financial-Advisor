@@ -314,6 +314,177 @@ _COLORS = {
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# TAB 0 — GUIDE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _tab_guide() -> None:
+    st.markdown("#### 🗺️ How to Use the AI Financial Planner")
+    st.caption(
+        "Follow the 4-step workflow below to get a complete, personalised financial planning report. "
+        "Each step builds on the last — you must complete Step 1 before running the analysis."
+    )
+
+    # ── Workflow overview ────────────────────────────────────────────────────
+    st.markdown("---")
+    cols = st.columns(4)
+    steps = [
+        ("1️⃣", "📋 Client Input", "#3b82f6",
+         "Enter your financial profile — income, assets, debts, expenses, insurance, and goals. "
+         "You can load one of the 3 built-in sample profiles to see an example instantly."),
+        ("2️⃣", "📊 Analysis", "#d29922",
+         "Click **Run Analysis** to execute the deterministic rules engine. "
+         "You get quantitative ratio checks (DTI, emergency fund, savings rate, net worth) "
+         "and 3 retirement scenario projections (Conservative / Balanced / Aggressive)."),
+        ("3️⃣", "🏛️ Case Insights & 📄 Report", "#3fb950",
+         "Explore similar client cases from the built-in case library, then generate the "
+         "full AI-written recommendation report with executive summary, prioritised actions, "
+         "and source citations."),
+        ("4️⃣", "📚 Knowledge Base (optional)", "#8b949e",
+         "Upload your own PDFs, Word files (.docx), or text notes as reference material. "
+         "These are embedded and retrieved via RAG to ground the AI report in your documents."),
+    ]
+    for col, (num, title, color, body) in zip(cols, steps):
+        with col:
+            st.markdown(f"""
+<div style="background:#0d1117;border:1px solid {color};border-radius:10px;
+  padding:16px;height:100%;min-height:160px;">
+  <div style="font-size:22px;text-align:center;">{num}</div>
+  <div style="font-size:13px;font-weight:700;color:{color};text-align:center;
+    margin:6px 0 10px;">{title}</div>
+  <div style="font-size:12px;color:#c9d1d9;line-height:1.6;">{body}</div>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown("")   # spacer
+
+    # ── Detailed step-by-step ───────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("##### Detailed Instructions")
+
+    with st.expander("Step 1 — Fill in the Client Profile", expanded=True):
+        st.markdown("""
+**Option A — Load a sample profile** (recommended for first-time users):
+- Click **Load Sample** in the Client Input tab and choose a profile
+  (Young Professional / Married Family / Pre-Retirement)
+
+**Option B — Enter manually**:
+1. Set basic info: Name, Age, Marital Status, Dependents, Risk Tolerance, State Tax Rate
+2. Fill in income (gross annual, spouse, other)
+3. Fill in monthly expenses by category
+4. Fill in assets (checking, investments, 401k, IRA, real estate, etc.)
+5. Fill in liabilities (mortgage, car loans, student loans, credit cards)
+6. Fill in monthly debt payments
+7. Check insurance coverage (health, life, disability)
+8. Set retirement contribution rate and employer match
+9. Add financial goals (emergency fund, home purchase, college savings, etc.)
+10. Click **Save Profile**
+
+**Tip:** You can also upload a JSON file if you've previously saved a profile.
+""")
+
+    with st.expander("Step 2 — Run the Analysis", expanded=False):
+        st.markdown("""
+1. Go to the **📊 Analysis** tab
+2. Click **▶ Run Analysis** — this runs the rules engine (no API key needed)
+3. Review the **Quantitative Checks** — each ratio is flagged OK / WARNING / CRITICAL
+4. Review the **Planning Issues** — sorted by severity (Critical → High → Medium → Low → Info)
+5. Scroll down to see the **Retirement Scenario Projections** (Conservative / Balanced / Aggressive)
+   and the **Year-by-Year Balance Growth Chart**
+
+**No API key required for this step.** All calculations are deterministic and happen locally.
+""")
+
+    with st.expander("Step 3 — Generate the Report", expanded=False):
+        st.markdown("""
+**Case Insights tab** (optional but recommended):
+- Browse the built-in case library of 12 reference client scenarios
+- Analogous cases are automatically matched to your profile
+
+**Report tab** (requires OpenAI API key):
+1. Go to the **📄 Report** tab
+2. Click **Generate Report** — the LLM writes the narrative sections using the rules engine output
+3. The report includes:
+   - Executive Summary
+   - Case Reasoning (which cases/documents are analogous and why)
+   - Prioritised Recommendations with timelines
+   - Follow-up Questions for the planner
+   - Missing Information checklist
+4. Download the full report as a Markdown file
+5. Use the **💬 Ask About Your Plan** chat to dive deeper
+
+**The LLM only writes narrative — all numbers and thresholds come from the rules engine.**
+""")
+
+    with st.expander("Step 4 — Upload Reference Documents (optional)", expanded=False):
+        st.markdown("""
+The **📚 Knowledge Base** tab lets you upload your own planning reference documents.
+Uploaded documents are embedded (via OpenAI `text-embedding-3-small`) and retrieved
+during report generation to ground the AI's analysis in real source material.
+
+**Supported file formats:** PDF · Word (.docx) · Markdown (.md) · Plain Text (.txt) · HTML
+
+**Steps:**
+1. Go to the **📚 Knowledge Base** tab
+2. Click **➕ Add Documents** to expand the upload area
+3. Select your file(s), choose a **Topic** tag and **Source Type**
+4. Click **Index Documents** — the system splits, embeds, and stores the content
+5. Indexed documents appear in the document table with chunk counts
+6. During **Report generation**, the system retrieves the most relevant passages
+   and cites them in the report
+
+**Tips:**
+- Tag course notes as `class_material`, official guidelines as `official_guidance`
+- PDFs with selectable text work best; scanned image-only PDFs may extract poorly
+- Word documents (.docx) extract paragraph text and table content
+- Documents are stored for the current browser session only (not persisted to disk)
+""")
+
+    with st.expander("Step 5 — Explainability & Settings", expanded=False):
+        st.markdown("""
+**🔍 Explainability tab**: After generating a report, this tab shows exactly which
+document chunks were retrieved and how similar they were to the planning query —
+making the AI reasoning transparent and auditable.
+
+**⚙️ Settings tab**: Manage the built-in case library (view, add, or reset cases).
+""")
+
+    # ── FAQ ─────────────────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("##### Frequently Asked Questions")
+    faqs = [
+        ("Do I need an API key?",
+         "Only for the Report tab and document embedding. The rules engine (Analysis tab) "
+         "runs entirely locally with no API key. Add your OpenAI API key in the app settings "
+         "or via Streamlit Secrets (`OPENAI_API_KEY`)."),
+        ("Is my data saved?",
+         "No. All data is stored in your browser session (st.session_state) and is cleared "
+         "when you close or refresh the page. Nothing is written to disk or sent to any server "
+         "other than OpenAI when you generate a report or embed documents."),
+        ("Are the financial calculations accurate?",
+         "The rules engine uses standard planning benchmarks (Bengen 4% SWR, CFPB DTI standards, "
+         "Stanley-Danko net worth targets, SSA replacement rates, IRS 2024 limits). "
+         "All calculations are approximate and for educational purposes only. "
+         "Always verify with a licensed CFP, CPA, or attorney."),
+        ("Why are my documents not affecting the report?",
+         "Make sure you clicked **Index Documents** after uploading — uploading alone does not "
+         "embed the content. You also need an OpenAI API key for embedding. After indexing, "
+         "regenerate the report so the retrieval step can use your documents."),
+        ("Can I use sample profiles as a starting point?",
+         "Yes — load a sample profile, then edit any fields and click **Save Profile** to "
+         "overwrite it with your own data before running the analysis."),
+    ]
+    for q, a in faqs:
+        with st.expander(f"❓ {q}"):
+            st.markdown(a)
+
+    st.markdown("---")
+    st.caption(
+        "⚠️ This tool is for **educational purposes only**. "
+        "It does not constitute legal, tax, or investment advice. "
+        "Consult a licensed CFP, CPA, or attorney before making any financial decisions."
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — CLIENT INPUT
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -505,8 +676,8 @@ def _tab_case_library() -> None:
     with st.expander("➕ Add Documents", expanded=retriever.store_count() == 0):
         up_cols = st.columns([3,1,1,1,1])
         files = up_cols[0].file_uploader(
-            "Upload documents (PDF, MD, TXT, HTML)",
-            type=["pdf","md","txt","html"], accept_multiple_files=True, key="fp_doc_upload"
+            "Upload documents (PDF, Word, MD, TXT, HTML)",
+            type=["pdf","docx","md","txt","html"], accept_multiple_files=True, key="fp_doc_upload"
         )
         topic      = up_cols[1].selectbox("Topic",        retriever.TOPIC_TAGS,     key="fp_up_topic")
         src_type   = up_cols[2].selectbox("Source Type",  retriever.SOURCE_TYPES,   key="fp_up_srctype")
@@ -1473,6 +1644,7 @@ def show_financial_planner() -> None:
     )
 
     tabs = st.tabs([
+        "🗺️ Guide",
         "📋 Client Input",
         "📊 Analysis",
         "🏛️ Case Insights",
@@ -1482,13 +1654,14 @@ def show_financial_planner() -> None:
         "⚙️ Settings",
     ])
 
-    with tabs[0]: _tab_client_input()
-    with tabs[1]: _tab_planning_analysis()
-    with tabs[2]: _tab_case_insights()
-    with tabs[3]: _tab_recommendation_report()
-    with tabs[4]: _tab_case_library()
-    with tabs[5]: _tab_explainability()
-    with tabs[6]: _tab_settings()
+    with tabs[0]: _tab_guide()
+    with tabs[1]: _tab_client_input()
+    with tabs[2]: _tab_planning_analysis()
+    with tabs[3]: _tab_case_insights()
+    with tabs[4]: _tab_recommendation_report()
+    with tabs[5]: _tab_case_library()
+    with tabs[6]: _tab_explainability()
+    with tabs[7]: _tab_settings()
 
 
 # ── Markdown export helper ────────────────────────────────────────────────────
