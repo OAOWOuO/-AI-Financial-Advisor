@@ -136,7 +136,13 @@ def ingest_bytes(
         except Exception as e:
             return 0, f"Failed to parse HTML: {e}"
 
-    elif ext in ("docx", "doc"):
+    elif ext == "doc":
+        return 0, (
+            "Old .doc format (Word 97-2003) is not supported. "
+            "Please re-save the file as .docx or export it as PDF, then upload again."
+        )
+
+    elif ext == "docx":
         try:
             from docx import Document as DocxDocument
             doc = DocxDocument(io.BytesIO(file_bytes))

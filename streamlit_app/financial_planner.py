@@ -557,7 +557,12 @@ def _read_doc_text(file_bytes: bytes, filename: str) -> tuple[str, str]:
             reader = PdfReader(io.BytesIO(file_bytes))
             pages = [p.extract_text() or "" for p in reader.pages]
             return "\n".join(pages).strip(), ""
-        elif ext in ("docx", "doc"):
+        elif ext == "doc":
+            return "", (
+                "Old .doc format (Word 97-2003) is not supported. "
+                "Please re-save as .docx or export as PDF, then upload again."
+            )
+        elif ext == "docx":
             from docx import Document as _DocxDoc
             doc = _DocxDoc(io.BytesIO(file_bytes))
             paras = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
@@ -657,8 +662,11 @@ def _tab_client_input() -> None:
             "Upload file to auto-fill",
             type=["json", "pdf", "docx", "txt", "md"],
             key="fp_profile_upload",
-            help="JSON → loads instantly · PDF / Word / TXT → AI extracts the numbers",
+            help="JSON → loads instantly · PDF / Word (.docx) / TXT → AI extracts the numbers. "
+                 "⚠️ Old .doc format is not supported — please re-save as .docx or PDF first.",
         )
+        st.caption("Supported: JSON · PDF · Word (.docx) · TXT · MD — "
+                   "⚠️ Old `.doc` format not supported, re-save as `.docx` or PDF")
         if up_file:
             _ext_name = up_file.name.lower().rsplit(".", 1)[-1]
             if _ext_name == "json":
