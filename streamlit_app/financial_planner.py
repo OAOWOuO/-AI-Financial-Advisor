@@ -20,6 +20,13 @@ import streamlit as st
 # ── Helper: get OpenAI client ─────────────────────────────────────────────────
 
 def _get_openai_client():
+    """
+    Resolve and return an authenticated ``openai.OpenAI`` client, or ``None`` if no API key is found.
+
+    Searches three locations in priority order: Streamlit Cloud secrets, the ``OPENAI_API_KEY``
+    environment variable, and a ``.env`` file one directory above this module (local dev).
+    Returns ``None`` instead of raising so callers can gracefully degrade to non-LLM paths.
+    """
     api_key = ""
     # 1. Streamlit Cloud secrets
     try:
@@ -46,6 +53,14 @@ def _get_openai_client():
 # ── Session state defaults ────────────────────────────────────────────────────
 
 def _init_state() -> None:
+    """
+    Populate ``st.session_state`` with all Financial Planner keys that have not yet been set.
+
+    Acts as a single source of truth for default values so every downstream tab can safely
+    read session keys without checking for ``KeyError``.
+    Side effects: writes up to 14 keys to ``st.session_state`` on first call; subsequent
+    calls are no-ops for keys that already exist.
+    """
     defaults = {
         "fp_profile_dict":   None,
         "fp_issues":         None,
@@ -318,6 +333,13 @@ _COLORS = {
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_guide() -> None:
+    """
+    Render the onboarding Guide tab with a 4-step workflow overview, detailed instructions, and FAQ.
+
+    Exists as the first tab so new users understand the client-input → analysis → report pipeline
+    before touching any data-entry forms.
+    No session-state mutations; purely presentational.
+    """
     st.markdown("#### 🗺️ How to Use the AI Financial Planner")
     st.caption(
         "Follow the 4-step workflow below to get a complete, personalised financial planning report. "
@@ -582,8 +604,14 @@ def _read_doc_text(file_bytes: bytes, filename: str) -> tuple[str, str]:
 
 def _ai_extract_profile(file_bytes: bytes, filename: str, openai_client) -> tuple[dict, list[str]]:
     """
-    Ask GPT to extract a ClientProfile-compatible dict from document text.
-    Returns (profile_dict, missing_fields_list).
+    Use GPT-4o-mini to extract a ``ClientProfile``-compatible dict from an uploaded document.
+
+    Calls ``_read_doc_text`` to convert the file to plain text, then sends it to the OpenAI
+    Chat Completions API with a strict JSON schema prompt; the LLM is the ONLY component here
+    that produces output — all downstream arithmetic is handled by the rules engine, not this call.
+    Returns ``(profile_dict, missing_fields)`` where ``missing_fields`` lists keys that defaulted
+    to zero/empty so the user knows which fields to fill in manually.
+    Raises ``ValueError`` on unreadable documents or ``json.JSONDecodeError`` on malformed responses.
     """
     import json as _json
 
@@ -643,6 +671,14 @@ def _ai_extract_profile(file_bytes: bytes, filename: str, openai_client) -> tupl
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_client_input() -> None:
+    """
+    Render the Client Input tab: structured form, sample-profile loader, JSON upload, and AI auto-fill.
+
+    This is the entry point of the data-flow pipeline; saving a profile writes a validated dict to
+    ``st.session_state.fp_profile_dict`` and resets all downstream results (issues, scenarios, report).
+    Side effects: mutates ``fp_profile_dict`` and clears ``fp_issues``, ``fp_quant_checks``,
+    ``fp_scenarios``, and ``fp_report`` whenever the profile is saved or cleared.
+    """
     st.markdown("#### 📋 Client Profile Input")
     st.caption("Fill in the client's financial situation, or load a sample profile.")
 
@@ -886,6 +922,14 @@ def _tab_client_input() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_case_library() -> None:
+    """
+    Render the Knowledge Base tab: upload, embed, and search user-provided planning documents.
+
+    Delegates to ``fp_retriever.ingest_bytes`` to split documents into chunks and embed them via
+    ``text-embedding-3-small``; the resulting in-memory store is queried during report generation.
+    Side effects: calls the OpenAI Embeddings API for each indexed document; modifies the
+    module-level vector store inside ``fp_retriever`` (session-scoped, not persisted to disk).
+    """
     import fp_retriever as retriever
 
     st.markdown("#### 📚 Case Library & Knowledge Base")
@@ -976,6 +1020,14 @@ Topic: <b>{m.get('topic','?')}</b> &nbsp;|&nbsp; Type: <b>{m.get('source_type','
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_planning_analysis() -> None:
+    """
+    Render the Planning Analysis tab: runs the deterministic rules engine and scenario projections.
+
+    When the user clicks "Run Analysis", this function instantiates ``RulesEngine`` and
+    ``generate_scenarios`` — no LLM is involved; all numbers are rule-based.
+    Side effects: writes ``fp_issues``, ``fp_quant_checks``, and ``fp_scenarios`` to
+    ``st.session_state`` and resets ``fp_similar_cases`` to force fresh CBR matching.
+    """
     from fp_schemas import ClientProfile
     from fp_rules import RulesEngine
     from fp_scenarios import generate_scenarios
@@ -1209,6 +1261,14 @@ def _tab_planning_analysis() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_case_insights() -> None:
+    """
+    Render the Case Insights tab: retrieves the most similar historical cases via CBR matching.
+
+    Implements Case-Based Reasoning by calling ``fp_case_retriever.retrieve_similar_cases``, which
+    combines structured-attribute scoring with optional cosine-similarity embeddings (hybrid mode).
+    Side effects: writes ``fp_similar_cases`` to ``st.session_state``; may trigger an OpenAI
+    Embeddings API call to build the in-memory case vector store if not yet indexed.
+    """
     from fp_schemas import ClientProfile
     import fp_case_retriever as case_ret
 
@@ -1423,6 +1483,15 @@ def _tab_case_insights() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_recommendation_report() -> None:
+    """
+    Render the Recommendation Report tab: RAG retrieval + LLM narrative generation + AI chat.
+
+    Orchestrates the full output pipeline: RAG (``fp_retriever.retrieve``) fetches relevant document
+    chunks via cosine similarity, then ``fp_report.generate_report`` sends issues, quant checks,
+    scenarios, and retrieved chunks to the LLM to produce prioritised narrative recommendations.
+    Side effects: writes ``fp_retrieved_docs`` and ``fp_report`` to ``st.session_state``;
+    also manages ``fp_chat_history`` for the follow-up chat widget below the report.
+    """
     from fp_schemas import ClientProfile
     import fp_report as rpt
     import fp_retriever as retriever
@@ -1657,6 +1726,13 @@ def _tab_recommendation_report() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_explainability() -> None:
+    """
+    Render the Explainability tab: display retrieved document chunks and case-reasoning narrative.
+
+    Provides auditability by surfacing which RAG chunks were used, their cosine similarity scores,
+    metadata (topic, reliability, source type), and the LLM's case-analogy reasoning section.
+    No session-state mutations; reads ``fp_report`` and ``fp_similar_cases`` as read-only.
+    """
     st.markdown("#### 🔍 Explainability — Source-Based Reasoning")
     st.caption("Shows which documents were retrieved, why they were relevant, and how they informed the recommendations. Includes citations for external PDF cases.")
 
@@ -1730,6 +1806,14 @@ def _tab_explainability() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _tab_settings() -> None:
+    """
+    Render the Settings tab: configure the LLM model, retrieval top-k, and case library.
+
+    Persists LLM and retrieval preferences to ``st.session_state`` (``fp_model``, ``fp_top_k``,
+    ``fp_use_cases``) and exposes case-library management actions (re-index, clear cache, view).
+    Side effects: "Re-index Case Library" triggers an OpenAI Embeddings API call and rebuilds
+    the in-memory case vector store via ``fp_case_retriever.build_case_embeddings``.
+    """
     import fp_case_retriever as case_ret
     st.markdown("#### ⚙️ Settings")
 
@@ -1834,6 +1918,14 @@ def _tab_settings() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def show_financial_planner() -> None:
+    """
+    Top-level entry point for the Financial Planning Assistant page in the Streamlit app.
+
+    Initialises session state, injects CSS/JS, renders the workflow progress bar, and delegates
+    each of the eight tabs to its dedicated ``_tab_*`` function in the correct pipeline order:
+    Guide → Client Input → Analysis → Case Insights → Report → Knowledge Base → Explainability → Settings.
+    Called directly from the Streamlit multi-page router; all state is managed through session_state.
+    """
     _init_state()
     _fp_inject_css()
     _inject_button_styles()

@@ -74,6 +74,83 @@ Live deployment: <https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamli
 
 ---
 
+## Architecture & Design Decisions
+
+> This section explains the **why** behind key technical choices — not just what was built.
+
+### 1. Why a Hybrid Rules Engine + LLM, Not Pure LLM?
+
+A pure-LLM approach to financial planning has two critical problems:
+- **Hallucination risk**: LLMs invent plausible-sounding but wrong numbers (e.g., wrong DTI thresholds)
+- **Non-auditability**: you cannot explain *why* a recommendation was made or trace it to a formula
+
+The solution is a strict separation of responsibilities:
+
+| Layer | Component | Responsibility |
+|---|---|---|
+| **Deterministic** | `fp_calculators.py` | All math — DTI, emergency fund months, FV projections, SWR corpus |
+| **Rule-based** | `fp_rules.py` + `planning_rules.json` | Threshold decisions — pass/warn/fail, severity classification |
+| **Narrative only** | `fp_report.py` → GPT | Writes English explanation of the numbers the rules engine already produced |
+
+The LLM **never decides** whether a DTI of 38% is a problem — the rules engine does. The LLM only explains it in plain language. This makes the system auditable, reproducible, and safe.
+
+### 2. Data Flow
+
+```
+ClientProfile (fp_schemas.py)
+        │
+        ├── RulesEngine (fp_rules.py)  ──→  List[PlanningIssue]
+        │         │                               │
+        │         └── fp_calculators.py           │
+        │                                         │
+        ├── ScenarioEngine (fp_scenarios.py) ──→  List[ScenarioProjection]
+        │         │
+        │         └── fp_calculators.py
+        │
+        ├── build_quant_checks (fp_report.py) ──→ List[QuantCheck]
+        │
+        └── generate_report (fp_report.py)
+                  │
+                  ├── Retrieved docs (fp_retriever.py, cosine-similarity RAG)
+                  ├── Similar cases  (fp_case_retriever.py, CBR)
+                  └── GPT narrative  ──→ PlanningReport
+```
+
+### 3. Why In-Memory NumPy RAG Instead of ChromaDB?
+
+The original `scripts/build_index.py` uses ChromaDB for batch ingestion. For the **live Streamlit session**, I switched to an in-memory numpy cosine-similarity store for three reasons:
+
+1. **Streamlit Cloud statelessness** — ChromaDB requires persistent disk storage; session uploads disappear on page refresh regardless
+2. **No cold-start** — in-memory store initialises instantly with no file I/O
+3. **Sufficient scale** — a planner session typically uploads < 20 documents; numpy is faster than ChromaDB at this scale
+
+The trade-off is that uploaded documents do not persist across browser sessions. For a classroom demo tool, this is acceptable.
+
+### 4. Why External Thresholds in `planning_rules.json`?
+
+All financial planning thresholds (emergency fund months, DTI limits, replacement ratios, etc.) live in `data/rule_configs/planning_rules.json` rather than being hardcoded in Python. This means:
+
+- A professor or planner can **change a threshold without touching code**
+- The rules are **transparent and auditable** — anyone can read the JSON to understand what triggers a warning
+- Unit tests can override the rules file to test edge cases
+
+### 5. Why Three Retirement Scenarios Instead of One?
+
+Single-point projections give a **false precision**. Three scenarios (Conservative / Balanced / Aggressive) with different return, inflation, and savings rate assumptions:
+- Show the **range of outcomes** the client should plan for
+- Make the sensitivity to savings rate increases concrete (e.g., "+2% saves $X shortfall")
+- Mirror how professional CFPs present retirement plans (Monte Carlo is the gold standard; three scenarios is a simplified version)
+
+### 6. Case-Based Reasoning (CBR) Layer
+
+The 12 built-in reference cases enable **analogical reasoning** — finding a similar past case and explaining what worked. This supplements RAG (document retrieval) with pattern matching on client demographics and issues. The LLM is explicitly instructed to cite which case is analogous and why, making the reasoning transparent.
+
+### 7. AI Auto-Fill from Document
+
+A document upload → GPT extraction pipeline (`_ai_extract_profile()`) allows a planner to paste in a case study or financial summary and have the structured form auto-populated. GPT is prompted with the exact JSON schema and `temperature=0` to minimise hallucination. The user sees a preview before the data is applied — GPT's output is never silently trusted.
+
+---
+
 ## MGMT 690 – Project 1 (Feb 2, 2026)
 
 **Student:** YuanTeng Fan | **Course:** MGMT 690, Purdue University | **Semester:** Spring 2026
