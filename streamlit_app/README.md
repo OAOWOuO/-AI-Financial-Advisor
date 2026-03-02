@@ -4,7 +4,7 @@ A custom Streamlit web application built on top of [virattt/ai-hedge-fund](https
 The original repo provides the multi-agent CLI framework (LangGraph + Financial Datasets API).
 Everything in `streamlit_app/` was written entirely from scratch and does not exist in the original repo.
 
-**Live app:** https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamlit.app/
+**Live app:** https://oaowouo--ai-financial-advisor-streamlit-appapp-qwt5aa.streamlit.app/
 
 ---
 

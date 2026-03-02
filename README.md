@@ -69,7 +69,7 @@ The **Financial Planner** tab requires an OpenAI API key for:
 
 No API key is needed to view client profiles, run the rules engine, or generate scenario projections (all deterministic).
 
-Live deployment: <https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamlit.app/>
+Live deployment: <https://oaowouo--ai-financial-advisor-streamlit-appapp-qwt5aa.streamlit.app/>
 
 > This project builds upon [virattt/ai-hedge-fund](https://github.com/virattt/ai-hedge-fund).
 > Original multi-agent framework by [@virattt](https://github.com/virattt).
@@ -295,11 +295,11 @@ Note: The `--ollama`, `--start-date`, and `--end-date` flags work for the backte
 Run my custom Streamlit app (built from scratch — see [My Contributions](#-what-i-added-my-contributions) above):
 
 ```bash
-pip install -r streamlit_app/requirements.txt
+pip install -r requirements.txt
 streamlit run streamlit_app/app.py
 ```
 
-Live: <https://ai-hedge-fund-project1-ezfbsk5cgwj62swdmzwe38.streamlit.app/>
+Live: <https://oaowouo--ai-financial-advisor-streamlit-appapp-qwt5aa.streamlit.app/>
 
 ## License
 
