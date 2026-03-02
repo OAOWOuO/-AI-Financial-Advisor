@@ -45,6 +45,7 @@ Thumbs.db
 
 # Txt files
 *.txt
+!requirements.txt
 
 # PDF files
 *.pdf
