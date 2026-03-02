@@ -18,9 +18,9 @@ jobs:
       - name: Install flake8
         run: pip install flake8
       - name: Lint streamlit_app/
-        run: flake8 streamlit_app/ --max-line-length=120 --extend-ignore=E501,W503
+        run: flake8 streamlit_app/
       - name: Lint scripts/
-        run: flake8 scripts/ --max-line-length=120 --extend-ignore=E501,W503
+        run: flake8 scripts/
 
   test:
     name: Unit Tests

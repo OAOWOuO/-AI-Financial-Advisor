@@ -19,8 +19,7 @@ Usage:
 """
 
 from __future__ import annotations
-import argparse, json, os, pathlib, re, sys, textwrap
-from typing import Optional
+import argparse, json, os, pathlib, sys
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 REPO = pathlib.Path(__file__).parent.parent
