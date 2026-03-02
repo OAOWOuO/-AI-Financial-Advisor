@@ -6,6 +6,7 @@ The LLM is invoked only to write the narrative explanation — never to make thr
 decisions or produce numbers. This keeps the reasoning transparent and auditable.
 """
 from __future__ import annotations
+import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
@@ -300,7 +301,6 @@ def _parse_llm_sections(text: str) -> Dict[str, Any]:
     Extract structured sections from LLM markdown output.
     Handles variations in header formatting.
     """
-    import re
     sections: Dict[str, Any] = {}
 
     def _between(heading_pattern: str) -> str:
