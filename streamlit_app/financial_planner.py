@@ -1117,7 +1117,7 @@ def _tab_planning_analysis() -> None:
             expanded=(iss.severity in ("CRITICAL", "HIGH"))
         ):
             cols = st.columns([3, 1])
-            cols[0].markdown(iss.detail)
+            cols[0].markdown(iss.detail.replace("$", "\\$"))
             if iss.metric_value or iss.benchmark:
                 cols[1].markdown(f"""
 <div class="fp-metric" style="border-color:{sc};">
@@ -1132,7 +1132,8 @@ def _tab_planning_analysis() -> None:
     if info_only:
         with st.expander(f"ℹ️ {len(info_only)} informational note(s)", expanded=False):
             for iss in info_only:
-                st.caption(f"**{iss.title}:** {iss.detail}")
+                _d = iss.detail.replace("$", "\\$")
+                st.caption(f"**{iss.title}:** {_d}")
 
     # ── Scenarios ───────────────────────────────────────────────────────────
     st.markdown("---")
@@ -1436,12 +1437,12 @@ def _tab_case_insights() -> None:
                     st.markdown("**Key Planning Issues in This Case**")
                     for iss in p_issues[:4]:
                         txt = iss if isinstance(iss, str) else iss.get("description", str(iss))
-                        st.markdown(f"- {txt}")
+                        st.markdown(("- " + txt).replace("$", "\\$"))
             if recs:
                 with col_b:
                     st.markdown("**Recommendations That Worked**")
                     for rec in recs[:4]:
-                        st.markdown(f"- {rec}")
+                        st.markdown(("- " + rec).replace("$", "\\$"))
 
             # Outcome / Key lesson
             outcome = meta.get("outcome") or struct.get("outcome_summary", "")
@@ -1464,7 +1465,7 @@ def _tab_case_insights() -> None:
             if fup:
                 with st.expander("💬 Follow-up questions adapted from this case", expanded=False):
                     for q in fup[:4]:
-                        st.markdown(f"- {q}")
+                        st.markdown(("- " + q).replace("$", "\\$"))
 
             # Raw excerpt / narrative
             raw = case.get("raw_excerpt", "")
@@ -1578,9 +1579,12 @@ def _tab_recommendation_report() -> None:
         tl_color = {"0–30 days": "#ff6b6b", "1–3 months": "#f0883e", "3–6 months": "#d29922", "6–24 months": "#58a6ff"}.get(rec.timeline, "#8b949e")
         with st.expander(f"Priority {rec.priority}: {rec.action}", expanded=(rec.priority <= 3)):
             cols = st.columns([3,1])
-            cols[0].markdown(f"**Why:** {rec.reason}")
-            cols[0].markdown(f"**Expected benefit:** {rec.expected_benefit}")
-            cols[0].markdown(f"**Trade-off:** {rec.tradeoff}")
+            _why   = rec.reason.replace("$", "\\$")
+            _ben   = rec.expected_benefit.replace("$", "\\$")
+            _trade = rec.tradeoff.replace("$", "\\$")
+            cols[0].markdown(f"**Why:** {_why}")
+            cols[0].markdown(f"**Expected benefit:** {_ben}")
+            cols[0].markdown(f"**Trade-off:** {_trade}")
             cols[1].markdown(f"""
 <div style="background:{tl_color}22;border:1px solid {tl_color};border-radius:6px;padding:8px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;">Timeline</div>
