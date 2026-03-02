@@ -33,4 +33,4 @@ jobs:
       - name: Install test dependencies
         run: pip install pytest python-dotenv
       - name: Run tests
-        run: pytest tests/test_build_index.py -v
+        run: pytest tests/ -v
