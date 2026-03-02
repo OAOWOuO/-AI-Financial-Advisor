@@ -42,4 +42,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Trigger Render deploy hook
-        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+        run: |
+          HOOK="${{ secrets.RENDER_DEPLOY_HOOK }}"
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK secret not configured — skipping deploy"
+            exit 0
+          fi
+          curl -X POST "$HOOK"
