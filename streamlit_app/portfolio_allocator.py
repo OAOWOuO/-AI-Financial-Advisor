@@ -12,7 +12,7 @@ import numpy as np
 import hashlib
 import altair as alt
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 # Page config moved to main app.py
 

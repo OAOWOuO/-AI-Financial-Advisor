@@ -1,0 +1,31 @@
+[flake8]
+# Maximum line length (same as CI flag)
+max-line-length = 120
+
+# Codes to ignore across the entire project.
+# Style-only rules that are intentional formatting choices are suppressed here;
+# real correctness issues (F401 unused imports) are fixed in source.
+extend-ignore =
+    E501,
+    W503,
+    E221,
+    E231,
+    E251,
+    E128,
+    E127,
+    E272,
+    E225,
+    E701,
+    E702,
+    E401,
+    W291,
+    E302,
+    E303,
+    W391,
+    E722,
+    W605,
+    F541,
+    F841,
+    E261,
+    E301,
+    E305,

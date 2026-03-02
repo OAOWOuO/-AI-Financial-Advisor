@@ -8,7 +8,7 @@ Each chunk carries rich metadata: source_type, topic, reliability_level, date.
 Supports: PDF, Markdown, TXT, HTML (text portion), Word (.docx).
 """
 from __future__ import annotations
-import io, os, hashlib
+import io, hashlib
 from typing import List, Dict, Any, Tuple, Optional
 
 import streamlit as st

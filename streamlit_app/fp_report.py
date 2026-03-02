@@ -6,13 +6,12 @@ The LLM is invoked only to write the narrative explanation — never to make thr
 decisions or produce numbers. This keeps the reasoning transparent and auditable.
 """
 from __future__ import annotations
-import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 from fp_schemas import (
     ClientProfile, PlanningIssue, Recommendation, QuantCheck,
-    ScenarioProjection, PlanningReport, IssueSeverity, IssueCategory
+    ScenarioProjection, PlanningReport, IssueSeverity
 )
 import fp_calculators as calc
 

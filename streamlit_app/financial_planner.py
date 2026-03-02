@@ -571,7 +571,7 @@ _EXTRACT_SYSTEM = (
 
 def _read_doc_text(file_bytes: bytes, filename: str) -> tuple[str, str]:
     """Extract plain text from PDF / Word / TXT. Returns (text, error)."""
-    import io, re
+    import io
     ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
     try:
         if ext == "pdf":
