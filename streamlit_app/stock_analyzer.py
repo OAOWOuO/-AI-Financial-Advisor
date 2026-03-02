@@ -1534,7 +1534,7 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
     if roe_capital_note:
         capital_note_section = f"\n**Capital Structure Note:**\n{roe_capital_note}\n"
 
-    # Fix 2: Use \$ to prevent Streamlit markdown from rendering dollar signs as LaTeX
+    # Fix 2: Use \\$ to prevent Streamlit markdown from rendering dollar signs as LaTeX
     rationale = f"""
 **Investment Thesis:**
 {data['name']} ({data['ticker']}) rates as a **{action}** based on combined technical and fundamental analysis.
@@ -1546,7 +1546,7 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
 {''.join(['• ' + r + chr(10) for r in bearish_risks[:3]]) if bearish_risks else '• No significant bearish factors identified'}
 {capital_note_section}
 **Valuation:**
-Current price of \${price:.2f} {valuation_desc} with a base case target of \${target_price:.2f} ({upside:+.1f}% potential). Bull case target: \${target_high:.2f} ({upside_high:+.1f}%).
+Current price of \\${price:.2f} {valuation_desc} with a base case target of \\${target_price:.2f} ({upside:+.1f}% potential). Bull case target: \\${target_high:.2f} ({upside_high:+.1f}%).
 """
 
     # Fix 5: Use actual support/resistance levels from technical analysis
@@ -1564,18 +1564,18 @@ Current price of \${price:.2f} {valuation_desc} with a base case target of \${ta
     if action in ["STRONG BUY", "BUY"]:
         if support_below:
             pct = (support_below / price - 1) * 100
-            invalidation = f"Exit if price breaks below key support at \${support_below:.2f} ({pct:+.1f}%) on a closing basis."
+            invalidation = f"Exit if price breaks below key support at \\${support_below:.2f} ({pct:+.1f}%) on a closing basis."
         else:
-            invalidation = f"Exit if price falls below \${price * 0.9:.2f} (-10%) or if key technical support breaks."
+            invalidation = f"Exit if price falls below \\${price * 0.9:.2f} (-10%) or if key technical support breaks."
     elif action in ["UNDERPERFORM", "SELL"]:
         if resistance_above:
             pct = (resistance_above / price - 1) * 100
-            invalidation = f"Reconsider if price breaks above key resistance at \${resistance_above:.2f} ({pct:+.1f}%) with strong volume."
+            invalidation = f"Reconsider if price breaks above key resistance at \\${resistance_above:.2f} ({pct:+.1f}%) with strong volume."
         else:
-            invalidation = f"Reconsider if price breaks above \${price * 1.1:.2f} (+10%) with strong volume."
+            invalidation = f"Reconsider if price breaks above \\${price * 1.1:.2f} (+10%) with strong volume."
     else:
         if support_below and resistance_above:
-            invalidation = (f"Monitor range \${support_below:.2f} – \${resistance_above:.2f}. "
+            invalidation = (f"Monitor range \\${support_below:.2f} – \\${resistance_above:.2f}. "
                             f"Decisive close outside this band signals next directional move.")
         else:
             invalidation = "Monitor for decisive breakout above resistance or breakdown below support."
