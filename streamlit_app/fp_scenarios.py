@@ -5,19 +5,10 @@ Generates Conservative / Balanced / Aggressive projections using different
 return and saving-rate assumptions. All math is deterministic; LLM adds narrative.
 """
 from __future__ import annotations
-import json, os
-from typing import List, Dict, Any
+from typing import List
 
 from fp_schemas import ClientProfile, ScenarioProjection
 import fp_calculators as calc
-
-
-_RULES_PATH = os.path.join(os.path.dirname(__file__), "data", "rule_configs", "planning_rules.json")
-
-
-def _load_rules() -> Dict[str, Any]:
-    with open(_RULES_PATH) as f:
-        return json.load(f)
 
 
 SCENARIO_CONFIGS = {

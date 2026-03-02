@@ -10,17 +10,13 @@ The LLM is used only for narrative explanation, never for threshold judgments.
 from __future__ import annotations
 import json
 import os
-from typing import List, Dict, Any
+from typing import List
 
 from fp_schemas import ClientProfile, PlanningIssue, IssueSeverity, IssueCategory
 import fp_calculators as calc
 
 
 _RULES_PATH = os.path.join(os.path.dirname(__file__), "data", "rule_configs", "planning_rules.json")
-
-def _load_rules() -> Dict[str, Any]:
-    with open(_RULES_PATH, "r") as f:
-        return json.load(f)
 
 
 class RulesEngine:

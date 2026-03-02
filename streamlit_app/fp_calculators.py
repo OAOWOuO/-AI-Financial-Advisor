@@ -47,7 +47,7 @@ def calc_monthly_cash_flow(
     gross_monthly_income: float,
     monthly_expenses_total: float,
     monthly_debt_payments_total: float,
-    effective_tax_rate: float = 0.25,
+    effective_tax_rate: float,
 ) -> float:
     """
     Approximate monthly surplus / deficit after taxes, expenses, and debt payments.
