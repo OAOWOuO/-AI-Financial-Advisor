@@ -373,7 +373,7 @@ def fetch_stock(ticker: str) -> dict:
                 "beta": info.get("beta") or 1.0, "high_52w": info.get("fiftyTwoWeekHigh") or 0,
                 "low_52w": info.get("fiftyTwoWeekLow") or 0, "timestamp": ts
             }
-    except:
+    except Exception:
         pass
     return {"valid": False, "ticker": ticker, "price": 0, "change": 0, "change_pct": 0,
             "name": ticker, "sector": "Unknown", "timestamp": ts}
@@ -384,7 +384,7 @@ def fetch_history(ticker: str, period: str = "1y") -> pd.DataFrame:
     try:
         import yfinance as yf
         return yf.Ticker(ticker).history(period=period)
-    except:
+    except Exception:
         return pd.DataFrame()
 
 
@@ -421,7 +421,7 @@ def fetch_events_income(ticker: str) -> dict:
                     return datetime(d.year, d.month, d.day)
                 elif isinstance(d, (int, float)):
                     return datetime.fromtimestamp(d)
-            except:
+            except Exception:
                 pass
             return None
 
@@ -440,7 +440,7 @@ def fetch_events_income(ticker: str) -> dict:
                         dt = to_datetime(ed)
                         if dt:
                             earnings_dates.append(dt)
-        except:
+        except Exception:
             pass
 
         # Method 2: Try earnings_dates DataFrame (has history + upcoming)
@@ -452,7 +452,7 @@ def fetch_events_income(ticker: str) -> dict:
                         dt = to_datetime(idx)
                         if dt and dt >= now - timedelta(days=7):
                             earnings_dates.append(dt)
-            except:
+            except Exception:
                 pass
 
         # Method 3: Try info dict timestamps
@@ -465,7 +465,7 @@ def fetch_events_income(ticker: str) -> dict:
                         if dt and dt >= now - timedelta(days=30):
                             earnings_dates.append(dt)
                             break
-            except:
+            except Exception:
                 pass
 
         # 52-week range
@@ -531,7 +531,7 @@ def fetch_news(ticker: str) -> List[dict]:
                             ts = datetime.fromtimestamp(pub_time)
                         elif isinstance(pub_time, str):
                             ts = datetime.fromisoformat(pub_time.replace('Z', '+00:00'))
-                    except:
+                    except Exception:
                         pass
 
                 # Get link - different field names
@@ -543,7 +543,7 @@ def fetch_news(ticker: str) -> List[dict]:
                     "link": link,
                     "timestamp": ts
                 })
-            except:
+            except Exception:
                 continue
         return results
     except Exception:
@@ -577,7 +577,7 @@ def fetch_benchmark_history(period: str = "1y") -> pd.DataFrame:
         spy = yf.Ticker("SPY")
         hist = spy.history(period=period)
         return hist
-    except:
+    except Exception:
         return pd.DataFrame()
 
 
@@ -602,7 +602,7 @@ def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capi
                 hist = stock.history(period="1y")
                 if len(hist) > 20:
                     hist_data[ticker] = hist['Close']
-            except:
+            except Exception:
                 continue
 
         if len(hist_data) < 1:
@@ -681,7 +681,7 @@ def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capi
             else:
                 beta = 1.0
                 alpha = 0.0
-        except:
+        except Exception:
             beta = 1.0
             alpha = 0.0
 
@@ -1041,7 +1041,7 @@ with tab_signals:
                     try:
                         t, s = line.split(":")
                         holdings[t.strip().upper()] = int(s.strip())
-                    except:
+                    except Exception:
                         pass
 
         st.divider()
@@ -1954,7 +1954,7 @@ with tab_performance:
                     hist = spy.history(period=period)
                     if not hist.empty:
                         return hist
-                except:
+                except Exception:
                     pass
                 return None
 
@@ -2213,7 +2213,7 @@ with tab_events:
                                     "Position Size": f"${pos['notional']:,.0f}",
                                     "% of Portfolio": f"{pos['pct']:.1f}%"
                                 })
-                        except:
+                        except Exception:
                             continue
 
             if earnings_events:
