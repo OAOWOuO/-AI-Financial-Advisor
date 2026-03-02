@@ -1,3 +1,5 @@
+[![CI](https://github.com/OAOWOuO/-AI-Financial-Advisor/actions/workflows/ci.yml/badge.svg)](https://github.com/OAOWOuO/-AI-Financial-Advisor/actions/workflows/ci.yml)
+
 ## 🆕 What I Added (My Contributions)
 
 > **This repo is a course project built on top of [virattt/ai-hedge-fund](https://github.com/virattt/ai-hedge-fund).**
@@ -46,7 +48,7 @@ GitHub Actions workflow: flake8 lint + pytest on every push.
 
 ```bash
 # 1. Install dependencies
-pip install -r streamlit_app/requirements.txt
+pip install -r requirements.txt
 
 # 2. Set your API key (choose one method)
 #    Option A — .env file (local dev):
