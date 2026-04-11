@@ -10,52 +10,100 @@ Everything in `streamlit_app/` was written entirely from scratch and does not ex
 
 ## Tools
 
-| Tool | Description |
+| Tool | File | What it does |
+|---|---|---|
+| **Stock Analyzer** | `stock_analyzer.py` | CFA-style technical analysis (RSI, MACD, Bollinger Bands, ADX), fundamental scoring (valuation / profitability / growth / financial health), multi-model valuation (P/E, DCF, analyst consensus), BUY / HOLD / SELL recommendation |
+| **Portfolio Allocator** | `portfolio_allocator.py` | Multi-stock signal analysis, position sizing, risk metrics (Sharpe, Beta, VaR), S&P 500 benchmark comparison, dividend tracking, one-click rebalancing |
+| **Financial Planner** | `financial_planner.py` | Hybrid rules engine + RAG + LLM narrative: 6-tab UI covering client profile, document library, gap analysis (emergency fund / DTI / cash flow / insurance / retirement), Conservative/Balanced/Aggressive scenario projections, recommendation report with source citations, and explainability layer |
+
+---
+
+## File Map
+
+### UI Layer
+
+| File | Role |
 |---|---|
-| **Portfolio Allocator** | Multi-stock signal analysis, position sizing, risk metrics (Sharpe, Beta, VaR), S&P 500 benchmark comparison, dividend tracking, rebalancing |
-| **Stock Analyzer** | CFA-style technical analysis (RSI, MACD, Bollinger Bands, ADX), fundamental scoring (valuation / profitability / growth / financial health), multi-model valuation (P/E, DCF, analyst consensus), BUY / HOLD / SELL recommendation |
-| **Financial Planner** | Hybrid rules engine + RAG + LLM narrative: 6-tab UI — client profile input, document library, gap analysis (emergency fund / DTI / cash flow / insurance / retirement), Conservative/Balanced/Aggressive scenario projections, prioritized recommendation report with source citations |
+| `app.py` | Dark-themed home page with card navigation to the three tools |
+| `stock_analyzer.py` | Stock Analyzer tool — standalone, no external state |
+| `portfolio_allocator.py` | Portfolio Allocator tool — standalone, no external state |
+| `financial_planner.py` | Financial Planner tool — 6-tab Streamlit UI that wires all `fp_*` modules together |
+
+### Financial Planner Backend
+
+| File | Role |
+|---|---|
+| `fp_schemas.py` | Pydantic data models: `ClientProfile`, `PlanningIssue`, `Recommendation`, `QuantCheck`, `ScenarioProjection`, `PlanningReport` |
+| `fp_calculators.py` | All deterministic financial math: DTI, emergency fund months, net worth benchmark (Stanley-Danko 1996), retirement future-value projection, goal savings rate, SWR corpus |
+| `fp_rules.py` | Rules engine: 8 check categories (emergency fund, debt, cash flow, insurance, retirement match, savings trajectory, net worth, goals) — thresholds loaded from `data/rule_configs/planning_rules.json`, not hardcoded |
+| `fp_scenarios.py` | Retirement scenario engine: Conservative (5% return / 3.5% SWR), Balanced (7% / 4%), Aggressive (9% / 4.5%) — calculates projected corpus, gap, and required monthly savings |
+| `fp_retriever.py` | In-memory NumPy cosine-similarity RAG: ingest PDF/MD/TXT/HTML uploads, embed with OpenAI `text-embedding-3-small`, retrieve top-k chunks for report grounding |
+| `fp_case_retriever.py` | Case-based reasoning retriever: 12 built-in reference cases matched by client demographics and issue type |
+| `fp_report.py` | LLM narrative layer: takes rules issues + quant checks → calls GPT to write Executive Summary, Case Reasoning, Follow-up Questions, and Missing Information sections |
+
+### Config & Secrets
+
+| Path | Role |
+|---|---|
+| `.streamlit/secrets.toml.example` | Template for Streamlit secrets (copy to `secrets.toml` and add `OPENAI_API_KEY`) |
+| `data/rule_configs/planning_rules.json` | All financial planning thresholds — edit here to change what triggers a warning without touching Python |
+
+---
+
+## Architecture: Why Hybrid Rules Engine + LLM?
+
+A pure-LLM financial planner hallucinates thresholds and cannot be audited. The strict layer separation is:
+
+```
+ClientProfile
+    ├── fp_calculators.py  →  raw numbers (DTI, emergency fund months, FV)
+    ├── fp_rules.py        →  pass / warn / fail decisions  (reads planning_rules.json)
+    ├── fp_scenarios.py    →  Conservative / Balanced / Aggressive projections
+    └── fp_report.py
+            ├── fp_retriever.py     →  relevant document chunks (RAG)
+            ├── fp_case_retriever.py →  similar past case (CBR)
+            └── GPT                 →  plain-language narrative only
+```
+
+**The LLM never decides whether a metric is a problem. The rules engine does. The LLM only explains it.**
+
+This makes every recommendation traceable to a formula, threshold, and data source.
 
 ---
 
 ## Data Sources & Methodology Credits
 
 ### Market Data
-- **Yahoo Finance** via [yfinance](https://github.com/ranaroussi/yfinance) — real-time quotes, historical prices, fundamentals, SEC filings (15–20 min delayed)
+- **Yahoo Finance** via [yfinance](https://github.com/ranaroussi/yfinance) — real-time quotes, historical prices, fundamentals (15–20 min delayed)
 
 ### AI / LLM
-- **OpenAI API** (GPT-4o, GPT-4o-mini, text-embedding-3-small) — analyst narrative, report generation, RAG embeddings
+- **OpenAI API** — GPT-4o-mini for narrative generation, `text-embedding-3-small` for RAG embeddings
 
 ### Financial Planning Methodology
-- **Bengen (1994)** — 4% Safe Withdrawal Rate rule. *Bengen, W.P. (1994). Determining Withdrawal Rates Using Historical Data. Journal of Financial Planning.*
-- **Stanley & Danko (1996)** — Net worth benchmarks by age. *Stanley, T.J. & Danko, W.D. (1996). The Millionaire Next Door.*
-- **CFPB** — Debt-to-Income (DTI) ratio standards (≤36% recommended, ≤43% qualified mortgage limit). Consumer Financial Protection Bureau.
-- **SSA** — Social Security replacement rate estimates based on average SSA replacement rates by income tier (NOT the AIME/PIA formula). Social Security Administration, ssa.gov.
-- **IRS** — 401(k) contribution limits: $23,000 standard / $30,500 catch-up (age ≥ 50) for 2024. IRS Publication 560.
-- **Roth IRA income limits** — 2024 phase-out: $146,000–$161,000 (single) / $230,000–$240,000 (married filing jointly). IRS Publication 590-A.
-
-### Vector Store
-- **ChromaDB** — local vector database for RAG document retrieval
+- **Bengen (1994)** — 4% Safe Withdrawal Rate. *Journal of Financial Planning.*
+- **Stanley & Danko (1996)** — Net worth benchmarks by age. *The Millionaire Next Door.*
+- **CFPB** — DTI standards: ≤36% recommended, ≤43% qualified mortgage limit.
+- **SSA** — Social Security replacement rate estimates by income tier (ssa.gov).
+- **IRS** — 401(k) limits: $23,000 standard / $30,500 catch-up (age ≥ 50) for 2024. IRS Publication 560.
+- **IRS** — Roth IRA income phase-out: $146k–$161k (single) / $230k–$240k (MFJ) for 2024. IRS Publication 590-A.
 
 ---
 
 ## Quick Start (Local)
 
-1. Install dependencies:
 ```bash
+# 1. Install dependencies
 pip install -r requirements.txt
-```
 
-2. Set up your API key:
-```bash
+# 2. Set API key
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# Edit secrets.toml and add: OPENAI_API_KEY = "sk-..."
-```
+# Edit secrets.toml: OPENAI_API_KEY = "sk-..."
 
-3. Run:
-```bash
+# 3. Run
 streamlit run app.py
 ```
+
+No API key is required for Stock Analyzer or Portfolio Allocator. The Financial Planner requires OpenAI for RAG embeddings and LLM narrative.
 
 ---
 
