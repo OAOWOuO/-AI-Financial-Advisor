@@ -161,8 +161,8 @@ def _fetch_concept(cik: str, concept: str, taxonomy: str = "us-gaap") -> Optiona
         if resp.status_code != 200:
             return None
         units = resp.json().get("units", {})
-        # Try USD first, then shares
-        for unit_type in ("USD", "shares"):
+        # Try all known unit types: USD, shares, USD/shares (used for EPS)
+        for unit_type in ("USD", "shares", "USD/shares"):
             vals = units.get(unit_type, [])
             if vals:
                 v = _get_most_recent_annual(vals)
