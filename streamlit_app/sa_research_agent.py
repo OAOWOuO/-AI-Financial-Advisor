@@ -16,7 +16,6 @@ def _yfinance_fetch(ticker: str) -> Dict:
     """Fetch comprehensive stock data from Yahoo Finance."""
     try:
         import yfinance as yf
-        import numpy as np
         stock = yf.Ticker(ticker)
         info = stock.info
         hist_1y = stock.history(period="1y")

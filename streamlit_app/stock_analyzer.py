@@ -2851,7 +2851,8 @@ intrinsic fundamental value more heavily.
                         with st.expander(_label, expanded=(_step["step"] == 0)):
                             if _step.get("args"):
                                 st.caption(f"Arguments: `{json.dumps(_step['args'])}`")
-                            st.markdown(f"**Result:** {_step.get('result_summary', '\u2014')}")
+                            _step_result = _step.get("result_summary") or "\u2014"
+                            st.markdown(f"**Result:** {_step_result}")
                             if _step.get("agent_reasoning"):
                                 st.caption(f"Agent reasoning: {_step['agent_reasoning'][:300]}")
 
