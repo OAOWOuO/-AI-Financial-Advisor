@@ -1,4 +1,5 @@
 import os
+import json
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,6 +10,8 @@ try:
     openai_api_key = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "")
 except Exception:
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+
+from sa_research_agent import run_research_agent, run_fact_checker
 
 
 # ============== DATA FETCHING ==============
@@ -1771,9 +1774,18 @@ def show_stock_analyzer():
         st.markdown("</div>", unsafe_allow_html=True)
 
         if analyze_btn and ticker:
-            with st.spinner(f"Fetching institutional data for {ticker}\u2026"):
-                st.session_state.inst_data = fetch_comprehensive_data(ticker)
-                st.rerun()
+            with st.status(f"Researching {ticker}\u2026", expanded=True) as _status:
+                def _on_step(msg):
+                    _status.write(msg)
+                _result, _trace = run_research_agent(ticker, openai_api_key, on_step=_on_step)
+                st.session_state.inst_data = _result
+                st.session_state[f"_trace_{ticker}"] = _trace
+                _n = len(_trace)
+                _status.update(
+                    label=f"{ticker} research complete \u2014 {_n} step{'s' if _n != 1 else ''}",
+                    state="complete",
+                )
+            st.rerun()
 
         # ── AI CHAT FORM ─────────────────────────────────────────────────────────
         _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
@@ -1889,8 +1901,8 @@ def show_stock_analyzer():
 
 
     with col_right:
-        tab_profile, tab_tech, tab_fund, tab_conclusion = st.tabs(
-            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast"]
+        tab_profile, tab_tech, tab_fund, tab_conclusion, tab_research = st.tabs(
+            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast", "🔍 Research Log"]
         )
 
         # ── PROFILE TAB ────────────────────────────────────────────────────────
@@ -2776,9 +2788,92 @@ intrinsic fundamental value more heavily.
   <div style="font-size:13px;color:#c9d1d9;line-height:1.8;">{recommendation['invalidation']}</div>
 </div>""", unsafe_allow_html=True)
 
+                # \u2500\u2500 7. FACT CHECK \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                _fc_context = build_analysis_context(
+                    data, tech_analysis, fund_analysis, valuation, forecasts, recommendation
+                )
+                _fc_issues = run_fact_checker(_fc_context, data)
+                _sources = data.get("_data_sources", {})
+                _src_tags = []
+                if _sources.get("yfinance"):
+                    _src_tags.append("Yahoo Finance")
+                if _sources.get("edgar"):
+                    _src_tags.append("SEC EDGAR (verified)")
+                if _sources.get("web_searches", 0) > 0:
+                    _src_tags.append(f"{_sources['web_searches']} web search(es)")
+                _src_str = " \u00b7 ".join(_src_tags) if _src_tags else "Yahoo Finance"
+
+                with st.expander("\ud83d\udd0e Fact Check & Data Sources", expanded=False):
+                    st.caption(f"Data sourced from: **{_src_str}**")
+                    if not _fc_issues:
+                        st.success("All checked figures match raw data within 5% tolerance.")
+                    else:
+                        st.warning(f"{len(_fc_issues)} discrepancy(ies) detected between the report and raw data:")
+                        for _issue in _fc_issues:
+                            _unit = f" {_issue['unit']}" if _issue.get("unit") else ""
+                            st.markdown(
+                                f"- **{_issue['field']}**: report shows **{_issue['in_report']:.2f}{_unit}**, "
+                                f"raw data shows **{_issue['in_raw_data']:.2f}{_unit}** "
+                                f"({_issue['diff_pct']:.1f}% difference)"
+                            )
+
                 st.markdown("""
 <div style="font-size:11px;color:#6e7681;text-align:center;padding:18px 0 4px 0;border-top:1px solid #21262d;margin-top:18px;">
   <strong>Disclaimer:</strong> Educational purposes only. Not financial or investment advice.
   Data sourced from Yahoo Finance with a 15\u201320 minute delay.
 </div>""", unsafe_allow_html=True)
+
+        # \u2500\u2500 RESEARCH LOG TAB \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        with tab_research:
+            if not has_data:
+                st.info("Run an analysis to see the research log.")
+            else:
+                _trace = st.session_state.get(f"_trace_{data['ticker']}", [])
+                if not _trace:
+                    st.info("No research trace available. Re-run the analysis to generate one.")
+                else:
+                    _src = data.get("_data_sources", {})
+                    _col1, _col2, _col3 = st.columns(3)
+                    _col1.metric("Steps taken", len(_trace))
+                    _col2.metric("EDGAR verified", "Yes" if _src.get("edgar") else "No")
+                    _col3.metric("Web searches", _src.get("web_searches", 0))
+
+                    st.markdown("---")
+                    _tool_icons = {
+                        "get_yfinance_data": "\ud83d\udcc8",
+                        "get_sec_filing": "\ud83c\udfdb\ufe0f",
+                        "web_search": "\ud83c\udf10",
+                        "ERROR": "\u274c",
+                    }
+                    for _step in _trace:
+                        _icon = _tool_icons.get(_step.get("tool", ""), "\ud83d\udd27")
+                        _label = f"{_icon} Step {_step['step']} \u2014 {_step.get('tool', 'unknown')}"
+                        with st.expander(_label, expanded=(_step["step"] == 0)):
+                            if _step.get("args"):
+                                st.caption(f"Arguments: `{json.dumps(_step['args'])}`")
+                            st.markdown(f"**Result:** {_step.get('result_summary', '\u2014')}")
+                            if _step.get("agent_reasoning"):
+                                st.caption(f"Agent reasoning: {_step['agent_reasoning'][:300]}")
+
+                    _edgar_data = data.get("_edgar_data", {})
+                    if _edgar_data.get("available"):
+                        st.markdown("---")
+                        st.markdown("##### \ud83c\udfdb\ufe0f SEC EDGAR Raw Data (overrides yfinance where available)")
+                        _e_cols = st.columns(4)
+                        _e_fields = [
+                            ("Revenue", _edgar_data.get("revenue"), "B"),
+                            ("Net Income", _edgar_data.get("net_income"), "B"),
+                            ("FCF", _edgar_data.get("free_cash_flow"), "B"),
+                            ("EPS", _edgar_data.get("eps"), ""),
+                        ]
+                        for _col, (_lbl, _val, _unit) in zip(_e_cols, _e_fields):
+                            if _val is not None:
+                                _disp = f"${_val/1e9:.1f}B" if _unit == "B" else f"${_val:.2f}"
+                                _col.metric(_lbl, _disp)
+
+                    _web_ctx = data.get("_web_context", "")
+                    if _web_ctx:
+                        st.markdown("---")
+                        with st.expander("\ud83c\udf10 Web Search Results", expanded=False):
+                            st.text(_web_ctx[:3000])
 
