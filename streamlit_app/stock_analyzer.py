@@ -1604,7 +1604,7 @@ def build_analysis_context(data: Dict, tech_analysis: Dict, fund_analysis: Dict,
                            valuation: Dict, forecasts: Dict, recommendation: Dict) -> str:
     """Build comprehensive context string for the AI chat."""
     ctx = f"""STOCK ANALYSIS REPORT - {data['name']} ({data['ticker']})
-Data Source: Yahoo Finance (real-time market data, SEC filings 10-K/10-Q, analyst estimates)
+Data Sources: Yahoo Finance (price, ratios, analyst estimates){", SEC EDGAR XBRL (verified financials)" if data.get("_data_sources", {}).get("edgar") else ""}{f", Web search x{data['_data_sources']['web_searches']}" if data.get("_data_sources", {}).get("web_searches") else ""}
 
 === PRICE DATA ===
 Current Price: ${data['price']:.2f}
@@ -1727,13 +1727,13 @@ def show_stock_analyzer():
             st.rerun()
     with col_title:
         st.write("# 📈 Stock Analyzer")
-        st.caption("Technical & Fundamental Analysis with Price Forecasting")
+        st.caption("Agent-Driven Research · Technical & Fundamental Analysis · Price Forecasting")
 
     st.warning(
         "**Educational / Research Tool** — All analysis, scores, valuations, and forecasts are "
         "algorithmically generated for illustrative purposes only. They are **not** professional "
         "investment advice and should **not** be used as the sole basis for any investment decision. "
-        "Market data sourced from Yahoo Finance (yfinance, 15–20 min delayed). "
+        "Data sourced from Yahoo Finance, SEC EDGAR, and web search. Market prices are 15–20 min delayed. "
         "Always consult a licensed financial professional before investing.",
         icon="⚠️",
     )
@@ -1861,7 +1861,8 @@ def show_stock_analyzer():
                 _system_msg = (
                     f"You are an expert CFA-certified financial analyst assistant with access to a "
                     f"comprehensive analysis of {data['name']} ({data['ticker']}).\n\n"
-                    "Answer questions using the provided analysis data from Yahoo Finance. "
+                    "Answer questions using the provided analysis data (sourced from Yahoo Finance, "
+                    "SEC EDGAR, and web search where available). "
                     "Rules: cite specific numbers, explain reasoning, give quantitative estimates for "
                     "scenarios, note data limitations, do NOT give personal investment advice.\n\n"
                     f"Full analysis:\n\n{_context}"
@@ -2305,7 +2306,7 @@ with the histogram <strong>{macd_trend}</strong> — suggesting <strong>{_macd_m
                         "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Threshold</th>"
                         f"</tr></thead><tbody>{_rows}</tbody></table></div>",
                         unsafe_allow_html=True)
-                st.caption("Data: Yahoo Finance real-time feed (15\u201320 min delayed). Scores are proprietary CFA-style composite ratings.")
+                st.caption("Price data: Yahoo Finance (15\u201320 min delayed). Technical scores are proprietary CFA-style composite ratings.")
 
         # ── FUNDAMENTAL TAB ────────────────────────────────────────────────────
         with tab_fund:
@@ -2622,7 +2623,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                         "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Benchmark</th>"
                         f"</tr></thead><tbody>{_rows}</tbody></table></div>",
                         unsafe_allow_html=True)
-                st.caption("Source: Yahoo Finance \u2014 SEC filings (10-K, 10-Q). Analyst estimates aggregated from major sell-side brokerages.")
+                st.caption("Sources: Yahoo Finance \u00b7 SEC EDGAR 10-K/10-Q (where available) \u00b7 Analyst estimates from sell-side brokerages.")
 
                 st.markdown("---")
                 st.markdown("**Peer Comparison**")
@@ -2803,7 +2804,7 @@ intrinsic fundamental value more heavily.
                     _src_tags.append(f"{_sources['web_searches']} web search(es)")
                 _src_str = " \u00b7 ".join(_src_tags) if _src_tags else "Yahoo Finance"
 
-                with st.expander("\ud83d\udd0e Fact Check & Data Sources", expanded=False):
+                with st.expander("🔎 Fact Check & Data Sources", expanded=False):
                     st.caption(f"Data sourced from: **{_src_str}**")
                     if not _fc_issues:
                         st.success("All checked figures match raw data within 5% tolerance.")
@@ -2820,7 +2821,7 @@ intrinsic fundamental value more heavily.
                 st.markdown("""
 <div style="font-size:11px;color:#6e7681;text-align:center;padding:18px 0 4px 0;border-top:1px solid #21262d;margin-top:18px;">
   <strong>Disclaimer:</strong> Educational purposes only. Not financial or investment advice.
-  Data sourced from Yahoo Finance with a 15\u201320 minute delay.
+  Data sourced from Yahoo Finance (15\u201320 min delayed), SEC EDGAR, and public web search.
 </div>""", unsafe_allow_html=True)
 
         # \u2500\u2500 RESEARCH LOG TAB \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -2840,13 +2841,13 @@ intrinsic fundamental value more heavily.
 
                     st.markdown("---")
                     _tool_icons = {
-                        "get_yfinance_data": "\ud83d\udcc8",
-                        "get_sec_filing": "\ud83c\udfdb\ufe0f",
+                        "get_yfinance_data": "📈",
+                        "get_sec_filing": "🏛️",
                         "web_search": "\ud83c\udf10",
                         "ERROR": "\u274c",
                     }
                     for _step in _trace:
-                        _icon = _tool_icons.get(_step.get("tool", ""), "\ud83d\udd27")
+                        _icon = _tool_icons.get(_step.get("tool", ""), "🔧")
                         _label = f"{_icon} Step {_step['step']} \u2014 {_step.get('tool', 'unknown')}"
                         with st.expander(_label, expanded=(_step["step"] == 0)):
                             if _step.get("args"):
@@ -2859,7 +2860,7 @@ intrinsic fundamental value more heavily.
                     _edgar_data = data.get("_edgar_data", {})
                     if _edgar_data.get("available"):
                         st.markdown("---")
-                        st.markdown("##### \ud83c\udfdb\ufe0f SEC EDGAR Raw Data (overrides yfinance where available)")
+                        st.markdown("##### 🏛️ SEC EDGAR Raw Data (overrides yfinance where available)")
                         _e_cols = st.columns(4)
                         _e_fields = [
                             ("Revenue", _edgar_data.get("revenue"), "B"),
