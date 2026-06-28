@@ -1,7 +1,9 @@
 import json
 import re
 import time
+import xml.etree.ElementTree as ET
 import requests
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 
 _EDGAR_HEADERS = {
@@ -639,8 +641,6 @@ def run_fact_checker(context_str: str, raw_data: Dict) -> List[Dict]:
 
 # ============== INSIDER TRADING (Form 4) ==============
 
-import xml.etree.ElementTree as ET
-
 
 def _empty_summary() -> Dict:
     """Return a zero-value insider summary dict for unavailable/empty cases."""
@@ -734,6 +734,9 @@ def _parse_form4_xml(content: bytes, filing_date: str) -> List[Dict]:
 
 def _compute_insider_summary(trades: List[Dict]) -> Dict:
     """Compute aggregate stats and classify signal from a list of trade dicts."""
+    if not trades:
+        return _empty_summary()
+
     buys = [t for t in trades if t["type"] == "BUY"]
     sells = [t for t in trades if t["type"] == "SELL"]
 
@@ -741,9 +744,6 @@ def _compute_insider_summary(trades: List[Dict]) -> Dict:
     total_sell_value = sum(t["value"] for t in sells)
     net_buy_value = total_buy_value - total_sell_value
     unique_buyers = len({t["insider"] for t in buys})
-
-    if not trades:
-        return _empty_summary()
 
     if unique_buyers >= 3 and net_buy_value > 0:
         signal = "STRONG BUY SIGNAL"
@@ -771,8 +771,6 @@ def fetch_insider_trades(cik: str, months: int = 6) -> Dict:
     Fetch Form 4 insider filings from SEC EDGAR for the given CIK.
     Returns only open-market buys (P) and sells (S) within the time window.
     """
-    from datetime import datetime, timedelta
-
     cutoff = (datetime.utcnow() - timedelta(days=months * 30)).strftime("%Y-%m-%d")
     url = f"https://data.sec.gov/submissions/CIK{cik}.json"
 
