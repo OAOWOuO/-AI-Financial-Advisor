@@ -375,6 +375,33 @@ def _run_pipeline(
         "agent_reasoning": "Pipeline step (fixed order, no LLM)",
     })
 
+    # Step 3: insider trades (Form 4)
+    if on_step:
+        on_step(f"Step 3: fetching SEC EDGAR Form 4 insider trades for {ticker}...")
+    _cik = accumulated.get("edgar", {}).get("cik") if accumulated.get("edgar") else _get_cik(ticker)
+    if _cik:
+        insider_data = fetch_insider_trades(_cik, months=6)
+        _sig = insider_data.get("summary", {}).get("signal", "N/A")
+        _n_trades = len(insider_data.get("trades", []))
+        trace_log.append({
+            "step": 3,
+            "tool": "fetch_insider_trades",
+            "args": {"cik": _cik, "months": 6},
+            "result_summary": f"Signal: {_sig} | {_n_trades} open-market trades found",
+            "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+        })
+    else:
+        insider_data = {"available": False, "error": "No CIK", "months": 6, "trades": [], "summary": _empty_summary()}
+        trace_log.append({
+            "step": 3,
+            "tool": "fetch_insider_trades",
+            "args": {},
+            "result_summary": "Insider data unavailable — non-US or unknown ticker",
+            "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+        })
+    accumulated["insider"] = insider_data
+    accumulated["insider_signal_text"] = analyze_insider_signal(insider_data, ticker, api_key="")
+
     return _merge_data(accumulated), trace_log
 
 
@@ -549,6 +576,28 @@ def run_research_agent(
                 "content": result_str[:4000],
             })
 
+    # Fetch insider trades after agent loop completes
+    if on_step:
+        on_step(f"Fetching SEC EDGAR Form 4 insider trades for {ticker}...")
+    _cik = accumulated.get("edgar", {}).get("cik") if accumulated.get("edgar") else _get_cik(ticker)
+    if _cik:
+        insider_data = fetch_insider_trades(_cik, months=6)
+        _sig = insider_data.get("summary", {}).get("signal", "N/A")
+        _n_trades = len(insider_data.get("trades", []))
+        trace_log.append({
+            "step": len(trace_log),
+            "tool": "fetch_insider_trades",
+            "args": {"cik": _cik, "months": 6},
+            "result_summary": f"Signal: {_sig} | {_n_trades} open-market trades found",
+            "agent_reasoning": "Post-loop insider data fetch",
+        })
+    else:
+        insider_data = {"available": False, "error": "No CIK", "months": 6, "trades": [], "summary": _empty_summary()}
+    accumulated["insider"] = insider_data
+    accumulated["insider_signal_text"] = analyze_insider_signal(
+        insider_data, accumulated.get("yfinance", {}).get("name", ticker), api_key
+    )
+
     final_data = _merge_data(accumulated)
     return final_data, trace_log
 
@@ -586,6 +635,8 @@ def _merge_data(accumulated: Dict) -> Dict:
         "edgar": edgar.get("available", False),
         "web_searches": len(web),
     }
+    merged["_insider_trades"] = accumulated.get("insider") or {"available": False, "months": 6, "trades": [], "summary": _empty_summary()}
+    merged["_insider_signal_text"] = accumulated.get("insider_signal_text") or ""
 
     return merged
 
