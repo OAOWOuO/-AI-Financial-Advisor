@@ -824,3 +824,84 @@ def fetch_insider_trades(cik: str, months: int = 6) -> Dict:
         "trades": trades,
         "summary": _compute_insider_summary(trades),
     }
+
+
+def _deterministic_insider_summary(summary: Dict, months: int) -> str:
+    """Text summary used when no OpenAI API key is available."""
+    if summary.get("no_activity"):
+        return (
+            f"No open-market insider trading activity detected in the past {months} months. "
+            "This is neutral — many executives simply do not trade frequently."
+        )
+
+    num_buys = summary["num_buys"]
+    num_sells = summary["num_sells"]
+    unique_buyers = summary["unique_buyers"]
+    net_buy_value = summary["net_buy_value"]
+    total_buy_value = summary["total_buy_value"]
+    signal = summary["signal"]
+
+    buy_word = "purchase" if num_buys == 1 else "purchases"
+    sell_word = "sale" if num_sells == 1 else "sales"
+
+    if signal == "STRONG BUY SIGNAL":
+        return (
+            f"{unique_buyers} executives made {num_buys} open-market {buy_word} "
+            f"totaling ${total_buy_value/1e6:.1f}M over the past {months} months — "
+            "cluster buying by multiple insiders is historically one of the strongest bullish signals available. "
+            f"Net insider buying stands at ${net_buy_value/1e6:.1f}M."
+        )
+    elif signal == "BUY SIGNAL":
+        return (
+            f"{num_buys} insider {buy_word} totaling ${total_buy_value/1e6:.1f}M "
+            f"over the past {months} months — insiders are net buyers, a positive discretionary signal. "
+            f"Net buying: ${net_buy_value/1e6:.1f}M."
+        )
+    elif signal == "SELL SIGNAL":
+        net_sell = -net_buy_value
+        return (
+            f"Insiders sold ${net_sell/1e6:.1f}M more than they purchased over the past {months} months "
+            f"({num_sells} {sell_word} vs {num_buys} {buy_word}). "
+            "Heavy insider selling can signal reduced conviction, though sales are often driven by diversification or tax needs."
+        )
+    else:
+        return (
+            f"Mixed insider activity over the past {months} months: {num_buys} {buy_word} "
+            f"vs {num_sells} {sell_word}. "
+            f"Net position is ${net_buy_value/1e6:.1f}M — no clear directional signal from insider behavior."
+        )
+
+
+def analyze_insider_signal(trades_data: Dict, company_name: str, api_key: str) -> str:
+    """
+    Return 2-3 sentence natural-language interpretation of insider trades.
+    Uses GPT-4o-mini if api_key provided; falls back to deterministic template on any error.
+    """
+    summary = trades_data.get("summary", _empty_summary())
+    months = trades_data.get("months", 6)
+
+    if not api_key:
+        return _deterministic_insider_summary(summary, months)
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        prompt = (
+            f"Analyze the following insider trading activity for {company_name} "
+            f"over the past {months} months and provide a 2-3 sentence interpretation.\n\n"
+            f"Summary: {json.dumps(summary)}\n\n"
+            "Focus on: cluster buying (multiple insiders buying is stronger), "
+            "role of insiders (C-suite signals carry more weight than directors), "
+            "magnitude relative to typical compensation, "
+            "and what this signals about management's confidence in near-term prospects.\n\n"
+            "Be direct and specific. Use dollar amounts. "
+            "Note: all trades shown are discretionary open-market only (options and awards already filtered out)."
+        )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return _deterministic_insider_summary(summary, months)

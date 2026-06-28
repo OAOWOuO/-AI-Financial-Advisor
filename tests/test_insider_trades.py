@@ -7,6 +7,7 @@ from sa_research_agent import (
     _compute_insider_summary,
     _empty_summary,
 )
+from sa_research_agent import _deterministic_insider_summary, analyze_insider_signal
 
 # Minimal Form 4 XML with one BUY (code P) and one SELL (code S)
 _FIXTURE_XML = b"""<?xml version="1.0"?>
@@ -111,3 +112,43 @@ def test_empty_summary_shape():
     required = {"num_buys", "num_sells", "total_buy_value", "total_sell_value",
                 "net_buy_value", "unique_buyers", "signal", "no_activity"}
     assert required.issubset(s.keys())
+
+
+def test_deterministic_no_activity():
+    s = _empty_summary()
+    text = _deterministic_insider_summary(s, 6)
+    assert "No open-market insider trading" in text
+    assert "6 months" in text
+
+
+def test_deterministic_strong_buy():
+    s = {
+        "num_buys": 4, "num_sells": 0, "total_buy_value": 2_100_000,
+        "total_sell_value": 0, "net_buy_value": 2_100_000,
+        "unique_buyers": 3, "signal": "STRONG BUY SIGNAL", "no_activity": False,
+    }
+    text = _deterministic_insider_summary(s, 6)
+    assert "3" in text  # unique buyers
+    assert "2.1" in text  # total_buy_value in millions
+
+
+def test_deterministic_sell_signal():
+    s = {
+        "num_buys": 0, "num_sells": 4, "total_buy_value": 0,
+        "total_sell_value": 3_000_000, "net_buy_value": -3_000_000,
+        "unique_buyers": 0, "signal": "SELL SIGNAL", "no_activity": False,
+    }
+    text = _deterministic_insider_summary(s, 6)
+    assert "sold" in text.lower() or "sell" in text.lower() or "sale" in text.lower()
+
+
+def test_analyze_insider_signal_no_key_uses_deterministic():
+    trades_data = {
+        "available": True,
+        "months": 6,
+        "trades": [],
+        "summary": _empty_summary(),
+    }
+    result = analyze_insider_signal(trades_data, "Apple Inc", api_key="")
+    assert isinstance(result, str)
+    assert len(result) > 20
