@@ -2843,7 +2843,7 @@ intrinsic fundamental value more heavily.
                     _tool_icons = {
                         "get_yfinance_data": "📈",
                         "get_sec_filing": "🏛️",
-                        "web_search": "\ud83c\udf10",
+                        "web_search": "🌐",
                         "ERROR": "\u274c",
                     }
                     for _step in _trace:
@@ -2876,6 +2876,6 @@ intrinsic fundamental value more heavily.
                     _web_ctx = data.get("_web_context", "")
                     if _web_ctx:
                         st.markdown("---")
-                        with st.expander("\ud83c\udf10 Web Search Results", expanded=False):
+                        with st.expander("🌐 Web Search Results", expanded=False):
                             st.text(_web_ctx[:3000])
 
