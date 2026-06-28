@@ -635,3 +635,194 @@ def run_fact_checker(context_str: str, raw_data: Dict) -> List[Dict]:
             continue
 
     return discrepancies
+
+
+# ============== INSIDER TRADING (Form 4) ==============
+
+import xml.etree.ElementTree as ET
+
+
+def _empty_summary() -> Dict:
+    """Return a zero-value insider summary dict for unavailable/empty cases."""
+    return {
+        "num_buys": 0,
+        "num_sells": 0,
+        "total_buy_value": 0.0,
+        "total_sell_value": 0.0,
+        "net_buy_value": 0.0,
+        "unique_buyers": 0,
+        "signal": "MIXED / NEUTRAL",
+        "no_activity": True,
+    }
+
+
+def _parse_form4_xml(content: bytes, filing_date: str) -> List[Dict]:
+    """
+    Parse Form 4 XML bytes and return open-market buy/sell transactions.
+    Excludes M (option exercise), F (tax withholding), A (award).
+    Falls back to empty list on any parse error.
+    """
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError:
+        return []
+
+    insider_name = ""
+    insider_title = ""
+    for elem in root.iter():
+        local = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+        if local == "rptOwnerName" and elem.text and not insider_name:
+            insider_name = elem.text.strip().title()
+        if local == "officerTitle" and elem.text and not insider_title:
+            insider_title = elem.text.strip()
+
+    trades = []
+    for txn in root.iter():
+        local = txn.tag.split("}")[-1] if "}" in txn.tag else txn.tag
+        if local != "nonDerivativeTransaction":
+            continue
+
+        code = ""
+        date = filing_date
+        shares = 0.0
+        price = 0.0
+
+        for child in txn.iter():
+            ctag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+            if ctag == "transactionCode" and child.text:
+                code = child.text.strip()
+            elif ctag == "transactionDate":
+                for sub in child.iter():
+                    stag = sub.tag.split("}")[-1] if "}" in sub.tag else sub.tag
+                    if stag == "value" and sub.text:
+                        date = sub.text.strip()
+                        break
+            elif ctag == "transactionShares":
+                for sub in child.iter():
+                    stag = sub.tag.split("}")[-1] if "}" in sub.tag else sub.tag
+                    if stag == "value" and sub.text:
+                        try:
+                            shares = abs(float(sub.text.strip()))
+                        except ValueError:
+                            pass
+                        break
+            elif ctag == "transactionPricePerShare":
+                for sub in child.iter():
+                    stag = sub.tag.split("}")[-1] if "}" in sub.tag else sub.tag
+                    if stag == "value" and sub.text:
+                        try:
+                            price = float(sub.text.strip())
+                        except ValueError:
+                            pass
+                        break
+
+        if code not in ("P", "S") or shares <= 0:
+            continue
+
+        trades.append({
+            "date": date,
+            "insider": insider_name or "Unknown",
+            "title": insider_title or "Director/Officer",
+            "type": "BUY" if code == "P" else "SELL",
+            "shares": int(shares),
+            "price": price,
+            "value": shares * price,
+        })
+
+    return trades
+
+
+def _compute_insider_summary(trades: List[Dict]) -> Dict:
+    """Compute aggregate stats and classify signal from a list of trade dicts."""
+    buys = [t for t in trades if t["type"] == "BUY"]
+    sells = [t for t in trades if t["type"] == "SELL"]
+
+    total_buy_value = sum(t["value"] for t in buys)
+    total_sell_value = sum(t["value"] for t in sells)
+    net_buy_value = total_buy_value - total_sell_value
+    unique_buyers = len({t["insider"] for t in buys})
+
+    if not trades:
+        return _empty_summary()
+
+    if unique_buyers >= 3 and net_buy_value > 0:
+        signal = "STRONG BUY SIGNAL"
+    elif len(buys) >= 1 and net_buy_value > 0:
+        signal = "BUY SIGNAL"
+    elif len(sells) >= 3 and net_buy_value < 0:
+        signal = "SELL SIGNAL"
+    else:
+        signal = "MIXED / NEUTRAL"
+
+    return {
+        "num_buys": len(buys),
+        "num_sells": len(sells),
+        "total_buy_value": total_buy_value,
+        "total_sell_value": total_sell_value,
+        "net_buy_value": net_buy_value,
+        "unique_buyers": unique_buyers,
+        "signal": signal,
+        "no_activity": False,
+    }
+
+
+def fetch_insider_trades(cik: str, months: int = 6) -> Dict:
+    """
+    Fetch Form 4 insider filings from SEC EDGAR for the given CIK.
+    Returns only open-market buys (P) and sells (S) within the time window.
+    """
+    from datetime import datetime, timedelta
+
+    cutoff = (datetime.utcnow() - timedelta(days=months * 30)).strftime("%Y-%m-%d")
+    url = f"https://data.sec.gov/submissions/CIK{cik}.json"
+
+    try:
+        resp = requests.get(url, headers=_EDGAR_HEADERS, timeout=10)
+        if resp.status_code != 200:
+            return {
+                "available": False,
+                "error": f"EDGAR submissions unavailable (HTTP {resp.status_code})",
+                "months": months,
+                "trades": [],
+                "summary": _empty_summary(),
+            }
+        submissions = resp.json()
+    except Exception as e:
+        return {"available": False, "error": str(e), "months": months, "trades": [], "summary": _empty_summary()}
+
+    recent = submissions.get("filings", {}).get("recent", {})
+    forms = recent.get("form", [])
+    dates = recent.get("filingDate", [])
+    accessions = recent.get("accessionNumber", [])
+    primary_docs = recent.get("primaryDocument", [])
+
+    form4_entries = [
+        (dates[i], accessions[i], primary_docs[i])
+        for i in range(len(forms))
+        if i < len(dates) and i < len(accessions) and i < len(primary_docs)
+        and forms[i] == "4" and dates[i] >= cutoff
+    ][:15]
+
+    trades: List[Dict] = []
+    cik_int = int(cik)
+    for _date, accession, primary_doc in form4_entries:
+        acc_clean = accession.replace("-", "")
+        xml_url = f"https://www.sec.gov/Archives/edgar/data/{cik_int}/{acc_clean}/{primary_doc}"
+        try:
+            time.sleep(0.1)
+            r = requests.get(xml_url, headers=_EDGAR_HEADERS, timeout=8)
+            if r.status_code != 200:
+                continue
+            trades.extend(_parse_form4_xml(r.content, _date))
+        except Exception:
+            continue
+
+    trades.sort(key=lambda t: t["date"], reverse=True)
+    return {
+        "available": True,
+        "error": None,
+        "cik": cik,
+        "months": months,
+        "trades": trades,
+        "summary": _compute_insider_summary(trades),
+    }
