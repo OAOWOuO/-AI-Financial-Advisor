@@ -1804,6 +1804,8 @@ def show_stock_analyzer():
 
     if 'inst_data' not in st.session_state:
         st.session_state.inst_data = None
+    if "insider_weight" not in st.session_state:
+        st.session_state["insider_weight"] = 15
 
     # ── PRE-COMPUTE (uses session state from previous run) ──────────────────
     data = None
@@ -1815,7 +1817,11 @@ def show_stock_analyzer():
         hist = data['hist_1y']
         tech_df = calculate_technical_indicators(hist)
         tech_analysis = generate_technical_signals(data, tech_df)
-        fund_analysis = analyze_fundamentals(data)
+        _insider_w = st.session_state.get("insider_weight", 15)
+        _insider_trades_available = (data.get("_insider_trades") or {}).get("available", False)
+        if not _insider_trades_available:
+            _insider_w = 0
+        fund_analysis = analyze_fundamentals(data, insider_weight_pct=_insider_w)
         valuation = calculate_valuation(data, fund_analysis)
         forecasts = forecast_returns(data, tech_analysis, fund_analysis, valuation)
         supports, resistances = identify_support_resistance(hist)
@@ -1850,6 +1856,27 @@ def show_stock_analyzer():
                     state="complete",
                 )
             st.rerun()
+
+        # Insider weight slider — only when data available and EDGAR found a CIK
+        _insider_avail = has_data and (data.get("_insider_trades") or {}).get("available", False)
+        if _insider_avail:
+            st.markdown("""
+<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px 6px 14px;margin-bottom:10px;">
+  <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px;">⚙️ Insider Signal Weight</div>""",
+                unsafe_allow_html=True)
+            _new_weight = st.slider(
+                "insider_weight_label",
+                min_value=0, max_value=25,
+                value=st.session_state.get("insider_weight", 15),
+                step=5,
+                format="%d%%",
+                label_visibility="collapsed",
+                help="Portion of the fundamental score driven by Form 4 insider activity (0–25%)",
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+            if _new_weight != st.session_state.get("insider_weight", 15):
+                st.session_state["insider_weight"] = _new_weight
+                st.rerun()
 
         # ── AI CHAT FORM ─────────────────────────────────────────────────────────
         _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
