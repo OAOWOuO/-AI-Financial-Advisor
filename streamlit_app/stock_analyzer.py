@@ -1993,8 +1993,8 @@ def show_stock_analyzer():
 
 
     with col_right:
-        tab_profile, tab_tech, tab_fund, tab_conclusion, tab_research = st.tabs(
-            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "🎯 Conclusion & Forecast", "🔍 Research Log"]
+        tab_profile, tab_tech, tab_fund, tab_insider, tab_conclusion, tab_research = st.tabs(
+            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
         )
 
         # ── PROFILE TAB ────────────────────────────────────────────────────────
@@ -2729,6 +2729,110 @@ also most assumption-dependent approach. A convergence of models above the curre
                     _display_df = _peer_df.drop(columns=['_is_subject'])
                     st.dataframe(_display_df.style.apply(_style_peers, axis=1),
                                  use_container_width=True, hide_index=True)
+
+        # ── INSIDER TAB ────────────────────────────────────────────────────────
+        with tab_insider:
+            if not has_data:
+                st.info("Run an analysis to see insider trading activity.")
+            else:
+                _it = data.get("_insider_trades") or {}
+                if not _it.get("available"):
+                    st.info(
+                        f"SEC EDGAR insider data unavailable for {data['ticker']}. "
+                        "This is normal for non-US or recently listed tickers."
+                    )
+                else:
+                    # ── Time window selector ────────────────────────────────────
+                    _months_options = {"3M": 3, "6M": 6, "12M": 12}
+                    _current_months = _it.get("months", 6)
+                    _months_label = {v: k for k, v in _months_options.items()}.get(_current_months, "6M")
+                    _selected_label = st.radio(
+                        "Time window",
+                        options=list(_months_options.keys()),
+                        index=list(_months_options.keys()).index(_months_label),
+                        horizontal=True,
+                        label_visibility="collapsed",
+                    )
+                    _selected_months = _months_options[_selected_label]
+                    if _selected_months != _current_months:
+                        with st.spinner(f"Re-fetching insider data ({_selected_label})..."):
+                            from sa_research_agent import fetch_insider_trades, analyze_insider_signal, _get_cik
+                            _cik = _it.get("cik") or _get_cik(data["ticker"])
+                            if _cik:
+                                _new_it = fetch_insider_trades(_cik, months=_selected_months)
+                                _new_it["cik"] = _cik
+                                _new_signal = analyze_insider_signal(
+                                    _new_it, data.get("name", data["ticker"]), openai_api_key
+                                )
+                                st.session_state.inst_data["_insider_trades"] = _new_it
+                                st.session_state.inst_data["_insider_signal_text"] = _new_signal
+                                st.rerun()
+
+                    _summary = _it.get("summary", {})
+                    _insider_w = st.session_state.get("insider_weight", 15)
+                    _insider_trades_available = _it.get("available", False)
+                    if not _insider_trades_available:
+                        _insider_w = 0
+                    _insider_raw = _insider_raw_score(_summary)
+                    _insider_pts = _insider_raw * (_insider_w / 20.0) if _insider_w > 0 else 0.0
+
+                    # ── Metric cards ────────────────────────────────────────────
+                    _ic1, _ic2, _ic3 = st.columns(3)
+                    _net = _summary.get("net_buy_value", 0)
+                    _net_sign = "+" if _net >= 0 else ""
+                    _ic1.metric(
+                        "Net Insider Buying",
+                        f"{_net_sign}${_net/1e6:.1f}M",
+                        delta=None,
+                    )
+                    _ic2.metric("Unique Buyers", _summary.get("unique_buyers", 0))
+                    _ic3.metric(
+                        "Insider Score",
+                        f"{_insider_raw} / 20",
+                        delta=f"{_insider_pts:.1f} pts (weight {_insider_w}%)",
+                    )
+
+                    st.markdown("---")
+
+                    # ── Trade table ─────────────────────────────────────────────
+                    _trades = _it.get("trades", [])
+                    if not _trades:
+                        st.info(f"No open-market insider transactions found in the past {_it.get('months', 6)} months.")
+                    else:
+                        _df = pd.DataFrame(_trades[:20])
+                        _df["Value ($)"] = _df["value"].apply(lambda v: f"${v/1e6:.2f}M" if v >= 1e6 else f"${v:,.0f}")
+                        _df["Shares"] = _df["shares"].apply(lambda s: f"{s:,}")
+                        _df["Price"] = _df["price"].apply(lambda p: f"${p:.2f}" if p > 0 else "—")
+                        _display_df = _df.rename(columns={
+                            "date": "Date", "insider": "Insider",
+                            "title": "Title", "type": "Type",
+                        })[["Date", "Insider", "Title", "Type", "Shares", "Price", "Value ($)"]]
+
+                        def _color_type(val):
+                            if val == "BUY":
+                                return "color: #3fb950; font-weight: 600"
+                            elif val == "SELL":
+                                return "color: #f85149; font-weight: 600"
+                            return ""
+
+                        st.dataframe(
+                            _display_df.style.map(_color_type, subset=["Type"]),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                    # ── AI interpretation ───────────────────────────────────────
+                    _signal_text = data.get("_insider_signal_text") or ""
+                    if _signal_text:
+                        with st.expander("💬 AI Analysis", expanded=False):
+                            st.write(_signal_text)
+
+                    # ── Source caption ──────────────────────────────────────────
+                    _months_used = _it.get("months", 6)
+                    st.caption(
+                        f"Source: SEC EDGAR Form 4 · {_months_used}-month window · "
+                        "Open-market transactions only (awards, option exercises excluded)"
+                    )
 
         # ── CONCLUSION TAB ─────────────────────────────────────────────────────
         with tab_conclusion:
