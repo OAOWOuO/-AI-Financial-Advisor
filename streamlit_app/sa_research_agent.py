@@ -249,13 +249,16 @@ def _edgar_summary(edgar: Dict) -> str:
 def _web_search(query: str, max_results: int = 4) -> str:
     """DuckDuckGo text search. Returns formatted text snippets."""
     try:
-        from duckduckgo_search import DDGS
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            from duckduckgo_search import DDGS
         results = list(DDGS().text(query, max_results=max_results))
         if not results:
             return "No results found."
         return "\n".join(f"[{r.get('title', '')}] {r.get('body', '')}" for r in results)[:3000]
     except ImportError:
-        return "Web search unavailable: install duckduckgo-search."
+        return "Web search unavailable: install ddgs."
     except Exception as e:
         return f"Search error: {e}"
 
@@ -317,6 +320,62 @@ _TOOLS = [
 ]
 
 
+# ============== DETERMINISTIC PIPELINE (no-LLM fallback) ==============
+
+def _run_pipeline(
+    ticker: str,
+    yf_data: Dict,
+    trace_log: List[Dict],
+    on_step,
+    reason: str = "",
+) -> Tuple[Dict, List[Dict]]:
+    """
+    No-LLM mode: always runs yfinance → EDGAR → web search in fixed order.
+    Used when OpenAI is unavailable or the API key is invalid.
+    """
+    trace_log = list(trace_log)
+    trace_log[0]["agent_reasoning"] = f"Pipeline mode (no LLM): {reason}"
+
+    accumulated = {"yfinance": yf_data, "edgar": None, "web_searches": []}
+
+    # Step 1: EDGAR
+    if on_step:
+        on_step(f"Step 1: fetching SEC EDGAR 10-K for {ticker}...")
+    edgar = _edgar_fetch(ticker)
+    if edgar.get("available"):
+        accumulated["edgar"] = edgar
+        summary = (
+            f"Revenue: ${(edgar.get('revenue') or 0)/1e9:.1f}B | "
+            f"FCF: ${(edgar.get('free_cash_flow') or 0)/1e9:.1f}B | "
+            f"EPS: {edgar.get('eps', 'N/A')}"
+        )
+    else:
+        summary = f"EDGAR unavailable — {edgar.get('error', 'unknown')}"
+    trace_log.append({
+        "step": 1,
+        "tool": "get_sec_filing",
+        "args": {"ticker": ticker, "filing_type": "10-K"},
+        "result_summary": summary,
+        "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+    })
+
+    # Step 2: web search
+    if on_step:
+        on_step(f"Step 2: web search for {ticker} news & industry...")
+    query = f"{ticker} stock news outlook competitors 2025"
+    text = _web_search(query)
+    accumulated["web_searches"].append({"query": query, "result": text})
+    trace_log.append({
+        "step": 2,
+        "tool": "web_search",
+        "args": {"query": query},
+        "result_summary": text[:150] + "...",
+        "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+    })
+
+    return _merge_data(accumulated), trace_log
+
+
 # ============== RESEARCH AGENT ==============
 
 def run_research_agent(
@@ -357,15 +416,15 @@ def run_research_agent(
         return yf_data, fallback_trace
 
     if not api_key:
-        fallback_trace[0]["agent_reasoning"] += " | No OpenAI key — yfinance only mode"
-        return yf_data, fallback_trace
+        return _run_pipeline(ticker, yf_data, fallback_trace, on_step, reason="No OpenAI key")
 
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
+        # Quick connectivity check — catches 401 / wrong key before the loop
+        client.models.list()
     except Exception as e:
-        fallback_trace[0]["agent_reasoning"] += f" | OpenAI unavailable ({e}) — yfinance only mode"
-        return yf_data, fallback_trace
+        return _run_pipeline(ticker, yf_data, fallback_trace, on_step, reason=str(e))
 
     accumulated = {"yfinance": yf_data, "edgar": None, "web_searches": []}
     trace_log = list(fallback_trace)
