@@ -2878,6 +2878,24 @@ also most assumption-dependent approach. A convergence of models above the curre
   </div>
 </div>""", unsafe_allow_html=True)
 
+                # ── INSIDER SIGNAL BADGE ────────────────────────────────────
+                _it_badge = data.get("_insider_trades") or {}
+                if _it_badge.get("available"):
+                    _sig_badge = _it_badge.get("summary", {}).get("signal", "MIXED / NEUTRAL")
+                    _sig_color = (
+                        "#3fb950" if "BUY" in _sig_badge
+                        else "#f85149" if "SELL" in _sig_badge
+                        else "#d29922"
+                    )
+                    _w_badge = st.session_state.get("insider_weight", 15)
+                    st.markdown(f"""
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 16px;
+            background:#0d1117;border:1px solid #30363d;border-radius:8px;">
+  <span style="font-size:13px;color:#8b949e;font-weight:600;">Insider Signal:</span>
+  <span style="font-size:13px;color:{_sig_color};font-weight:700;">{_sig_badge}</span>
+  <span style="font-size:12px;color:#6e7681;margin-left:auto;">Weight: {_w_badge}%</span>
+</div>""", unsafe_allow_html=True)
+
                 # ── 2. PRICE TARGET SCENARIOS ─────────────────────────────────
                 st.markdown("##### Price Target Scenarios")
                 pt_col1, pt_col2, pt_col3 = st.columns(3)
