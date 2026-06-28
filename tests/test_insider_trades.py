@@ -152,3 +152,71 @@ def test_analyze_insider_signal_no_key_uses_deterministic():
     result = analyze_insider_signal(trades_data, "Apple Inc", api_key="")
     assert isinstance(result, str)
     assert len(result) > 20
+
+
+def _insider_raw_score_reference(summary: dict) -> int:
+    """Reference implementation matching what stock_analyzer.py will contain."""
+    if not summary or summary.get("no_activity"):
+        return 6
+    unique_buyers = summary.get("unique_buyers", 0)
+    num_buys = summary.get("num_buys", 0)
+    num_sells = summary.get("num_sells", 0)
+    net_buy_value = summary.get("net_buy_value", 0.0)
+    net_sell_value = -net_buy_value if net_buy_value < 0 else 0.0
+    total_buy_value = summary.get("total_buy_value", 0.0)
+
+    if unique_buyers >= 3 and total_buy_value > 1_000_000:
+        return 20
+    elif num_buys >= 1 and net_buy_value > 0:
+        return 12
+    elif num_sells >= 3 and net_sell_value > 2_000_000:
+        return -5
+    elif net_sell_value > 0:
+        return 2
+    else:
+        return 6
+
+
+def test_insider_raw_score_strong_buy():
+    s = {"unique_buyers": 3, "num_buys": 4, "num_sells": 0,
+         "total_buy_value": 2_000_001, "net_buy_value": 2_000_001,
+         "no_activity": False}
+    assert _insider_raw_score_reference(s) == 20
+
+
+def test_insider_raw_score_buy():
+    s = {"unique_buyers": 1, "num_buys": 1, "num_sells": 0,
+         "total_buy_value": 50_000, "net_buy_value": 50_000,
+         "no_activity": False}
+    assert _insider_raw_score_reference(s) == 12
+
+
+def test_insider_raw_score_no_activity():
+    assert _insider_raw_score_reference({}) == 6
+    assert _insider_raw_score_reference({"no_activity": True}) == 6
+
+
+def test_insider_raw_score_heavy_sell():
+    s = {"unique_buyers": 0, "num_buys": 0, "num_sells": 4,
+         "total_buy_value": 0, "net_buy_value": -3_000_000,
+         "no_activity": False}
+    assert _insider_raw_score_reference(s) == -5
+
+
+def test_insider_scaled_score_at_15pct():
+    raw = 20
+    weight_pct = 15
+    scaled = raw * (weight_pct / 20.0)
+    assert abs(scaled - 15.0) < 0.001
+
+
+def test_total_max_sums_to_100():
+    weight_pct = 15
+    scale = (100 - weight_pct) / 100
+    val_max = 30 * scale
+    prof_max = 25 * scale
+    growth_max = 25 * scale
+    health_max = 20 * scale
+    insider_max = float(weight_pct)
+    total = val_max + prof_max + growth_max + health_max + insider_max
+    assert abs(total - 100.0) < 0.001

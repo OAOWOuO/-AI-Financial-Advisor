@@ -695,7 +695,30 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
 
 
 # ============== FUNDAMENTAL ANALYSIS ==============
-def analyze_fundamentals(data: Dict) -> Dict:
+def _insider_raw_score(summary: Dict) -> int:
+    """Map insider trading summary to a raw score out of 20."""
+    if not summary or summary.get("no_activity"):
+        return 6
+    unique_buyers = summary.get("unique_buyers", 0)
+    num_buys = summary.get("num_buys", 0)
+    num_sells = summary.get("num_sells", 0)
+    net_buy_value = summary.get("net_buy_value", 0.0)
+    net_sell_value = -net_buy_value if net_buy_value < 0 else 0.0
+    total_buy_value = summary.get("total_buy_value", 0.0)
+
+    if unique_buyers >= 3 and total_buy_value > 1_000_000:
+        return 20
+    elif num_buys >= 1 and net_buy_value > 0:
+        return 12
+    elif num_sells >= 3 and net_sell_value > 2_000_000:
+        return -5
+    elif net_sell_value > 0:
+        return 2
+    else:
+        return 6
+
+
+def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
     """Comprehensive fundamental analysis."""
     signals = []
     total_score = 0
@@ -1142,8 +1165,48 @@ def analyze_fundamentals(data: Dict) -> Dict:
                 "benchmark": "Weak: <1.0"
             })
 
-    total_score += health_score
-    max_score += health_max
+    # ===== INSIDER WEIGHT SCALING =====
+    # Rescale all four sub-scores so insider fits within a total of 100 points.
+    scale = (100 - insider_weight_pct) / 100.0
+    valuation_score     = valuation_score     * scale
+    profitability_score = profitability_score * scale
+    growth_score        = growth_score        * scale
+    health_score        = health_score        * scale
+    valuation_max_w     = valuation_max   * scale
+    profitability_max_w = profitability_max * scale
+    growth_max_w        = growth_max      * scale
+    health_max_w        = health_max      * scale
+
+    # ===== INSIDER SIGNAL (up to insider_weight_pct points) =====
+    insider_trades = data.get("_insider_trades") or {}
+    insider_available = insider_trades.get("available", False)
+    insider_summary = insider_trades.get("summary", {}) if insider_available else {}
+    insider_raw = _insider_raw_score(insider_summary)
+    insider_score = insider_raw * (insider_weight_pct / 20.0) if insider_weight_pct > 0 else 0.0
+    insider_max_w = float(insider_weight_pct)
+
+    insider_signal_label = insider_summary.get("signal", "N/A") if insider_available else "Unavailable"
+    signals.append({
+        "category": "Insider Signal",
+        "metric": "Insider Trading (Form 4)",
+        "value": insider_signal_label,
+        "signal": insider_signal_label,
+        "score": f"{insider_score:+.1f}",
+        "detail": (
+            f"{insider_summary.get('num_buys', 0)} buys / {insider_summary.get('num_sells', 0)} sells · "
+            f"Net: ${insider_summary.get('net_buy_value', 0)/1e6:.1f}M"
+            if insider_available and not insider_summary.get("no_activity")
+            else "No open-market activity in window"
+        ),
+        "benchmark": "Weight: adjustable via sidebar slider",
+    })
+
+    total_score = (
+        valuation_score + profitability_score + growth_score + health_score + insider_score
+    )
+    max_score = (
+        valuation_max_w + profitability_max_w + growth_max_w + health_max_w + insider_max_w
+    )
 
     # Calculate percentages
     score_pct = (total_score / max_score * 100) if max_score > 0 else 0
@@ -1173,10 +1236,11 @@ def analyze_fundamentals(data: Dict) -> Dict:
         "rating": fund_rating[0],
         "rating_color": fund_rating[1],
         "breakdown": {
-            "valuation": {"score": valuation_score, "max": valuation_max},
-            "profitability": {"score": profitability_score, "max": profitability_max},
-            "growth": {"score": growth_score, "max": growth_max},
-            "health": {"score": health_score, "max": health_max}
+            "valuation":     {"score": valuation_score,     "max": valuation_max_w},
+            "profitability": {"score": profitability_score, "max": profitability_max_w},
+            "growth":        {"score": growth_score,        "max": growth_max_w},
+            "health":        {"score": health_score,        "max": health_max_w},
+            "insider":       {"score": insider_score,       "max": insider_max_w},
         }
     }
 
