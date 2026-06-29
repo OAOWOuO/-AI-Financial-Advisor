@@ -443,18 +443,21 @@ def run_multi_agent_research(
             executor.submit(run_catalyst_agent, ticker, company_name, api_key): "catalyst",
             executor.submit(run_macro_agent, ticker, sector, api_key): "macro",
         }
-        for future in as_completed(futures, timeout=45):
-            name = futures[future]
-            try:
-                result = future.result()
-                if name == "fundamental":
-                    fundamental_report = result
-                elif name == "catalyst":
-                    catalyst_report = result
-                else:
-                    macro_report = result
-            except Exception:
-                pass  # keep default empty report — orchestrator handles partial input
+        try:
+            for future in as_completed(futures, timeout=45):
+                name = futures[future]
+                try:
+                    result = future.result()
+                    if name == "fundamental":
+                        fundamental_report = result
+                    elif name == "catalyst":
+                        catalyst_report = result
+                    else:
+                        macro_report = result
+                except Exception:
+                    pass  # keep default empty report — orchestrator handles partial input
+        except TimeoutError:
+            pass  # timed-out sub-agents keep their default empty reports
 
     if on_step:
         on_step("Orchestrator synthesizing reports...")
