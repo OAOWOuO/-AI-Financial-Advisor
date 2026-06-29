@@ -318,3 +318,58 @@ def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
 
     summary = ((msg.content if msg else None) or "").replace("MACRO_COMPLETE", "").strip()
     return {"summary": summary, "web_searches": web_searches, "trace": trace, "error": None}
+
+
+# ============== ORCHESTRATOR ==============
+
+def run_orchestrator(
+    ticker: str,
+    fundamental_report: Dict,
+    catalyst_report: Dict,
+    macro_report: Dict,
+    raw_data: Dict,
+    api_key: str,
+) -> str:
+    """
+    GPT-4o synthesis of three sub-agent reports into a 3-5 sentence investment thesis.
+    Falls back to deterministic concatenation on any failure or missing API key.
+    """
+    def _fallback() -> str:
+        parts = []
+        for label, report in [
+            ("Fundamentals", fundamental_report),
+            ("Catalysts", catalyst_report),
+            ("Macro", macro_report),
+        ]:
+            s = report.get("summary", "").strip()
+            if s:
+                parts.append(f"{label}: {s}")
+        return " ".join(parts)
+
+    if not api_key:
+        return _fallback()
+
+    price = raw_data.get("price", "N/A")
+    mkt_cap = round((raw_data.get("market_cap") or 0) / 1e9, 1)
+
+    prompt = (
+        f"You are a senior portfolio manager. Synthesize three research reports on {ticker} "
+        f"(current price: ${price}, market cap: ${mkt_cap}B) into a coherent 3-5 sentence investment thesis.\n\n"
+        f"FUNDAMENTAL ANALYSIS:\n{fundamental_report.get('summary') or 'Not available'}\n\n"
+        f"CATALYST ANALYSIS:\n{catalyst_report.get('summary') or 'Not available'}\n\n"
+        f"MACRO/SECTOR ANALYSIS:\n{macro_report.get('summary') or 'Not available'}\n\n"
+        "Write a balanced, specific thesis covering: financial quality, near-term catalysts, "
+        "macro context, and a clear directional bias (bullish / neutral / bearish)."
+    )
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return _fallback()

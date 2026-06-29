@@ -3,6 +3,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "streamlit_app"
 
 from sa_orchestrator import run_fundamental_agent
 from sa_orchestrator import run_catalyst_agent, run_macro_agent
+from sa_orchestrator import run_orchestrator
 
 _DUMMY_YF = {
     "valid": True, "ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology",
@@ -38,3 +39,23 @@ def test_macro_agent_no_key_returns_empty():
     assert "web_searches" in result
     assert "trace" in result
     assert isinstance(result["trace"], list)
+
+
+def test_orchestrator_no_key_concatenates_summaries():
+    fundamental = {"summary": "Strong FCF of $100B.", "edgar_data": {}, "yf_data": {}, "trace": [], "error": None}
+    catalyst    = {"summary": "Earnings beat by 5%.", "web_searches": [], "trace": [], "error": None}
+    macro       = {"summary": "Tech sector favourable.", "web_searches": [], "trace": [], "error": None}
+    raw = {"price": 200.0, "market_cap": 3e12}
+    result = run_orchestrator("AAPL", fundamental, catalyst, macro, raw, api_key="")
+    assert "Strong FCF" in result
+    assert "Earnings beat" in result
+    assert "Tech sector" in result
+
+
+def test_orchestrator_empty_reports_returns_empty_string():
+    fundamental = {"summary": "", "edgar_data": {}, "yf_data": {}, "trace": [], "error": "No API key"}
+    catalyst    = {"summary": "", "web_searches": [], "trace": [], "error": "No API key"}
+    macro       = {"summary": "", "web_searches": [], "trace": [], "error": "No API key"}
+    raw = {"price": 100.0, "market_cap": 1e12}
+    result = run_orchestrator("XYZ", fundamental, catalyst, macro, raw, api_key="")
+    assert isinstance(result, str)
