@@ -686,6 +686,9 @@ def run_multi_agent_research(
     fundamental_report: Dict = {"summary": "", "edgar_data": {}, "yf_data": yf_data, "trace": [], "error": None}
     catalyst_report: Dict    = {"summary": "", "web_searches": [], "trace": [], "error": None}
     macro_report: Dict       = {"summary": "", "web_searches": [], "trace": [], "error": None}
+    valuation_report: Dict   = {"summary": "", "intrinsic_value": 0.0, "upside_pct": 0.0,
+                                 "pe_analysis": "", "ev_ebitda": None, "dcf_assumptions": {},
+                                 "trace": [], "error": None}
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         futures = {
@@ -764,6 +767,7 @@ def run_multi_agent_research(
         "insider": insider_data,
         "insider_signal_text": insider_signal_text,
         "orchestrator_thesis": thesis,
+        "valuation": valuation_report,
     }
 
     final_data = _merge_data(accumulated)
