@@ -566,11 +566,12 @@ def run_orchestrator(
     fundamental_report: Dict,
     catalyst_report: Dict,
     macro_report: Dict,
+    valuation_report: Dict,
     raw_data: Dict,
     api_key: str,
 ) -> str:
     """
-    GPT-4o synthesis of three sub-agent reports into a 3-5 sentence investment thesis.
+    GPT-4o synthesis of four sub-agent reports into a 3-5 sentence investment thesis.
     Falls back to deterministic concatenation on any failure or missing API key.
     """
     def _fallback() -> str:
@@ -579,6 +580,7 @@ def run_orchestrator(
             ("Fundamentals", fundamental_report),
             ("Catalysts", catalyst_report),
             ("Macro", macro_report),
+            ("Valuation", valuation_report),
         ]:
             s = report.get("summary", "").strip()
             if s:
@@ -590,15 +592,25 @@ def run_orchestrator(
 
     price = raw_data.get("price", "N/A")
     mkt_cap = round((raw_data.get("market_cap") or 0) / 1e9, 1)
+    intrinsic_value = valuation_report.get("intrinsic_value", 0.0)
+    upside_pct = valuation_report.get("upside_pct", 0.0)
+
+    valuation_line = (
+        f"DCF intrinsic value: ${intrinsic_value:.2f} ({upside_pct:+.1f}% upside/downside)\n"
+        if intrinsic_value > 0
+        else ""
+    )
 
     prompt = (
-        f"You are a senior portfolio manager. Synthesize three research reports on {ticker} "
+        f"You are a senior portfolio manager. Synthesize four research reports on {ticker} "
         f"(current price: ${price}, market cap: ${mkt_cap}B) into a coherent 3-5 sentence investment thesis.\n\n"
         f"FUNDAMENTAL ANALYSIS:\n{fundamental_report.get('summary') or 'Not available'}\n\n"
         f"CATALYST ANALYSIS:\n{catalyst_report.get('summary') or 'Not available'}\n\n"
         f"MACRO/SECTOR ANALYSIS:\n{macro_report.get('summary') or 'Not available'}\n\n"
+        f"VALUATION ANALYSIS:\n{valuation_report.get('summary') or 'Not available'}\n"
+        f"{valuation_line}\n"
         "Write a balanced, specific thesis covering: financial quality, near-term catalysts, "
-        "macro context, and a clear directional bias (bullish / neutral / bearish)."
+        "macro context, valuation, and a clear directional bias (bullish / neutral / bearish)."
     )
 
     try:
@@ -607,7 +619,7 @@ def run_orchestrator(
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=300,
+            max_tokens=350,
         )
         return response.choices[0].message.content.strip()
     except Exception:
@@ -697,13 +709,19 @@ def run_multi_agent_research(
         except TimeoutError:
             pass  # timed-out sub-agents keep their default empty reports
 
+    # Step 4: valuation agent (runs after fundamental to reuse edgar_data)
+    if on_step:
+        on_step("Valuation agent computing DCF and multiples...")
+    edgar_data_for_valuation = fundamental_report.get("edgar_data") or {}
+    valuation_report: Dict = run_valuation_agent(ticker, yf_data, edgar_data_for_valuation, api_key)
+
     if on_step:
         on_step("Orchestrator synthesizing reports...")
-    thesis = run_orchestrator(ticker, fundamental_report, catalyst_report, macro_report, yf_data, api_key)
+    thesis = run_orchestrator(ticker, fundamental_report, catalyst_report, macro_report, valuation_report, yf_data, api_key)
 
     # Build unified trace log
     trace_log: List[Dict] = list(fallback_trace)
-    for report in (fundamental_report, catalyst_report, macro_report):
+    for report in (fundamental_report, catalyst_report, macro_report, valuation_report):
         for step in report.get("trace", []):
             step["step"] = len(trace_log)
             trace_log.append(step)
@@ -713,7 +731,7 @@ def run_multi_agent_research(
         "tool": "synthesize",
         "args": {},
         "result_summary": (thesis[:200] + "...") if len(thesis) > 200 else thesis,
-        "agent_reasoning": "GPT-4o synthesis of Fundamental + Catalyst + Macro reports",
+        "agent_reasoning": "GPT-4o synthesis of Fundamental + Catalyst + Macro + Valuation reports",
     })
 
     # Step 5: insider trades

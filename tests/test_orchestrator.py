@@ -47,19 +47,24 @@ def test_orchestrator_no_key_concatenates_summaries():
     fundamental = {"summary": "Strong FCF of $100B.", "edgar_data": {}, "yf_data": {}, "trace": [], "error": None}
     catalyst    = {"summary": "Earnings beat by 5%.", "web_searches": [], "trace": [], "error": None}
     macro       = {"summary": "Tech sector favourable.", "web_searches": [], "trace": [], "error": None}
+    valuation   = {"summary": "DCF shows 15% upside.", "intrinsic_value": 230.0, "upside_pct": 15.0,
+                   "pe_analysis": "", "ev_ebitda": 22.5, "dcf_assumptions": {}, "trace": [], "error": None}
     raw = {"price": 200.0, "market_cap": 3e12}
-    result = run_orchestrator("AAPL", fundamental, catalyst, macro, raw, api_key="")
+    result = run_orchestrator("AAPL", fundamental, catalyst, macro, valuation, raw, api_key="")
     assert "Strong FCF" in result
     assert "Earnings beat" in result
     assert "Tech sector" in result
+    assert "DCF shows" in result
 
 
 def test_orchestrator_empty_reports_returns_empty_string():
     fundamental = {"summary": "", "edgar_data": {}, "yf_data": {}, "trace": [], "error": "No API key"}
     catalyst    = {"summary": "", "web_searches": [], "trace": [], "error": "No API key"}
     macro       = {"summary": "", "web_searches": [], "trace": [], "error": "No API key"}
+    valuation   = {"summary": "", "intrinsic_value": 0.0, "upside_pct": 0.0,
+                   "pe_analysis": "", "ev_ebitda": None, "dcf_assumptions": {}, "trace": [], "error": "No API key"}
     raw = {"price": 100.0, "market_cap": 1e12}
-    result = run_orchestrator("XYZ", fundamental, catalyst, macro, raw, api_key="")
+    result = run_orchestrator("XYZ", fundamental, catalyst, macro, valuation, raw, api_key="")
     assert isinstance(result, str)
 
 
