@@ -638,6 +638,7 @@ def _merge_data(accumulated: Dict) -> Dict:
     merged["_insider_trades"] = accumulated.get("insider") or {"available": False, "months": 6, "trades": [], "summary": _empty_summary()}
     merged["_insider_signal_text"] = accumulated.get("insider_signal_text") or ""
     merged["_orchestrator_thesis"] = accumulated.get("orchestrator_thesis") or ""
+    merged["_valuation"] = accumulated.get("valuation") or {}
 
     return merged
 
