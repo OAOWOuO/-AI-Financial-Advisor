@@ -2,6 +2,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "streamlit_app"))
 
 from sa_orchestrator import run_fundamental_agent
+from sa_orchestrator import run_catalyst_agent, run_macro_agent
 
 _DUMMY_YF = {
     "valid": True, "ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology",
@@ -20,4 +21,20 @@ def test_fundamental_agent_no_key_returns_error_dict():
     assert "trace" in result
     assert "error" in result
     assert isinstance(result["summary"], str)
+    assert isinstance(result["trace"], list)
+
+
+def test_catalyst_agent_no_key_returns_empty():
+    result = run_catalyst_agent("AAPL", "Apple Inc.", api_key="")
+    assert "summary" in result
+    assert "web_searches" in result
+    assert "trace" in result
+    assert isinstance(result["web_searches"], list)
+
+
+def test_macro_agent_no_key_returns_empty():
+    result = run_macro_agent("AAPL", "Technology", api_key="")
+    assert "summary" in result
+    assert "web_searches" in result
+    assert "trace" in result
     assert isinstance(result["trace"], list)

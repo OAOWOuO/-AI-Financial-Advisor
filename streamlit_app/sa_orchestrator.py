@@ -135,3 +135,186 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
         "trace": trace,
         "error": None,
     }
+
+
+# ============== SUB-AGENT: CATALYST ==============
+
+def run_catalyst_agent(ticker: str, company_name: str, api_key: str) -> Dict:
+    """
+    GPT-4o-mini agent: near-term catalysts and risks from web search.
+    Max 3 web_search calls. Returns summary + raw web_searches for merge.
+    """
+    trace: List[Dict] = []
+    web_searches: List[Dict] = []
+
+    if not api_key:
+        return {"summary": "", "web_searches": web_searches, "trace": trace, "error": "No API key"}
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        return {"summary": "", "web_searches": web_searches, "trace": trace, "error": str(e)}
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"You are a catalyst and news analyst. Company: {company_name} ({ticker}).\n"
+                "Identify near-term catalysts and risks from recent public information.\n"
+                "Search for: (1) recent earnings results and management guidance, "
+                "(2) analyst rating or price target changes, "
+                "(3) product news, regulatory decisions, or competitive threats.\n"
+                "Use web_search only. Max 3 calls. Write 2-3 sentences on key catalysts and risks. "
+                "End with: CATALYST_COMPLETE"
+            ),
+        },
+        {"role": "user", "content": f"Identify catalysts and risks for {company_name} ({ticker})."},
+    ]
+
+    msg = None
+    for _ in range(3):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                tools=_TOOLS,
+                tool_choice="auto",
+                max_tokens=600,
+            )
+        except Exception as e:
+            return {"summary": "", "web_searches": web_searches, "trace": trace, "error": str(e)}
+
+        msg = response.choices[0].message
+        msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
+        if msg.tool_calls:
+            msg_dict["tool_calls"] = [
+                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in msg.tool_calls
+            ]
+        messages.append(msg_dict)
+
+        if not msg.tool_calls:
+            break
+
+        for tc in msg.tool_calls:
+            fn = tc.function.name
+            try:
+                args = json.loads(tc.function.arguments)
+            except Exception:
+                args = {}
+
+            step = {
+                "step": len(trace),
+                "agent": "CatalystAgent",
+                "tool": fn,
+                "args": args,
+                "result_summary": "",
+                "agent_reasoning": msg.content or "",
+            }
+
+            if fn == "web_search":
+                query = args.get("query", "")
+                result_str = _web_search(query)
+                web_searches.append({"query": query, "result": result_str})
+                step["result_summary"] = f'Search: "{query[:60]}" → {result_str[:100]}...'
+            else:
+                result_str = "Only web_search is available in CatalystAgent"
+                step["result_summary"] = result_str
+
+            trace.append(step)
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str[:3000]})
+
+    summary = ((msg.content if msg else None) or "").replace("CATALYST_COMPLETE", "").strip()
+    return {"summary": summary, "web_searches": web_searches, "trace": trace, "error": None}
+
+
+# ============== SUB-AGENT: MACRO ==============
+
+def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
+    """
+    GPT-4o-mini agent: macro headwinds/tailwinds and sector positioning.
+    Max 2 web_search calls.
+    """
+    trace: List[Dict] = []
+    web_searches: List[Dict] = []
+
+    if not api_key:
+        return {"summary": "", "web_searches": web_searches, "trace": trace, "error": "No API key"}
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        return {"summary": "", "web_searches": web_searches, "trace": trace, "error": str(e)}
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"You are a macro and sector analyst. Ticker: {ticker}, Sector: {sector}.\n"
+                "Assess macro headwinds/tailwinds and sector cycle positioning.\n"
+                f"Search for: (1) {sector} sector outlook and competitive dynamics, "
+                "(2) interest rate or inflation sensitivity for this type of business.\n"
+                "Use web_search only. Max 2 calls. Write 2-3 sentences on macro and sector context. "
+                "End with: MACRO_COMPLETE"
+            ),
+        },
+        {"role": "user", "content": f"Assess macro and {sector} sector context for {ticker}."},
+    ]
+
+    msg = None
+    for _ in range(2):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                tools=_TOOLS,
+                tool_choice="auto",
+                max_tokens=500,
+            )
+        except Exception as e:
+            return {"summary": "", "web_searches": web_searches, "trace": trace, "error": str(e)}
+
+        msg = response.choices[0].message
+        msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
+        if msg.tool_calls:
+            msg_dict["tool_calls"] = [
+                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in msg.tool_calls
+            ]
+        messages.append(msg_dict)
+
+        if not msg.tool_calls:
+            break
+
+        for tc in msg.tool_calls:
+            fn = tc.function.name
+            try:
+                args = json.loads(tc.function.arguments)
+            except Exception:
+                args = {}
+
+            step = {
+                "step": len(trace),
+                "agent": "MacroAgent",
+                "tool": fn,
+                "args": args,
+                "result_summary": "",
+                "agent_reasoning": msg.content or "",
+            }
+
+            if fn == "web_search":
+                query = args.get("query", "")
+                result_str = _web_search(query)
+                web_searches.append({"query": query, "result": result_str})
+                step["result_summary"] = f'Search: "{query[:60]}" → {result_str[:100]}...'
+            else:
+                result_str = "Only web_search is available in MacroAgent"
+                step["result_summary"] = result_str
+
+            trace.append(step)
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str[:3000]})
+
+    summary = ((msg.content if msg else None) or "").replace("MACRO_COMPLETE", "").strip()
+    return {"summary": summary, "web_searches": web_searches, "trace": trace, "error": None}
