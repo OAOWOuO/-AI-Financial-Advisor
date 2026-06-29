@@ -320,6 +320,244 @@ def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
     return {"summary": summary, "web_searches": web_searches, "trace": trace, "error": None}
 
 
+# ============== VALUATION HELPERS ==============
+
+def _compute_dcf(
+    fcf_base: float,
+    growth_rate: float,
+    shares: float,
+    wacc: float = 0.10,
+    terminal_growth: float = 0.03,
+    years: int = 5,
+) -> Tuple[float, Dict]:
+    """Returns (intrinsic_value_per_share, assumptions_dict). Returns (0.0, {}) on bad inputs."""
+    if not fcf_base or fcf_base <= 0 or not shares or shares <= 0:
+        return 0.0, {}
+    if wacc <= terminal_growth:
+        return 0.0, {}
+
+    fcf = fcf_base
+    pv_sum = 0.0
+    for i in range(1, years + 1):
+        fcf *= (1 + growth_rate)
+        pv_sum += fcf / (1 + wacc) ** i
+
+    terminal_value = fcf * (1 + terminal_growth) / (wacc - terminal_growth)
+    pv_terminal = terminal_value / (1 + wacc) ** years
+
+    intrinsic_per_share = (pv_sum + pv_terminal) / shares
+    return round(intrinsic_per_share, 2), {
+        "wacc": wacc,
+        "growth_rate": round(growth_rate, 4),
+        "terminal_growth": terminal_growth,
+        "fcf_base": round(fcf_base / 1e9, 2),
+        "projection_years": years,
+    }
+
+
+def _compute_ev_ebitda(yf_data: Dict) -> Optional[float]:
+    info = yf_data.get("info") or {}
+    ebitda = info.get("ebitda")
+    market_cap = yf_data.get("market_cap")
+    total_debt = info.get("totalDebt") or 0
+    cash = info.get("totalCash") or 0
+
+    if not ebitda or ebitda <= 0 or not market_cap or market_cap <= 0:
+        return None
+    ev = market_cap + total_debt - cash
+    if ev <= 0:
+        return None
+    return round(ev / ebitda, 1)
+
+
+# ============== SUB-AGENT: VALUATION ==============
+
+def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: str) -> Dict:
+    """
+    Computes DCF intrinsic value, P/E comparison, and EV/EBITDA for ticker.
+    DCF and EV/EBITDA are computed deterministically in Python.
+    GPT-4o-mini provides written P/E analysis and 2-3 sentence summary.
+    Runs after FundamentalAgent to reuse its edgar_data.
+    """
+    trace: List[Dict] = []
+
+    # ── Deterministic pre-computation ─────────────────────────────────────
+    fcf_base = (
+        (edgar_data.get("free_cash_flow") if edgar_data.get("available") else None)
+        or yf_data.get("free_cash_flow")
+        or 0.0
+    )
+    growth_rate = yf_data.get("revenue_growth") or 0.05
+    shares = (yf_data.get("info") or {}).get("sharesOutstanding") or 0
+    price = yf_data.get("price") or 0.0
+    pe_ratio = yf_data.get("pe_ratio")
+    forward_pe = yf_data.get("forward_pe")
+    eps = yf_data.get("eps")
+
+    intrinsic_value, dcf_assumptions = _compute_dcf(fcf_base, growth_rate, shares)
+    upside_pct = (
+        round((intrinsic_value - price) / price * 100, 1)
+        if price > 0 and intrinsic_value > 0
+        else 0.0
+    )
+    ev_ebitda = _compute_ev_ebitda(yf_data)
+
+    _base_result: Dict = {
+        "summary": "",
+        "intrinsic_value": intrinsic_value,
+        "upside_pct": upside_pct,
+        "pe_analysis": "",
+        "ev_ebitda": ev_ebitda,
+        "dcf_assumptions": dcf_assumptions,
+        "trace": trace,
+        "error": None,
+    }
+
+    if not api_key:
+        _base_result["error"] = "No API key"
+        if intrinsic_value > 0:
+            _base_result["summary"] = (
+                f"DCF intrinsic value: ${intrinsic_value:.2f} vs current price ${price:.2f} "
+                f"({upside_pct:+.1f}%). "
+                f"EV/EBITDA: {f'{ev_ebitda:.1f}x' if ev_ebitda else 'N/A'}."
+            )
+        else:
+            _base_result["summary"] = "Insufficient FCF data for DCF valuation."
+        return _base_result
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        _base_result["error"] = str(e)
+        return _base_result
+
+    dcf_line = (
+        f"PRE-COMPUTED DCF: ${intrinsic_value:.2f}/share "
+        f"(WACC={dcf_assumptions.get('wacc', 0.10)*100:.0f}%, "
+        f"growth={dcf_assumptions.get('growth_rate', 0.05)*100:.1f}%, "
+        f"terminal={dcf_assumptions.get('terminal_growth', 0.03)*100:.0f}%), "
+        f"implied upside/downside: {upside_pct:+.1f}%"
+        if intrinsic_value > 0
+        else "FCF data missing — DCF not computed. Call get_sec_filing to find FCF."
+    )
+
+    data_context = (
+        f"Ticker: {ticker} | Price: ${price} | "
+        f"Trailing P/E: {pe_ratio or 'N/A'} | Forward P/E: {forward_pe or 'N/A'} | EPS: ${eps or 'N/A'}\n"
+        f"Revenue growth: {growth_rate*100:.1f}% | FCF base: ${fcf_base/1e9:.1f}B | "
+        f"EV/EBITDA: {f'{ev_ebitda:.1f}x' if ev_ebitda else 'N/A'}\n"
+        f"{dcf_line}"
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"You are a valuation specialist analyzing {ticker}.\n"
+                "Tasks:\n"
+                "1. If FCF is missing and DCF is not computed, call get_sec_filing (filing_type=10-K) once to find FCF.\n"
+                "2. Write a P/E analysis string comparing trailing vs forward P/E and estimate fair P/E using "
+                "   PEG logic (fair P/E ≈ EPS growth rate as a percentage, e.g. 15% growth → fair P/E ~15x). "
+                "   Format: 'Trailing Xx vs Forward Xx — [premium/discount/inline] with estimated fair value of Xx'\n"
+                "3. Write 2-3 sentences on whether the stock is overvalued / fairly valued / undervalued.\n"
+                "Max 2 tool calls. Output EXACTLY this format (no other text):\n"
+                "PE_ANALYSIS: [one line]\n"
+                "SUMMARY: [2-3 sentences]\n"
+                "VALUATION_COMPLETE"
+            ),
+        },
+        {"role": "user", "content": data_context},
+    ]
+
+    msg = None
+    for _ in range(2):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                tools=_TOOLS,
+                tool_choice="auto",
+                max_tokens=500,
+            )
+        except Exception as e:
+            _base_result["error"] = str(e)
+            return _base_result
+
+        msg = response.choices[0].message
+        msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
+        if msg.tool_calls:
+            msg_dict["tool_calls"] = [
+                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in msg.tool_calls
+            ]
+        messages.append(msg_dict)
+
+        if not msg.tool_calls:
+            break
+
+        for tc in msg.tool_calls:
+            fn = tc.function.name
+            try:
+                args = json.loads(tc.function.arguments)
+            except Exception:
+                args = {}
+
+            step = {
+                "step": len(trace),
+                "agent": "ValuationAgent",
+                "tool": fn,
+                "args": args,
+                "result_summary": "",
+                "agent_reasoning": msg.content or "",
+            }
+
+            if fn == "get_sec_filing":
+                edgar = _edgar_fetch(args.get("ticker", ticker), args.get("filing_type", "10-K"))
+                if edgar.get("available") and edgar.get("free_cash_flow"):
+                    new_fcf = edgar["free_cash_flow"]
+                    intrinsic_value, dcf_assumptions = _compute_dcf(new_fcf, growth_rate, shares)
+                    upside_pct = (
+                        round((intrinsic_value - price) / price * 100, 1)
+                        if price > 0 and intrinsic_value > 0 else 0.0
+                    )
+                    _base_result["intrinsic_value"] = intrinsic_value
+                    _base_result["upside_pct"] = upside_pct
+                    _base_result["dcf_assumptions"] = dcf_assumptions
+                result_str = _edgar_summary(edgar)
+                step["result_summary"] = f"EDGAR FCF: ${(edgar.get('free_cash_flow') or 0)/1e9:.1f}B"
+            elif fn == "get_yfinance_data":
+                fresh = _yfinance_fetch(args.get("ticker", ticker))
+                result_str = _yfinance_summary(fresh)
+                step["result_summary"] = "yfinance refreshed"
+            else:
+                result_str = "Only get_sec_filing and get_yfinance_data available in ValuationAgent"
+                step["result_summary"] = result_str
+
+            trace.append(step)
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str[:3000]})
+
+    content = ((msg.content if msg else None) or "").replace("VALUATION_COMPLETE", "").strip()
+
+    pe_analysis = ""
+    summary_lines: List[str] = []
+    in_summary = False
+    for line in content.split("\n"):
+        if line.startswith("PE_ANALYSIS:"):
+            pe_analysis = line[len("PE_ANALYSIS:"):].strip()
+        elif line.startswith("SUMMARY:"):
+            summary_lines.append(line[len("SUMMARY:"):].strip())
+            in_summary = True
+        elif in_summary and line.strip():
+            summary_lines.append(line.strip())
+
+    summary = " ".join(summary_lines) if summary_lines else content
+
+    _base_result["summary"] = summary
+    _base_result["pe_analysis"] = pe_analysis
+    return _base_result
+
+
 # ============== ORCHESTRATOR ==============
 
 
