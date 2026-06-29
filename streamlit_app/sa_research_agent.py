@@ -856,7 +856,10 @@ def fetch_insider_trades(cik: str, months: int = 6) -> Dict:
     cik_int = int(cik)
     for _date, accession, primary_doc in form4_entries:
         acc_clean = accession.replace("-", "")
-        xml_url = f"https://www.sec.gov/Archives/edgar/data/{cik_int}/{acc_clean}/{primary_doc}"
+        # primaryDocument may be prefixed with an XSL stylesheet path (e.g. "xslF345X06/ownership.xml")
+        # which returns styled HTML instead of raw XML — strip to just the filename.
+        doc_filename = primary_doc.split("/")[-1]
+        xml_url = f"https://www.sec.gov/Archives/edgar/data/{cik_int}/{acc_clean}/{doc_filename}"
         try:
             time.sleep(0.1)
             r = requests.get(xml_url, headers=_EDGAR_HEADERS, timeout=8)
