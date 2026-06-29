@@ -1994,8 +1994,8 @@ def show_stock_analyzer():
 
 
     with col_right:
-        tab_profile, tab_tech, tab_fund, tab_insider, tab_conclusion, tab_research = st.tabs(
-            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
+        tab_profile, tab_tech, tab_fund, tab_valuation, tab_insider, tab_conclusion, tab_research = st.tabs(
+            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "💰 Valuation", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
         )
 
         # ── PROFILE TAB ────────────────────────────────────────────────────────
@@ -2732,6 +2732,60 @@ also most assumption-dependent approach. A convergence of models above the curre
                                  use_container_width=True, hide_index=True)
 
         # ── INSIDER TAB ────────────────────────────────────────────────────────
+        # ── VALUATION TAB ──────────────────────────────────────────────────────
+        with tab_valuation:
+            if not has_data:
+                st.info("Run an analysis to see valuation estimates.")
+            else:
+                _val = data.get("_valuation") or {}
+                _iv = _val.get("intrinsic_value", 0.0)
+                _upside = _val.get("upside_pct", 0.0)
+                _ev_ebitda = _val.get("ev_ebitda")
+                _pe_analysis = _val.get("pe_analysis", "")
+                _val_summary = _val.get("summary", "")
+                _dcf_assump = _val.get("dcf_assumptions") or {}
+                _cur_price = data.get("price") or 0.0
+
+                if not _val or _iv == 0.0:
+                    st.warning(
+                        "Valuation data unavailable. "
+                        "This may be due to missing FCF data or no OpenAI API key."
+                    )
+                else:
+                    st.subheader("📊 Valuation Analysis")
+
+                    _vcol1, _vcol2, _vcol3 = st.columns(3)
+                    with _vcol1:
+                        st.metric(
+                            "DCF Intrinsic Value",
+                            f"${_iv:.2f}",
+                            delta=f"{_upside:+.1f}% upside" if _upside >= 0 else f"{_upside:.1f}% downside",
+                            delta_color="normal",
+                        )
+                    with _vcol2:
+                        st.metric("Current Price", f"${_cur_price:.2f}")
+                    with _vcol3:
+                        st.metric(
+                            "EV/EBITDA",
+                            f"{_ev_ebitda:.1f}x" if _ev_ebitda is not None else "N/A",
+                        )
+
+                    if _pe_analysis:
+                        st.markdown("#### P/E Analysis")
+                        st.info(_pe_analysis)
+
+                    if _dcf_assump:
+                        with st.expander("DCF Assumptions"):
+                            st.write(f"- **WACC:** {_dcf_assump.get('wacc', 0.10)*100:.0f}%")
+                            st.write(f"- **Near-term growth:** {_dcf_assump.get('growth_rate', 0.05)*100:.1f}%")
+                            st.write(f"- **Terminal growth:** {_dcf_assump.get('terminal_growth', 0.03)*100:.0f}%")
+                            st.write(f"- **Base FCF:** ${_dcf_assump.get('fcf_base', 0):.2f}B")
+                            st.write(f"- **Projection period:** {_dcf_assump.get('projection_years', 5)} years")
+
+                    if _val_summary:
+                        st.markdown("#### Valuation Conclusion")
+                        st.write(_val_summary)
+
         with tab_insider:
             if not has_data:
                 st.info("Run an analysis to see insider trading activity.")
@@ -3071,6 +3125,7 @@ intrinsic fundamental value more heavily.
                         "FundamentalAgent": "🔢",
                         "CatalystAgent": "📰",
                         "MacroAgent": "🌍",
+                        "ValuationAgent": "💰",
                         "Orchestrator": "🧠",
                         "Base": "⚙️",
                     }
