@@ -63,6 +63,7 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
         },
     ]
 
+    msg = None
     for _ in range(3):
         try:
             response = client.chat.completions.create(
@@ -126,7 +127,7 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
             trace.append(step)
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str[:3000]})
 
-    summary = (msg.content or "").replace("FUNDAMENTAL_COMPLETE", "").strip()
+    summary = ((msg.content if msg else None) or "").replace("FUNDAMENTAL_COMPLETE", "").strip()
     return {
         "summary": summary,
         "edgar_data": accumulated_edgar or {},
