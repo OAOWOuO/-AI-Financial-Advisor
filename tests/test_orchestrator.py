@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "streamlit_app"
 from sa_orchestrator import run_fundamental_agent
 from sa_orchestrator import run_catalyst_agent, run_macro_agent
 from sa_orchestrator import run_orchestrator
+from sa_orchestrator import run_multi_agent_research
 
 _DUMMY_YF = {
     "valid": True, "ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology",
@@ -59,3 +60,28 @@ def test_orchestrator_empty_reports_returns_empty_string():
     raw = {"price": 100.0, "market_cap": 1e12}
     result = run_orchestrator("XYZ", fundamental, catalyst, macro, raw, api_key="")
     assert isinstance(result, str)
+
+
+_DUMMY_YF_VALID = {
+    "valid": True, "ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology",
+    "price": 200.0, "pe_ratio": 29.0, "forward_pe": 25.0, "eps": 6.43,
+    "free_cash_flow": 100e9, "revenue_growth": 0.08, "profit_margin": 0.25,
+    "market_cap": 3e12, "debt_to_equity": 1.5, "current_ratio": 1.0,
+    "hist_1y": None, "hist_2y": None, "hist_5y": None,
+    "info": {}, "income_stmt": None, "balance_sheet": None, "cash_flow": None,
+    "quarterly_income": None, "quarterly_bs": None,
+}
+
+
+def test_multi_agent_no_key_returns_pipeline_result():
+    """No API key → routes to _run_pipeline, returns valid data dict and trace."""
+    data, trace = run_multi_agent_research("AAPL", api_key="")
+    assert isinstance(data, dict)
+    assert isinstance(trace, list)
+    assert len(trace) >= 1
+
+
+def test_multi_agent_result_has_orchestrator_thesis_key():
+    """Even without API key, the data dict must have _orchestrator_thesis key."""
+    data, trace = run_multi_agent_research("AAPL", api_key="")
+    assert "_orchestrator_thesis" in data

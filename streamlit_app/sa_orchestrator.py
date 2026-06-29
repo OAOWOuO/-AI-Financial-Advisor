@@ -322,6 +322,7 @@ def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
 
 # ============== ORCHESTRATOR ==============
 
+
 def run_orchestrator(
     ticker: str,
     fundamental_report: Dict,
@@ -373,3 +374,139 @@ def run_orchestrator(
         return response.choices[0].message.content.strip()
     except Exception:
         return _fallback()
+
+
+# ============== ENTRY POINT ==============
+
+def run_multi_agent_research(
+    ticker: str,
+    api_key: str,
+    max_iterations: int = 5,
+    on_step=None,
+) -> Tuple[Dict, List[Dict]]:
+    """
+    Multi-agent stock research: three parallel sub-agents + GPT-4o orchestrator.
+    Drop-in replacement for run_research_agent — identical signature and return shape.
+    Routes to _run_pipeline when OpenAI is unavailable.
+    """
+    # Step 0: yfinance base fetch
+    if on_step:
+        on_step(f"Fetching Yahoo Finance data for {ticker}...")
+    yf_data = _yfinance_fetch(ticker)
+
+    fallback_trace = [{
+        "step": 0,
+        "agent": "Base",
+        "tool": "get_yfinance_data",
+        "args": {"ticker": ticker},
+        "result_summary": (
+            f"Price: ${yf_data.get('price', 'N/A')} | "
+            f"P/E: {yf_data.get('pe_ratio', 'N/A')} | "
+            f"FCF: ${(yf_data.get('free_cash_flow') or 0) / 1e9:.1f}B"
+            if yf_data.get("valid")
+            else f"Failed: {yf_data.get('error', 'unknown')}"
+        ),
+        "agent_reasoning": "Base data layer — always fetched first",
+    }]
+
+    if not yf_data.get("valid"):
+        return yf_data, fallback_trace
+
+    if not api_key:
+        result, trace = _run_pipeline(ticker, yf_data, fallback_trace, on_step, reason="No OpenAI key")
+        result.setdefault("_orchestrator_thesis", "")
+        return result, trace
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        client.models.list()
+    except Exception as e:
+        result, trace = _run_pipeline(ticker, yf_data, fallback_trace, on_step, reason=str(e))
+        result.setdefault("_orchestrator_thesis", "")
+        return result, trace
+
+    company_name = yf_data.get("name", ticker)
+    sector = yf_data.get("sector", "Unknown")
+
+    # Steps 1-3: parallel sub-agents
+    if on_step:
+        on_step("Fundamental · Catalyst · Macro agents running in parallel...")
+
+    fundamental_report: Dict = {"summary": "", "edgar_data": {}, "yf_data": yf_data, "trace": [], "error": None}
+    catalyst_report: Dict    = {"summary": "", "web_searches": [], "trace": [], "error": None}
+    macro_report: Dict       = {"summary": "", "web_searches": [], "trace": [], "error": None}
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {
+            executor.submit(run_fundamental_agent, ticker, yf_data, api_key): "fundamental",
+            executor.submit(run_catalyst_agent, ticker, company_name, api_key): "catalyst",
+            executor.submit(run_macro_agent, ticker, sector, api_key): "macro",
+        }
+        for future in as_completed(futures, timeout=45):
+            name = futures[future]
+            try:
+                result = future.result()
+                if name == "fundamental":
+                    fundamental_report = result
+                elif name == "catalyst":
+                    catalyst_report = result
+                else:
+                    macro_report = result
+            except Exception:
+                pass  # keep default empty report — orchestrator handles partial input
+
+    if on_step:
+        on_step("Orchestrator synthesizing reports...")
+    thesis = run_orchestrator(ticker, fundamental_report, catalyst_report, macro_report, yf_data, api_key)
+
+    # Build unified trace log
+    trace_log: List[Dict] = list(fallback_trace)
+    for report in (fundamental_report, catalyst_report, macro_report):
+        for step in report.get("trace", []):
+            step["step"] = len(trace_log)
+            trace_log.append(step)
+    trace_log.append({
+        "step": len(trace_log),
+        "agent": "Orchestrator",
+        "tool": "synthesize",
+        "args": {},
+        "result_summary": (thesis[:200] + "...") if len(thesis) > 200 else thesis,
+        "agent_reasoning": "GPT-4o synthesis of Fundamental + Catalyst + Macro reports",
+    })
+
+    # Step 5: insider trades
+    if on_step:
+        on_step(f"Fetching SEC EDGAR Form 4 insider trades for {ticker}...")
+    edgar_data = fundamental_report.get("edgar_data") or {}
+    _cik = edgar_data.get("cik") or _get_cik(ticker)
+    if _cik:
+        insider_data = fetch_insider_trades(_cik, months=6)
+        trace_log.append({
+            "step": len(trace_log),
+            "agent": "Base",
+            "tool": "fetch_insider_trades",
+            "args": {"cik": _cik, "months": 6},
+            "result_summary": (
+                f"Signal: {insider_data.get('summary', {}).get('signal', 'N/A')} | "
+                f"{len(insider_data.get('trades', []))} trades"
+            ),
+            "agent_reasoning": "Post-parallel insider data fetch",
+        })
+    else:
+        insider_data = {"available": False, "error": "No CIK", "months": 6, "trades": [], "summary": _empty_summary()}
+
+    insider_signal_text = analyze_insider_signal(insider_data, company_name, api_key)
+
+    accumulated = {
+        "yfinance": fundamental_report.get("yf_data") or yf_data,
+        "edgar": edgar_data if edgar_data.get("available") else None,
+        "web_searches": catalyst_report.get("web_searches", []) + macro_report.get("web_searches", []),
+        "insider": insider_data,
+        "insider_signal_text": insider_signal_text,
+        "orchestrator_thesis": thesis,
+    }
+
+    final_data = _merge_data(accumulated)
+    final_data["_orchestrator_thesis"] = thesis
+    return final_data, trace_log
