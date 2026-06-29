@@ -11,7 +11,8 @@ try:
 except Exception:
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 
-from sa_research_agent import run_research_agent, run_fact_checker
+from sa_orchestrator import run_multi_agent_research
+from sa_research_agent import run_fact_checker
 
 
 # ============== DATA FETCHING ==============
@@ -1847,7 +1848,7 @@ def show_stock_analyzer():
             with st.status(f"Researching {ticker}\u2026", expanded=True) as _status:
                 def _on_step(msg):
                     _status.write(msg)
-                _result, _trace = run_research_agent(ticker, openai_api_key, on_step=_on_step)
+                _result, _trace = run_multi_agent_research(ticker, openai_api_key, on_step=_on_step)
                 st.session_state.inst_data = _result
                 st.session_state[f"_trace_{ticker}"] = _trace
                 _n = len(_trace)
@@ -2896,6 +2897,11 @@ also most assumption-dependent approach. A convergence of models above the curre
   <span style="font-size:12px;color:#6e7681;margin-left:auto;">Weight: {_w_badge}%</span>
 </div>""", unsafe_allow_html=True)
 
+                # ── ORCHESTRATOR THESIS ────────────────────────────────────────
+                _thesis = data.get("_orchestrator_thesis", "")
+                if _thesis:
+                    st.info(_thesis)
+
                 # ── 2. PRICE TARGET SCENARIOS ─────────────────────────────────
                 st.markdown("##### Price Target Scenarios")
                 pt_col1, pt_col2, pt_col3 = st.columns(3)
@@ -3057,11 +3063,23 @@ intrinsic fundamental value more heavily.
                         "get_yfinance_data": "📈",
                         "get_sec_filing": "🏛️",
                         "web_search": "🌐",
+                        "fetch_insider_trades": "👥",
+                        "synthesize": "🧠",
                         "ERROR": "\u274c",
                     }
+                    _agent_icons = {
+                        "FundamentalAgent": "🔢",
+                        "CatalystAgent": "📰",
+                        "MacroAgent": "🌍",
+                        "Orchestrator": "🧠",
+                        "Base": "⚙️",
+                    }
                     for _step in _trace:
-                        _icon = _tool_icons.get(_step.get("tool", ""), "🔧")
-                        _label = f"{_icon} Step {_step['step']} \u2014 {_step.get('tool', 'unknown')}"
+                        _tool_icon = _tool_icons.get(_step.get("tool", ""), "🔧")
+                        _agent = _step.get("agent", "")
+                        _agent_icon = _agent_icons.get(_agent, "")
+                        _agent_label = f" [{_agent_icon} {_agent}]" if _agent else ""
+                        _label = f"{_tool_icon} Step {_step['step']} \u2014 {_step.get('tool', 'unknown')}{_agent_label}"
                         with st.expander(_label, expanded=(_step["step"] == 0)):
                             if _step.get("args"):
                                 st.caption(f"Arguments: `{json.dumps(_step['args'])}`")
