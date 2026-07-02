@@ -165,15 +165,19 @@ def generate_pdf(data: Dict, valuation: Dict) -> bytes:
         pdf.cell(0, 5, "P/E-Based Price Targets:", new_x="LMARGIN", new_y="NEXT")
         target_rows = []
         if pe_val:
-            target_rows.append((
-                "P/E  Bear / Base / Bull",
-                f"${pe_val['low']:.2f} / ${pe_val['mid']:.2f} / ${pe_val['high']:.2f}",
-            ))
+            _low = pe_val.get("low"); _mid = pe_val.get("mid"); _high = pe_val.get("high")
+            if _low is not None and _mid is not None and _high is not None:
+                target_rows.append((
+                    "P/E  Bear / Base / Bull",
+                    f"${_low:.2f} / ${_mid:.2f} / ${_high:.2f}",
+                ))
         if fpe_val:
-            target_rows.append((
-                "Fwd P/E  Bear / Base / Bull",
-                f"${fpe_val['low']:.2f} / ${fpe_val['mid']:.2f} / ${fpe_val['high']:.2f}",
-            ))
+            _flow = fpe_val.get("low"); _fmid = fpe_val.get("mid"); _fhigh = fpe_val.get("high")
+            if _flow is not None and _fmid is not None and _fhigh is not None:
+                target_rows.append((
+                    "Fwd P/E  Bear / Base / Bull",
+                    f"${_flow:.2f} / ${_fmid:.2f} / ${_fhigh:.2f}",
+                ))
         _two_col_table(pdf, target_rows)
     else:
         pdf.ln(2)
