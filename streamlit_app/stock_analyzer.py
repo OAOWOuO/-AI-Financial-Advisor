@@ -2795,8 +2795,7 @@ also most assumption-dependent approach. A convergence of models above the curre
             if not has_data:
                 st.info("Run an analysis to see peer comparison.")
             else:
-                import pandas as pd
-                from sa_peers import build_peer_table, fetch_peer_data
+                from sa_peers import build_peer_table
 
                 _auto_peers = data.get("_peer_data") or []
                 _custom_peer_data_list = list(st.session_state["custom_peer_data"].values())
