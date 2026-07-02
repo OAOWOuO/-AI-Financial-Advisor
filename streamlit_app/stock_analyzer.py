@@ -1,10 +1,12 @@
 import os
 import json
+import datetime
 import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
 from typing import Dict, List, Tuple
+from sa_pdf import generate_pdf
 
 try:
     openai_api_key = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "")
@@ -1882,6 +1884,17 @@ def show_stock_analyzer():
             if _new_weight != st.session_state.get("insider_weight", 15):
                 st.session_state["insider_weight"] = _new_weight
                 st.rerun()
+
+        # ── PDF EXPORT ───────────────────────────────────────────────────────────
+        if has_data and valuation is not None:
+            _pdf_bytes = generate_pdf(data, valuation)
+            st.download_button(
+                label="📄 Export PDF Report",
+                data=_pdf_bytes,
+                file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
 
         # ── AI CHAT FORM ─────────────────────────────────────────────────────────
         _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
