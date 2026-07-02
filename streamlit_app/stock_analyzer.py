@@ -2812,7 +2812,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                 _lower_better = {"P/E (TTM)", "Forward P/E", "EV/EBITDA", "Debt/Equity"}
                 _main_row = _peer_df[_peer_df["Ticker"] == data["ticker"]]
 
-                def _style_peers(row):
+                def _style_peers_tab(row):
                     if row["Ticker"] == data["ticker"]:
                         return ["font-weight: bold; background-color: #e8f4fd"] * len(row)
                     if _main_row.empty:
@@ -2841,7 +2841,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                             styles.append("")
                     return styles
 
-                _styled = _peer_df.style.apply(_style_peers, axis=1).format(na_rep="N/A", precision=1)
+                _styled = _peer_df.style.apply(_style_peers_tab, axis=1).format(na_rep="N/A", precision=1)
 
                 st.subheader("🔍 Peer Comparison")
                 _auto_tickers = data.get("_peer_tickers") or []
