@@ -66,3 +66,14 @@ def test_build_peer_table_no_peers_returns_one_row():
     df = build_peer_table("AAPL", _DUMMY_MAIN, [])
     assert len(df) == 1
     assert df.iloc[0]["Ticker"] == "AAPL"
+
+
+def test_fetch_peer_data_filters_invalid(monkeypatch):
+    import sa_research_agent
+
+    def _fake_fetch(ticker):
+        return {"valid": False, "ticker": ticker}
+
+    monkeypatch.setattr(sa_research_agent, "_yfinance_fetch", _fake_fetch)
+    result = fetch_peer_data(["FAKE"])
+    assert result == []
