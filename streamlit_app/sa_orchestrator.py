@@ -16,6 +16,7 @@ from sa_research_agent import (
     _run_pipeline,
     _TOOLS,
 )
+from sa_peers import get_peer_tickers, fetch_peer_data
 
 
 # ============== SUB-AGENT: FUNDAMENTAL ==============
@@ -772,4 +773,11 @@ def run_multi_agent_research(
 
     final_data = _merge_data(accumulated)
     final_data["_orchestrator_thesis"] = thesis
+
+    if on_step:
+        on_step("🔍 Finding peer companies...")
+    peer_tickers = get_peer_tickers(ticker, sector, company_name, api_key)
+    final_data["_peer_tickers"] = peer_tickers
+    final_data["_peer_data"] = fetch_peer_data(peer_tickers)
+
     return final_data, trace_log
