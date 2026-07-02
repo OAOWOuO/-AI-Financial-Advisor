@@ -1807,6 +1807,10 @@ def show_stock_analyzer():
         st.session_state.inst_data = None
     if "insider_weight" not in st.session_state:
         st.session_state["insider_weight"] = 15
+    if "custom_peers" not in st.session_state:
+        st.session_state["custom_peers"] = []
+    if "custom_peer_data" not in st.session_state:
+        st.session_state["custom_peer_data"] = {}
 
     # ── PRE-COMPUTE (uses session state from previous run) ──────────────────
     data = None
@@ -1994,8 +1998,8 @@ def show_stock_analyzer():
 
 
     with col_right:
-        tab_profile, tab_tech, tab_fund, tab_valuation, tab_insider, tab_conclusion, tab_research = st.tabs(
-            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "💰 Valuation", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
+        tab_profile, tab_tech, tab_fund, tab_valuation, tab_peers, tab_insider, tab_conclusion, tab_research = st.tabs(
+            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "💰 Valuation", "🔍 Peers", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
         )
 
         # ── PROFILE TAB ────────────────────────────────────────────────────────
@@ -2785,6 +2789,100 @@ also most assumption-dependent approach. A convergence of models above the curre
                     if _val_summary:
                         st.markdown("#### Valuation Conclusion")
                         st.write(_val_summary)
+
+        # ── PEERS TAB ──────────────────────────────────────────────────────────
+        with tab_peers:
+            if not has_data:
+                st.info("Run an analysis to see peer comparison.")
+            else:
+                import pandas as pd
+                from sa_peers import build_peer_table, fetch_peer_data
+
+                _auto_peers = data.get("_peer_data") or []
+                _custom_peer_data_list = list(st.session_state["custom_peer_data"].values())
+                _all_peer_data = _auto_peers + [
+                    p for p in _custom_peer_data_list
+                    if p.get("ticker") not in {d.get("ticker") for d in _auto_peers}
+                ]
+
+                _peer_df = build_peer_table(data["ticker"], data, _all_peer_data)
+
+                # ── Color-code table ───────────────────────────────────────────
+                _higher_better = {"Rev Growth %", "Profit Margin %", "EPS"}
+                _lower_better = {"P/E (TTM)", "Forward P/E", "EV/EBITDA", "Debt/Equity"}
+                _main_row = _peer_df[_peer_df["Ticker"] == data["ticker"]]
+
+                def _style_peers(row):
+                    if row["Ticker"] == data["ticker"]:
+                        return ["font-weight: bold; background-color: #e8f4fd"] * len(row)
+                    if _main_row.empty:
+                        return [""] * len(row)
+                    styles = []
+                    for col in _peer_df.columns:
+                        if col == "Ticker":
+                            styles.append("")
+                            continue
+                        try:
+                            val = float(row[col]) if row[col] is not None else None
+                            main_val = float(_main_row[col].iloc[0]) if _main_row[col].iloc[0] is not None else None
+                            if val is None or main_val is None or main_val == 0:
+                                styles.append("")
+                                continue
+                            diff = (val - main_val) / abs(main_val)
+                            if abs(diff) < 0.05:
+                                styles.append("")
+                            elif col in _higher_better:
+                                styles.append("background-color: #d4edda" if diff > 0 else "background-color: #f8d7da")
+                            elif col in _lower_better:
+                                styles.append("background-color: #d4edda" if diff < 0 else "background-color: #f8d7da")
+                            else:
+                                styles.append("")
+                        except (TypeError, ValueError):
+                            styles.append("")
+                    return styles
+
+                _styled = _peer_df.style.apply(_style_peers, axis=1).format(na_rep="N/A", precision=1)
+
+                st.subheader("🔍 Peer Comparison")
+                _auto_tickers = data.get("_peer_tickers") or []
+                if _auto_tickers:
+                    st.caption(f"Auto-suggested peers: {', '.join(_auto_tickers)} | Source: Yahoo Finance · GPT-4o")
+                else:
+                    st.caption("No auto-suggested peers. Add peers manually below.")
+
+                st.dataframe(_styled, use_container_width=True)
+
+                # ── Manual peer input ──────────────────────────────────────────
+                st.markdown("#### Add Custom Peers")
+                _pcol1, _pcol2 = st.columns([3, 1])
+                with _pcol1:
+                    _peer_input = st.text_input(
+                        "Ticker symbol",
+                        key="peer_input",
+                        placeholder="e.g. NVDA",
+                    ).strip().upper()
+                with _pcol2:
+                    st.write("")
+                    st.write("")
+                    _add_clicked = st.button("Add Peer", key="add_peer_btn")
+
+                if _add_clicked and _peer_input:
+                    if _peer_input in st.session_state["custom_peer_data"]:
+                        st.info(f"{_peer_input} is already in the peer list.")
+                    else:
+                        with st.spinner(f"Fetching {_peer_input}..."):
+                            from sa_research_agent import _yfinance_fetch as _yf
+                            _fetched = _yf(_peer_input)
+                        if not _fetched.get("valid"):
+                            st.error(f"{_peer_input} not found on Yahoo Finance.")
+                        else:
+                            st.session_state["custom_peers"].append(_peer_input)
+                            st.session_state["custom_peer_data"][_peer_input] = _fetched
+                            st.success(f"Added {_peer_input} — {_fetched.get('name', '')}")
+                            st.rerun()
+
+                if st.session_state["custom_peers"]:
+                    st.caption(f"Custom peers added: {', '.join(st.session_state['custom_peers'])}")
 
         with tab_insider:
             if not has_data:
