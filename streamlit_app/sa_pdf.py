@@ -3,6 +3,31 @@ from typing import Dict, Optional
 
 from fpdf import FPDF
 
+_UNICODE_MAP = {
+    "—": "-",   # em dash
+    "–": "-",   # en dash
+    "‘": "'",   # left single quote
+    "’": "'",   # right single quote
+    "“": '"',   # left double quote
+    "”": '"',   # right double quote
+    "•": "*",   # bullet
+    "…": "...", # ellipsis
+    " ": " ",   # non-breaking space
+    "·": "*",   # middle dot
+    "‐": "-",   # hyphen
+    "‑": "-",   # non-breaking hyphen
+    "−": "-",   # minus sign
+}
+
+
+def _s(text: str) -> str:
+    """Sanitize text to Latin-1 safe for core PDF fonts."""
+    if not text:
+        return ""
+    for ch, rep in _UNICODE_MAP.items():
+        text = text.replace(ch, rep)
+    return text.encode("latin-1", errors="replace").decode("latin-1")
+
 
 class _PDF(FPDF):
     def __init__(self, ticker: str, date_str: str):
@@ -81,13 +106,13 @@ def generate_pdf(data: Dict, valuation: Dict) -> bytes:
     pdf.set_text_color(255, 255, 255)
 
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(half_w, 10, ticker, fill=True)
+    pdf.cell(half_w, 10, _s(ticker), fill=True)
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(half_w, 10, "AI Financial Analysis Report", fill=True, align="R",
              new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(half_w, 7, name, fill=True)
+    pdf.cell(half_w, 7, _s(name), fill=True)
     pdf.cell(half_w, 7, date_str, fill=True, align="R",
              new_x="LMARGIN", new_y="NEXT")
 
@@ -96,7 +121,7 @@ def generate_pdf(data: Dict, valuation: Dict) -> bytes:
 
     price = _fmt(data.get("price"), "{:.2f}", prefix="$")
     mcap = _market_cap_str(data.get("market_cap"))
-    sector = data.get("sector") or "N/A"
+    sector = _s(data.get("sector") or "N/A")
     pe = _fmt(data.get("pe_ratio"), "{:.1f}", suffix="x")
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(80, 80, 80)
@@ -106,7 +131,7 @@ def generate_pdf(data: Dict, valuation: Dict) -> bytes:
 
     # ── Section 2: AI Investment Thesis ──────────────────────────────────────
     _section_heading(pdf, "AI Investment Thesis")
-    thesis = (data.get("_orchestrator_thesis") or "").strip() or "Analysis not available."
+    thesis = _s((data.get("_orchestrator_thesis") or "").strip() or "Analysis not available.")
     pdf.set_font("Helvetica", "", 10)
     pdf.multi_cell(0, 5, thesis)
 
@@ -154,7 +179,7 @@ def generate_pdf(data: Dict, valuation: Dict) -> bytes:
         pdf.ln(2)
         pdf.set_font("Helvetica", "I", 9)
         pdf.set_text_color(80, 80, 80)
-        pdf.multi_cell(0, 4, narrative)
+        pdf.multi_cell(0, 4, _s(narrative))
         pdf.set_text_color(0, 0, 0)
 
     pe_val = (valuation or {}).get("pe_valuation")
@@ -240,7 +265,7 @@ def generate_pdf(data: Dict, valuation: Dict) -> bytes:
 
     # ── Section 6: Insider Activity ───────────────────────────────────────────
     _section_heading(pdf, "Insider Activity")
-    insider_text = (data.get("_insider_signal_text") or "").strip() or "No insider data available."
+    insider_text = _s((data.get("_insider_signal_text") or "").strip() or "No insider data available.")
     pdf.set_font("Helvetica", "", 10)
     pdf.multi_cell(0, 5, insider_text)
 

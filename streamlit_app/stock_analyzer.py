@@ -1887,14 +1887,17 @@ def show_stock_analyzer():
 
         # ── PDF EXPORT ───────────────────────────────────────────────────────────
         if has_data and valuation is not None:
-            _pdf_bytes = generate_pdf(data, valuation)
-            st.download_button(
-                label="📄 Export PDF Report",
-                data=_pdf_bytes,
-                file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-            )
+            try:
+                _pdf_bytes = generate_pdf(data, valuation)
+                st.download_button(
+                    label="📄 Export PDF Report",
+                    data=_pdf_bytes,
+                    file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                )
+            except Exception as _pdf_err:
+                st.warning(f"PDF generation failed: {_pdf_err}")
 
         # ── AI CHAT FORM ─────────────────────────────────────────────────────────
         _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
