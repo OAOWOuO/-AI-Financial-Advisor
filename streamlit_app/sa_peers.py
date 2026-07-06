@@ -7,7 +7,7 @@ import pandas as pd
 # Hardcoded peer suggestions — used as fallback when no API key is available
 _TICKER_PEERS: Dict[str, List[str]] = {
     # Mega-cap tech
-    "AAPL": ["MSFT", "GOOGL", "META", "AMZN", "SAMSUNG"],
+    "AAPL": ["MSFT", "GOOGL", "META", "AMZN", "NVDA"],
     "MSFT": ["AAPL", "GOOGL", "AMZN", "META", "ORCL"],
     "GOOGL": ["META", "MSFT", "AAPL", "AMZN", "SNAP"],
     "GOOG":  ["META", "MSFT", "AAPL", "AMZN", "SNAP"],

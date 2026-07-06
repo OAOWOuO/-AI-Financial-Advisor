@@ -2831,7 +2831,24 @@ also most assumption-dependent approach. A convergence of models above the curre
             if not has_data:
                 st.info("Run an analysis to see peer comparison.")
             else:
-                from sa_peers import build_peer_table
+                from sa_peers import build_peer_table, _fallback_peers, fetch_peer_data as _fetch_peer_data
+
+                _auto_peers = data.get("_peer_data") or []
+
+                # If no auto peers yet, offer one-click load from built-in suggestions
+                if not _auto_peers:
+                    _suggested = _fallback_peers(data["ticker"], data.get("sector", ""))
+                    if _suggested:
+                        st.info(f"Suggested peers: **{', '.join(_suggested)}**")
+                        if st.button("Load Suggested Peers", key="load_suggested_peers"):
+                            with st.spinner("Fetching peer data..."):
+                                _fetched = _fetch_peer_data(_suggested)
+                            if _fetched:
+                                st.session_state.inst_data["_peer_data"] = _fetched
+                                st.session_state.inst_data["_peer_tickers"] = _suggested
+                                st.rerun()
+                            else:
+                                st.warning("Could not fetch peer data. Try adding manually below.")
 
                 _auto_peers = data.get("_peer_data") or []
                 _custom_peer_data_list = list(st.session_state["custom_peer_data"].values())
