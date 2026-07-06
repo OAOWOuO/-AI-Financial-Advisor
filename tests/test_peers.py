@@ -22,10 +22,12 @@ _DUMMY_PEER = {
 }
 
 
-def test_get_peer_tickers_no_key_returns_empty():
+def test_get_peer_tickers_no_key_uses_fallback():
+    # No API key → fallback lookup should return built-in suggestions, not empty
     result = get_peer_tickers("AAPL", "Technology", "Apple Inc.", api_key="")
     assert isinstance(result, list)
-    assert result == []
+    assert len(result) > 0  # fallback always returns peers for known tickers
+    assert "AAPL" not in result  # should never include the subject ticker
 
 
 def test_fetch_peer_data_empty_list_returns_empty():

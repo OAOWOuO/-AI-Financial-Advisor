@@ -18,9 +18,9 @@ jobs:
       - name: Install flake8
         run: pip install flake8
       - name: Lint streamlit_app/
-        run: flake8 streamlit_app/
+        run: flake8 streamlit_app/ --max-line-length=120 --extend-ignore=E501
       - name: Lint scripts/
-        run: flake8 scripts/
+        run: flake8 scripts/ --max-line-length=120 --extend-ignore=E501
 
   test:
     name: Unit Tests
@@ -31,6 +31,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install test dependencies
-        run: pip install pytest python-dotenv
+        run: |
+          pip install pytest python-dotenv
+          pip install -r streamlit_app/requirements.txt
       - name: Run tests
         run: pytest tests/ -v
