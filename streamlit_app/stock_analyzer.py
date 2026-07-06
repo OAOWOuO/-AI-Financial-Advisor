@@ -1604,16 +1604,18 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
     if roe_capital_note:
         capital_note_section = f"\n**Capital Structure Note:**\n{roe_capital_note}\n"
 
-    # Fix 2: Use \\$ to prevent Streamlit markdown from rendering dollar signs as LaTeX
-    rationale = f"""
-**Investment Thesis:**
+    _driver_list = '\n'.join(['- ' + d for d in bullish_drivers[:3]]) if bullish_drivers else '- No significant bullish factors identified'
+    _risk_list   = '\n'.join(['- ' + r for r in bearish_risks[:3]])   if bearish_risks   else '- No significant bearish factors identified'
+    rationale = f"""**Investment Thesis:**
 {data['name']} ({data['ticker']}) rates as a **{action}** based on combined technical and fundamental analysis.
 
 **Key Drivers:**
-{''.join(['• ' + d + chr(10) for d in bullish_drivers[:3]]) if bullish_drivers else '• No significant bullish factors identified'}
+
+{_driver_list}
 
 **Key Risks:**
-{''.join(['• ' + r + chr(10) for r in bearish_risks[:3]]) if bearish_risks else '• No significant bearish factors identified'}
+
+{_risk_list}
 {capital_note_section}
 **Valuation:**
 Current price of \\${price:.2f} {valuation_desc} with a base case target of \\${target_price:.2f} ({upside:+.1f}% potential). Bull case target: \\${target_high:.2f} ({upside_high:+.1f}%).
@@ -1835,6 +1837,16 @@ def show_stock_analyzer():
         recommendation = generate_recommendation(data, tech_analysis, fund_analysis, valuation, forecasts,
                                                  supports=supports, resistances=resistances)
 
+    # ── PRE-GENERATE PDF (before columns so errors surface at page level) ─────
+    _pdf_bytes = None
+    _pdf_error = None
+    if has_data and valuation is not None:
+        try:
+            _pdf_bytes = generate_pdf(data, valuation)
+        except Exception as _e:
+            import traceback
+            _pdf_error = traceback.format_exc()
+
     # ── TWO-COLUMN LAYOUT: LEFT (input + company info) | RIGHT (analysis tabs) ─
     col_left, col_right = st.columns([1, 2])
 
@@ -1884,20 +1896,6 @@ def show_stock_analyzer():
             if _new_weight != st.session_state.get("insider_weight", 15):
                 st.session_state["insider_weight"] = _new_weight
                 st.rerun()
-
-        # ── PDF EXPORT ───────────────────────────────────────────────────────────
-        if has_data and valuation is not None:
-            try:
-                _pdf_bytes = generate_pdf(data, valuation)
-                st.download_button(
-                    label="📄 Export PDF Report",
-                    data=_pdf_bytes,
-                    file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-            except Exception as _pdf_err:
-                st.warning(f"PDF generation failed: {_pdf_err}")
 
         # ── AI CHAT FORM ─────────────────────────────────────────────────────────
         _chat_key = f"chat_history_{data['ticker']}" if has_data else "chat_history_default"
@@ -2014,6 +2012,17 @@ def show_stock_analyzer():
 
 
     with col_right:
+        # ── PDF EXPORT ───────────────────────────────────────────────────────────
+        if _pdf_bytes:
+            st.download_button(
+                label="📄 Export PDF Report",
+                data=_pdf_bytes,
+                file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
+                mime="application/pdf",
+            )
+        elif _pdf_error:
+            st.error(f"PDF generation failed:\n\n```\n{_pdf_error}\n```")
+
         tab_profile, tab_tech, tab_fund, tab_valuation, tab_peers, tab_insider, tab_conclusion, tab_research = st.tabs(
             ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "💰 Valuation", "🔍 Peers", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
         )
@@ -3136,10 +3145,7 @@ intrinsic fundamental value more heavily.
                 # ── 4. INVESTMENT RATIONALE ───────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Investment Rationale")
-                st.markdown(f"""
-<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:18px 20px;font-size:14px;color:#c9d1d9;line-height:1.9;">
-{recommendation['rationale']}
-</div>""", unsafe_allow_html=True)
+                st.markdown(recommendation['rationale'])
 
                 # ── 5. CATALYSTS & RISKS ──────────────────────────────────────
                 st.markdown("---")
@@ -3169,11 +3175,8 @@ intrinsic fundamental value more heavily.
 
                 # ── 6. TRADE INVALIDATION ─────────────────────────────────────
                 st.markdown("---")
-                st.markdown(f"""
-<div style="background:#0d1117;border:1px solid #d29922;border-radius:8px;padding:16px 18px;">
-  <div style="font-size:11px;color:#d29922;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">\u26a0\ufe0f Trade Invalidation Criteria</div>
-  <div style="font-size:13px;color:#c9d1d9;line-height:1.8;">{recommendation['invalidation']}</div>
-</div>""", unsafe_allow_html=True)
+                st.markdown("**⚠️ Trade Invalidation Criteria**")
+                st.warning(recommendation['invalidation'].replace("\\$", "$"))
 
                 # \u2500\u2500 7. FACT CHECK \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
                 _fc_context = build_analysis_context(
