@@ -2870,11 +2870,55 @@ also most assumption-dependent approach. A convergence of models above the curre
                 st.subheader("🔍 Peer Comparison")
                 _auto_tickers = data.get("_peer_tickers") or []
                 if _auto_tickers:
-                    st.caption(f"Auto-suggested peers: {', '.join(_auto_tickers)} | Source: Yahoo Finance · GPT-4o")
+                    _src_label = "GPT-4o" if openai_api_key else "built-in database"
+                    st.caption(f"Auto-suggested peers: {', '.join(_auto_tickers)} | Source: Yahoo Finance · {_src_label}")
                 else:
-                    st.caption("No auto-suggested peers. Add peers manually below.")
+                    st.caption("Add peers manually below.")
 
                 st.dataframe(_styled, use_container_width=True)
+
+                # ── Bar chart comparison ───────────────────────────────────────
+                if len(_peer_df) > 1:
+                    _chart_cols = ["P/E (TTM)", "Forward P/E", "EV/EBITDA",
+                                   "Rev Growth %", "Profit Margin %", "EPS", "Debt/Equity", "Market Cap ($B)"]
+                    _sel_metric = st.selectbox(
+                        "📊 Compare metric across peers",
+                        _chart_cols,
+                        index=4,
+                        key="peer_chart_metric",
+                    )
+                    _cdf = _peer_df[["Ticker", _sel_metric]].copy()
+                    _cdf[_sel_metric] = pd.to_numeric(_cdf[_sel_metric], errors="coerce")
+                    _cdf = _cdf.dropna(subset=[_sel_metric]).reset_index(drop=True)
+                    if not _cdf.empty:
+                        _cdf["_is_main"] = _cdf["Ticker"] == data["ticker"]
+                        _cdf = _cdf.sort_values(_sel_metric, ascending=True)
+                        _bar = (
+                            alt.Chart(_cdf)
+                            .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                            .encode(
+                                x=alt.X(f"{_sel_metric}:Q", title=_sel_metric,
+                                        axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e", gridColor="#21262d")),
+                                y=alt.Y("Ticker:N", sort=None, title=None,
+                                        axis=alt.Axis(labelColor="#c9d1d9")),
+                                color=alt.condition(
+                                    alt.datum["_is_main"],
+                                    alt.value("#58a6ff"),
+                                    alt.value("#444c56"),
+                                ),
+                                tooltip=[
+                                    alt.Tooltip("Ticker:N"),
+                                    alt.Tooltip(f"{_sel_metric}:Q", format=".1f", title=_sel_metric),
+                                ],
+                            )
+                            .properties(
+                                height=max(160, len(_cdf) * 42),
+                                background="#0d1117",
+                            )
+                            .configure_view(strokeColor="#30363d")
+                        )
+                        st.altair_chart(_bar, use_container_width=True)
+                        st.caption(f"Blue bar = {data['ticker']} (subject company)")
 
                 # ── Manual peer input ──────────────────────────────────────────
                 st.markdown("#### Add Custom Peers")
