@@ -2833,39 +2833,74 @@ also most assumption-dependent approach. A convergence of models above the curre
             else:
                 from sa_peers import build_peer_table, _fallback_peers, fetch_peer_data as _fetch_peer_data
 
-                _auto_peers = data.get("_peer_data") or []
+                _main_ticker = data["ticker"]
+                _pd_key = f"_pdata_{_main_ticker}"   # dict: ticker -> data
+                _pm_key = f"_pmsel_{_main_ticker}"   # multiselect widget state key
 
-                # If no auto peers yet, offer one-click load from built-in suggestions
-                if not _auto_peers:
-                    _suggested = _fallback_peers(data["ticker"], data.get("sector", ""))
-                    if _suggested:
-                        st.info(f"Suggested peers: **{', '.join(_suggested)}**")
-                        if st.button("Load Suggested Peers", key="load_suggested_peers"):
-                            with st.spinner("Fetching peer data..."):
-                                _fetched = _fetch_peer_data(_suggested)
-                            if _fetched:
-                                st.session_state.inst_data["_peer_data"] = _fetched
-                                st.session_state.inst_data["_peer_tickers"] = _suggested
+                # ── Auto-initialize on first visit for this ticker ─────────────
+                if _pd_key not in st.session_state:
+                    _init_store = {p["ticker"]: p for p in (data.get("_peer_data") or [])}
+                    _init_store.update(st.session_state.get("custom_peer_data", {}))
+                    if not _init_store:
+                        _suggested = _fallback_peers(_main_ticker, data.get("sector", ""))
+                        if _suggested:
+                            with st.spinner("Loading suggested peers..."):
+                                for _fd in _fetch_peer_data(_suggested):
+                                    _init_store[_fd["ticker"]] = _fd
+                    st.session_state[_pd_key] = _init_store
+                    st.session_state[_pm_key] = list(_init_store.keys())
+
+                _peer_store = st.session_state[_pd_key]
+
+                # ── Header + controls ──────────────────────────────────────────
+                st.subheader("🔍 Peer Comparison")
+                _src_label = "GPT-4o" if openai_api_key else "built-in"
+                st.caption(f"Source: Yahoo Finance · {_src_label}  |  Deselect peers to hide · add ticker below")
+
+                _ctrl_l, _ctrl_r = st.columns([3, 1])
+                with _ctrl_l:
+                    # Multiselect — Streamlit persists value via _pm_key in session state
+                    _active_tickers = st.multiselect(
+                        "Active peers",
+                        options=list(_peer_store.keys()),
+                        key=_pm_key,
+                        label_visibility="collapsed",
+                    )
+                with _ctrl_r:
+                    _new_t = st.text_input(
+                        "Add peer", placeholder="e.g. TSLA",
+                        key="peer_add_input", label_visibility="collapsed",
+                    ).strip().upper()
+                    if st.button("+ Add Peer", key="peer_add_btn", use_container_width=True) and _new_t:
+                        if _new_t == _main_ticker:
+                            st.warning(f"{_new_t} is the subject company.")
+                        elif _new_t in _peer_store:
+                            if _new_t not in st.session_state[_pm_key]:
+                                st.session_state[_pm_key] = st.session_state[_pm_key] + [_new_t]
                                 st.rerun()
+                        else:
+                            with st.spinner(f"Fetching {_new_t}..."):
+                                from sa_research_agent import _yfinance_fetch as _yf
+                                _fd = _yf(_new_t)
+                            if not _fd.get("valid"):
+                                st.error(f"{_new_t} not found on Yahoo Finance.")
                             else:
-                                st.warning("Could not fetch peer data. Try adding manually below.")
+                                _peer_store[_new_t] = _fd
+                                st.session_state[_pd_key] = _peer_store
+                                st.session_state[_pm_key] = list(st.session_state[_pm_key]) + [_new_t]
+                                st.rerun()
 
-                _auto_peers = data.get("_peer_data") or []
-                _custom_peer_data_list = list(st.session_state["custom_peer_data"].values())
-                _all_peer_data = _auto_peers + [
-                    p for p in _custom_peer_data_list
-                    if p.get("ticker") not in {d.get("ticker") for d in _auto_peers}
-                ]
-
-                _peer_df = build_peer_table(data["ticker"], data, _all_peer_data)
+                # ── Build table from active selection ──────────────────────────
+                _active_peer_data = [_peer_store[t] for t in _active_tickers if t in _peer_store]
+                _peer_df = build_peer_table(_main_ticker, data, _active_peer_data)
 
                 # ── Color-code table ───────────────────────────────────────────
                 _higher_better = {"Rev Growth %", "Profit Margin %", "EPS"}
                 _lower_better = {"P/E (TTM)", "Forward P/E", "EV/EBITDA", "Debt/Equity"}
-                _main_row = _peer_df[_peer_df["Ticker"] == data["ticker"]]
+                _main_row = _peer_df[_peer_df["Ticker"] == _main_ticker]
 
                 def _style_peers_tab(row):
-                    if row["Ticker"] == data["ticker"]:
+                    if row["Ticker"] == _main_ticker:
                         return ["font-weight: bold; background-color: #e8f4fd"] * len(row)
                     if _main_row.empty:
                         return [""] * len(row)
@@ -2894,15 +2929,6 @@ also most assumption-dependent approach. A convergence of models above the curre
                     return styles
 
                 _styled = _peer_df.style.apply(_style_peers_tab, axis=1).format(na_rep="N/A", precision=1)
-
-                st.subheader("🔍 Peer Comparison")
-                _auto_tickers = data.get("_peer_tickers") or []
-                if _auto_tickers:
-                    _src_label = "GPT-4o" if openai_api_key else "built-in database"
-                    st.caption(f"Auto-suggested peers: {', '.join(_auto_tickers)} | Source: Yahoo Finance · {_src_label}")
-                else:
-                    st.caption("Add peers manually below.")
-
                 st.dataframe(_styled, use_container_width=True)
 
                 # ── Bar chart comparison ───────────────────────────────────────
@@ -2919,14 +2945,15 @@ also most assumption-dependent approach. A convergence of models above the curre
                     _cdf[_sel_metric] = pd.to_numeric(_cdf[_sel_metric], errors="coerce")
                     _cdf = _cdf.dropna(subset=[_sel_metric]).reset_index(drop=True)
                     if not _cdf.empty:
-                        _cdf["_is_main"] = _cdf["Ticker"] == data["ticker"]
+                        _cdf["_is_main"] = _cdf["Ticker"] == _main_ticker
                         _cdf = _cdf.sort_values(_sel_metric, ascending=True)
                         _bar = (
                             alt.Chart(_cdf)
                             .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
                             .encode(
                                 x=alt.X(f"{_sel_metric}:Q", title=_sel_metric,
-                                        axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e", gridColor="#21262d")),
+                                        axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e",
+                                                      gridColor="#21262d")),
                                 y=alt.Y("Ticker:N", sort=None, title=None,
                                         axis=alt.Axis(labelColor="#c9d1d9")),
                                 color=alt.condition(
@@ -2939,46 +2966,10 @@ also most assumption-dependent approach. A convergence of models above the curre
                                     alt.Tooltip(f"{_sel_metric}:Q", format=".1f", title=_sel_metric),
                                 ],
                             )
-                            .properties(
-                                height=max(160, len(_cdf) * 42),
-                                background="#0d1117",
-                            )
-                            .configure_view(strokeColor="#30363d")
+                            .properties(height=max(160, len(_cdf) * 42), background="#0d1117")
                         )
                         st.altair_chart(_bar, use_container_width=True)
-                        st.caption(f"Blue bar = {data['ticker']} (subject company)")
-
-                # ── Manual peer input ──────────────────────────────────────────
-                st.markdown("#### Add Custom Peers")
-                _pcol1, _pcol2 = st.columns([3, 1])
-                with _pcol1:
-                    _peer_input = st.text_input(
-                        "Ticker symbol",
-                        key="peer_input",
-                        placeholder="e.g. NVDA",
-                    ).strip().upper()
-                with _pcol2:
-                    st.write("")
-                    st.write("")
-                    _add_clicked = st.button("Add Peer", key="add_peer_btn")
-
-                if _add_clicked and _peer_input:
-                    if _peer_input in st.session_state["custom_peer_data"]:
-                        st.info(f"{_peer_input} is already in the peer list.")
-                    else:
-                        with st.spinner(f"Fetching {_peer_input}..."):
-                            from sa_research_agent import _yfinance_fetch as _yf
-                            _fetched = _yf(_peer_input)
-                        if not _fetched.get("valid"):
-                            st.error(f"{_peer_input} not found on Yahoo Finance.")
-                        else:
-                            st.session_state["custom_peers"].append(_peer_input)
-                            st.session_state["custom_peer_data"][_peer_input] = _fetched
-                            st.success(f"Added {_peer_input} — {_fetched.get('name', '')}")
-                            st.rerun()
-
-                if st.session_state["custom_peers"]:
-                    st.caption(f"Custom peers added: {', '.join(st.session_state['custom_peers'])}")
+                        st.caption(f"Blue = {_main_ticker}  |  Sorted by {_sel_metric}")
 
         with tab_insider:
             if not has_data:
