@@ -1842,7 +1842,13 @@ def show_stock_analyzer():
     _pdf_error = None
     if has_data and valuation is not None:
         try:
-            _pdf_bytes = generate_pdf(data, valuation)
+            _pdf_bytes = generate_pdf(
+                data, valuation,
+                tech_analysis=tech_analysis,
+                fund_analysis=fund_analysis,
+                forecasts=forecasts,
+                recommendation=recommendation,
+            )
         except Exception as _e:
             import traceback
             _pdf_error = traceback.format_exc()
@@ -2012,17 +2018,6 @@ def show_stock_analyzer():
 
 
     with col_right:
-        # ── PDF EXPORT ───────────────────────────────────────────────────────────
-        if _pdf_bytes:
-            st.download_button(
-                label="📄 Export PDF Report",
-                data=_pdf_bytes,
-                file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
-                mime="application/pdf",
-            )
-        elif _pdf_error:
-            st.error(f"PDF generation failed:\n\n```\n{_pdf_error}\n```")
-
         tab_profile, tab_tech, tab_fund, tab_valuation, tab_peers, tab_insider, tab_conclusion, tab_research = st.tabs(
             ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "💰 Valuation", "🔍 Peers", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
         )
@@ -2775,14 +2770,15 @@ also most assumption-dependent approach. A convergence of models above the curre
                 _dcf_assump = _val.get("dcf_assumptions") or {}
                 _cur_price = data.get("price") or 0.0
 
+                st.subheader("📊 Valuation Analysis")
+
                 if not _val or _iv == 0.0:
                     st.warning(
-                        "Valuation data unavailable. "
-                        "This may be due to missing FCF data or no OpenAI API key."
+                        "**DCF valuation requires an OpenAI API key.** "
+                        "Set `OPENAI_API_KEY` in Streamlit secrets to enable the AI valuation agent. "
+                        "P/E-based price targets below are available without an API key."
                     )
                 else:
-                    st.subheader("📊 Valuation Analysis")
-
                     _vcol1, _vcol2, _vcol3 = st.columns(3)
                     with _vcol1:
                         st.metric(
@@ -2814,6 +2810,21 @@ also most assumption-dependent approach. A convergence of models above the curre
                     if _val_summary:
                         st.markdown("#### Valuation Conclusion")
                         st.write(_val_summary)
+
+                # P/E targets always shown (don't need API key)
+                _pe_val = valuation.get("pe_valuation")
+                _fpe_val = valuation.get("forward_pe_valuation")
+                if _pe_val or _fpe_val:
+                    st.markdown("#### P/E-Based Price Targets")
+                    _pt_rows = []
+                    if _pe_val and all(_pe_val.get(k) is not None for k in ("low", "mid", "high")):
+                        _pt_rows.append(("P/E (TTM) — Bear / Base / Bull",
+                                         f"${_pe_val['low']:.2f} / ${_pe_val['mid']:.2f} / ${_pe_val['high']:.2f}"))
+                    if _fpe_val and all(_fpe_val.get(k) is not None for k in ("low", "mid", "high")):
+                        _pt_rows.append(("Forward P/E — Bear / Base / Bull",
+                                         f"${_fpe_val['low']:.2f} / ${_fpe_val['mid']:.2f} / ${_fpe_val['high']:.2f}"))
+                    for _lbl, _val_str in _pt_rows:
+                        st.markdown(f"**{_lbl}:** {_val_str}")
 
         # ── PEERS TAB ──────────────────────────────────────────────────────────
         with tab_peers:
@@ -3121,6 +3132,19 @@ also most assumption-dependent approach. A convergence of models above the curre
                 _thesis = data.get("_orchestrator_thesis", "")
                 if _thesis:
                     st.info(_thesis)
+
+                # ── PDF EXPORT ─────────────────────────────────────────────────
+                if _pdf_bytes:
+                    st.download_button(
+                        label="📄 Export Full PDF Report",
+                        data=_pdf_bytes,
+                        file_name=f"{data['ticker']}_analysis_{datetime.date.today()}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+                elif _pdf_error:
+                    with st.expander("⚠️ PDF generation failed — click to see error"):
+                        st.code(_pdf_error)
 
                 # ── 2. PRICE TARGET SCENARIOS ─────────────────────────────────
                 st.markdown("##### Price Target Scenarios")
