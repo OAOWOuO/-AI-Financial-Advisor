@@ -2242,7 +2242,11 @@ levels mark price zones where supply/demand historically interacted. Volume bars
 high volume on up-days signals conviction buying; high volume on down-days signals distribution.
 </div>""", unsafe_allow_html=True)
 
-                _chart_type = st.radio("Chart type", ["Line", "Candlestick"], horizontal=True, key="chart_type_toggle")
+                _chart_col1, _chart_col2 = st.columns([3, 1])
+                with _chart_col1:
+                    _chart_type = st.radio("Chart type", ["Line", "Candlestick"], horizontal=True, key="chart_type_toggle")
+                with _chart_col2:
+                    _show_bb = st.checkbox("Bollinger Bands", value=False, key="show_bb_toggle")
 
                 if _chart_type == "Candlestick":
                     import plotly.graph_objects as go
@@ -2290,6 +2294,19 @@ high volume on up-days signals conviction buying; high volume on down-days signa
                         tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_200:Q', format='$.2f', title='SMA 200')]
                     )
                     price_combined = price_layer + ma50_layer + ma200_layer
+                    if _show_bb and 'BB_Upper' in chart_data.columns and 'BB_Lower' in chart_data.columns:
+                        bb_area = alt.Chart(chart_data).mark_area(opacity=0.07, color='#58a6ff').encode(
+                            x='Date:T', y=alt.Y('BB_Upper:Q', title=''), y2=alt.Y2('BB_Lower:Q'),
+                        )
+                        bb_upper_l = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=1, strokeDash=[3, 4], opacity=0.5).encode(
+                            x='Date:T', y='BB_Upper:Q',
+                            tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('BB_Upper:Q', format='$.2f', title='BB Upper')]
+                        )
+                        bb_lower_l = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=1, strokeDash=[3, 4], opacity=0.5).encode(
+                            x='Date:T', y='BB_Lower:Q',
+                            tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('BB_Lower:Q', format='$.2f', title='BB Lower')]
+                        )
+                        price_combined = bb_area + bb_upper_l + bb_lower_l + price_combined
                     if supports:
                         sup_df = pd.DataFrame({'y': [supports[-1]]})
                         price_combined = price_combined + alt.Chart(sup_df).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
@@ -2314,7 +2331,8 @@ high volume on up-days signals conviction buying; high volume on down-days signa
                         labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d'
                     )
                     st.altair_chart(combined_chart, use_container_width=True)
-                    st.caption("🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume")
+                    _bb_caption = "  |  🔷 Bollinger Bands (20,2)" if _show_bb else ""
+                    st.caption(f"🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume{_bb_caption}")
 
                 # ── 4. RSI SECTION ────────────────────────────────────────────
                 st.markdown("---")
@@ -2611,6 +2629,59 @@ aggressively. Forward EPS estimates reveal consensus expectations, acting as the
   <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
   <div style="font-size:11px;color:#6e7681;">{sub}</div>
 </div>""", unsafe_allow_html=True)
+
+                # ── 5b. QUARTERLY REVENUE & EARNINGS TREND ────────────────────
+                try:
+                    _qi = data.get('quarterly_income')
+                    if _qi is not None and not _qi.empty:
+                        _rev_row = next((_qi.loc[k] for k in ['Total Revenue', 'Revenue'] if k in _qi.index), None)
+                        _ni_row = next((_qi.loc[k] for k in ['Net Income', 'Net Income Common Stockholders'] if k in _qi.index), None)
+                        if _rev_row is not None or _ni_row is not None:
+                            st.markdown("---")
+                            st.markdown("##### Quarterly Revenue & Earnings Trend")
+                            _q_cols = list(_qi.columns[:8])[::-1]  # up to 8 most recent quarters, oldest first
+                            _q_labels = []
+                            for _c in _q_cols:
+                                _ts = pd.Timestamp(_c)
+                                if _ts.tzinfo is not None:
+                                    _ts = _ts.tz_convert(None)
+                                _q_labels.append(f"Q{_ts.quarter} {_ts.year}")
+                            _qchart_col1, _qchart_col2 = st.columns(2)
+                            with _qchart_col1:
+                                if _rev_row is not None:
+                                    _rev_vals = [_rev_row[_c] / 1e9 if pd.notna(_rev_row[_c]) else None for _c in _q_cols]
+                                    _rev_qdf = pd.DataFrame({'Quarter': _q_labels, 'Revenue ($B)': _rev_vals}).dropna()
+                                    if not _rev_qdf.empty:
+                                        _prev_r = _rev_qdf['Revenue ($B)'].shift(1).bfill()
+                                        _rev_qdf['_up'] = _rev_qdf['Revenue ($B)'] >= _prev_r
+                                        _rc = alt.Chart(_rev_qdf).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                                            x=alt.X('Quarter:N', sort=None, title=None, axis=alt.Axis(labelColor='#8b949e', labelAngle=-30, labelFontSize=10)),
+                                            y=alt.Y('Revenue ($B):Q', title='Revenue ($B)', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d')),
+                                            color=alt.condition(alt.datum['_up'], alt.value('#3fb950'), alt.value('#f85149')),
+                                            tooltip=[alt.Tooltip('Quarter:N'), alt.Tooltip('Revenue ($B):Q', format='.2f', title='Revenue ($B)')]
+                                        ).properties(height=200, background='#0d1117',
+                                                     title=alt.TitleParams('Revenue (Quarterly)', color='#8b949e', fontSize=11)
+                                                     ).configure_view(strokeWidth=0).configure_axis(labelFontSize=10, titleFontSize=10, titleColor='#8b949e', domainColor='#30363d')
+                                        st.altair_chart(_rc, use_container_width=True)
+                            with _qchart_col2:
+                                if _ni_row is not None:
+                                    _ni_vals = [_ni_row[_c] / 1e9 if pd.notna(_ni_row[_c]) else None for _c in _q_cols]
+                                    _ni_qdf = pd.DataFrame({'Quarter': _q_labels, 'Net Income ($B)': _ni_vals}).dropna()
+                                    if not _ni_qdf.empty:
+                                        _prev_n = _ni_qdf['Net Income ($B)'].shift(1).bfill()
+                                        _ni_qdf['_up'] = _ni_qdf['Net Income ($B)'] >= _prev_n
+                                        _nc = alt.Chart(_ni_qdf).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                                            x=alt.X('Quarter:N', sort=None, title=None, axis=alt.Axis(labelColor='#8b949e', labelAngle=-30, labelFontSize=10)),
+                                            y=alt.Y('Net Income ($B):Q', title='Net Income ($B)', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d')),
+                                            color=alt.condition(alt.datum['_up'], alt.value('#3fb950'), alt.value('#f85149')),
+                                            tooltip=[alt.Tooltip('Quarter:N'), alt.Tooltip('Net Income ($B):Q', format='.2f', title='Net Income ($B)')]
+                                        ).properties(height=200, background='#0d1117',
+                                                     title=alt.TitleParams('Net Income (Quarterly)', color='#8b949e', fontSize=11)
+                                                     ).configure_view(strokeWidth=0).configure_axis(labelFontSize=10, titleFontSize=10, titleColor='#8b949e', domainColor='#30363d')
+                                        st.altair_chart(_nc, use_container_width=True)
+                            st.caption("🟢 QoQ growth  |  🔴 QoQ decline  |  Last 8 reported quarters")
+                except Exception:
+                    pass
 
                 # ── 6. FINANCIAL HEALTH ───────────────────────────────────────
                 st.markdown("---")
@@ -3117,6 +3188,50 @@ also most assumption-dependent approach. A convergence of models above the curre
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
+
+                # ── SCORE RADAR CHART ───────────────────────────────────────
+                try:
+                    import plotly.graph_objects as go
+                    _bd_r = fund_analysis['breakdown']
+                    def _norm(score, mx):
+                        return max(0, min(100, (score / mx + 1) / 2 * 100)) if mx else 50
+                    _radar_cats = ['Technical', 'Valuation', 'Profitability', 'Growth', 'Health']
+                    _radar_vals = [
+                        (tech_analysis['score_pct'] + 100) / 2,
+                        _norm(_bd_r['valuation']['score'], _bd_r['valuation']['max']),
+                        _norm(_bd_r['profitability']['score'], _bd_r['profitability']['max']),
+                        _norm(_bd_r['growth']['score'], _bd_r['growth']['max']),
+                        _norm(_bd_r['health']['score'], _bd_r['health']['max']),
+                    ]
+                    _radar_fig = go.Figure()
+                    _radar_fig.add_trace(go.Scatterpolar(
+                        r=_radar_vals + [_radar_vals[0]],
+                        theta=_radar_cats + [_radar_cats[0]],
+                        fill='toself', fillcolor='rgba(88,166,255,0.12)',
+                        line=dict(color='#58a6ff', width=2), name='Score',
+                        hovertemplate='%{theta}: %{r:.0f}/100<extra></extra>',
+                    ))
+                    _radar_fig.add_trace(go.Scatterpolar(
+                        r=[50] * 5 + [50], theta=_radar_cats + [_radar_cats[0]],
+                        line=dict(color='#6e7681', width=1, dash='dot'), showlegend=False,
+                        hoverinfo='skip',
+                    ))
+                    _radar_fig.update_layout(
+                        polar=dict(
+                            radialaxis=dict(visible=True, range=[0, 100], tickvals=[25, 50, 75, 100],
+                                           gridcolor='#30363d', linecolor='#30363d', tickfont=dict(color='#6e7681', size=9)),
+                            angularaxis=dict(tickfont=dict(color='#c9d1d9', size=11), linecolor='#30363d', gridcolor='#30363d'),
+                            bgcolor='#0d1117',
+                        ),
+                        paper_bgcolor='#0d1117', showlegend=False,
+                        margin=dict(l=60, r=60, t=30, b=30), height=270,
+                    )
+                    _radar_col1, _radar_col2, _radar_col3 = st.columns([1, 2, 1])
+                    with _radar_col2:
+                        st.plotly_chart(_radar_fig, use_container_width=True)
+                    st.caption("Score radar: 50 = neutral midpoint (dotted) · outer ring = stronger signal · 5 analytical dimensions")
+                except Exception:
+                    pass
 
                 # ── INSIDER SIGNAL BADGE ────────────────────────────────────
                 _it_badge = data.get("_insider_trades") or {}
