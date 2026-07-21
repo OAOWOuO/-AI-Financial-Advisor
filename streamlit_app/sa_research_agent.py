@@ -3,7 +3,7 @@ import re
 import time
 import xml.etree.ElementTree as ET
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple, Optional
 
 _EDGAR_HEADERS = {
@@ -861,7 +861,7 @@ def fetch_insider_trades(cik: str, months: int = 6) -> Dict:
     Fetch Form 4 insider filings from SEC EDGAR for the given CIK.
     Returns only open-market buys (P) and sells (S) within the time window.
     """
-    cutoff = (datetime.utcnow() - timedelta(days=months * 30)).strftime("%Y-%m-%d")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=months * 30)).strftime("%Y-%m-%d")
     url = f"https://data.sec.gov/submissions/CIK{cik}.json"
 
     try:
