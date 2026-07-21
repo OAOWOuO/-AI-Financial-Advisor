@@ -15,6 +15,7 @@ Requirements:
   pip install openai chromadb pypdf python-dotenv
   OPENAI_API_KEY must be set in .env
 """
+
 from __future__ import annotations
 
 import json
@@ -29,11 +30,11 @@ load_dotenv()
 RAW_DIR = Path("data/raw")
 PROCESSED_DIR = Path("data/processed")
 INDEX_DIR = Path("index")
-CHUNK_SIZE = 500        # words per chunk
-OVERLAP = 50            # word overlap between adjacent chunks
+CHUNK_SIZE = 500  # words per chunk
+OVERLAP = 50  # word overlap between adjacent chunks
 EMBED_MODEL = "text-embedding-3-small"
 COLLECTION_NAME = "case_materials"
-BATCH_SIZE = 100        # embeddings per API call
+BATCH_SIZE = 100  # embeddings per API call
 
 
 def chunk_text(text: str, source: str, page: int) -> list[dict]:
@@ -42,14 +43,16 @@ def chunk_text(text: str, source: str, page: int) -> list[dict]:
     chunks: list[dict] = []
     step = CHUNK_SIZE - OVERLAP
     for i, start in enumerate(range(0, len(words), step)):
-        body = " ".join(words[start: start + CHUNK_SIZE])
+        body = " ".join(words[start : start + CHUNK_SIZE])
         if body.strip():
-            chunks.append({
-                "text": body,
-                "source": source,
-                "page": page,
-                "chunk_id": f"{source}_p{page}_c{i}",
-            })
+            chunks.append(
+                {
+                    "text": body,
+                    "source": source,
+                    "page": page,
+                    "chunk_id": f"{source}_p{page}_c{i}",
+                }
+            )
     return chunks
 
 
@@ -60,6 +63,7 @@ def load_documents() -> list[dict]:
     # --- PDFs ---
     try:
         from pypdf import PdfReader
+
         for pdf_path in sorted(RAW_DIR.glob("*.pdf")):
             print(f"  Loading PDF : {pdf_path.name}")
             reader = PdfReader(str(pdf_path))
@@ -86,7 +90,7 @@ def embed_texts(texts: list[str], client) -> list[list[float]]:
     """Embed *texts* in batches, returning one vector per text."""
     embeddings: list[list[float]] = []
     for i in range(0, len(texts), BATCH_SIZE):
-        batch = texts[i: i + BATCH_SIZE]
+        batch = texts[i : i + BATCH_SIZE]
         resp = client.embeddings.create(model=EMBED_MODEL, input=batch)
         embeddings.extend(e.embedding for e in resp.data)
         print(f"  Embedded {min(i + BATCH_SIZE, len(texts))}/{len(texts)} chunks")
@@ -125,12 +129,14 @@ def main() -> None:
         print("Error: OPENAI_API_KEY not set.  Add it to your .env file.")
         sys.exit(1)
     import openai
+
     client = openai.OpenAI(api_key=api_key)
     embeddings = embed_texts([c["text"] for c in all_chunks], client)
 
     # 5. Store in ChromaDB
     print("Step 4/4  Writing to ChromaDB vector store ...")
     import chromadb
+
     chroma = chromadb.PersistentClient(path=str(INDEX_DIR))
     try:
         chroma.delete_collection(COLLECTION_NAME)
@@ -144,10 +150,7 @@ def main() -> None:
         ids=[c["chunk_id"] for c in all_chunks],
         embeddings=embeddings,
         documents=[c["text"] for c in all_chunks],
-        metadatas=[
-            {"source": c["source"], "page": c["page"], "chunk_id": c["chunk_id"]}
-            for c in all_chunks
-        ],
+        metadatas=[{"source": c["source"], "page": c["page"], "chunk_id": c["chunk_id"]} for c in all_chunks],
     )
     print(f"\nDone!  Index built with {len(all_chunks)} chunks stored at '{INDEX_DIR}/'.")
     print("Start the app:  streamlit run streamlit_app/app.py")

@@ -14,10 +14,12 @@ _EDGAR_HEADERS = {
 
 # ============== TOOL: YFINANCE ==============
 
+
 def _yfinance_fetch(ticker: str) -> Dict:
     """Fetch comprehensive stock data from Yahoo Finance."""
     try:
         import yfinance as yf
+
         stock = yf.Ticker(ticker)
         info = stock.info
         hist_1y = stock.history(period="1y")
@@ -100,32 +102,36 @@ def _yfinance_summary(data: Dict) -> str:
     """Compact JSON summary of yfinance data for agent context window."""
     if not data.get("valid"):
         return f"yfinance failed: {data.get('error', 'unknown error')}"
-    return json.dumps({
-        "name": data.get("name"),
-        "price": data.get("price"),
-        "market_cap_B": round((data.get("market_cap") or 0) / 1e9, 2),
-        "sector": data.get("sector"),
-        "industry": data.get("industry"),
-        "pe_ratio": data.get("pe_ratio"),
-        "forward_pe": data.get("forward_pe"),
-        "peg_ratio": data.get("peg_ratio"),
-        "eps": data.get("eps"),
-        "forward_eps": data.get("forward_eps"),
-        "revenue_growth": data.get("revenue_growth"),
-        "earnings_growth": data.get("earnings_growth"),
-        "profit_margin": data.get("profit_margin"),
-        "roe": data.get("roe"),
-        "debt_to_equity": data.get("debt_to_equity"),
-        "current_ratio": data.get("current_ratio"),
-        "free_cash_flow_B": round((data.get("free_cash_flow") or 0) / 1e9, 2),
-        "analyst_rating": data.get("analyst_rating"),
-        "target_price": data.get("target_price"),
-        "num_analysts": data.get("num_analysts"),
-        "beta": data.get("beta"),
-    }, default=str)
+    return json.dumps(
+        {
+            "name": data.get("name"),
+            "price": data.get("price"),
+            "market_cap_B": round((data.get("market_cap") or 0) / 1e9, 2),
+            "sector": data.get("sector"),
+            "industry": data.get("industry"),
+            "pe_ratio": data.get("pe_ratio"),
+            "forward_pe": data.get("forward_pe"),
+            "peg_ratio": data.get("peg_ratio"),
+            "eps": data.get("eps"),
+            "forward_eps": data.get("forward_eps"),
+            "revenue_growth": data.get("revenue_growth"),
+            "earnings_growth": data.get("earnings_growth"),
+            "profit_margin": data.get("profit_margin"),
+            "roe": data.get("roe"),
+            "debt_to_equity": data.get("debt_to_equity"),
+            "current_ratio": data.get("current_ratio"),
+            "free_cash_flow_B": round((data.get("free_cash_flow") or 0) / 1e9, 2),
+            "analyst_rating": data.get("analyst_rating"),
+            "target_price": data.get("target_price"),
+            "num_analysts": data.get("num_analysts"),
+            "beta": data.get("beta"),
+        },
+        default=str,
+    )
 
 
 # ============== TOOL: SEC EDGAR ==============
+
 
 def _get_cik(ticker: str) -> Optional[str]:
     """Look up SEC CIK for a ticker via SEC's company_tickers.json."""
@@ -188,8 +194,12 @@ def _edgar_fetch(ticker: str, filing_type: str = "10-K") -> Dict:
 
     # Revenue — try multiple GAAP tags in order of preference
     revenue = None
-    for tag in ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
-                "SalesRevenueNet", "RevenueFromContractWithCustomerIncludingAssessedTax"):
+    for tag in (
+        "Revenues",
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        "SalesRevenueNet",
+        "RevenueFromContractWithCustomerIncludingAssessedTax",
+    ):
         revenue = _fetch_concept(cik, tag)
         if revenue is not None:
             break
@@ -234,19 +244,23 @@ def _edgar_summary(edgar: Dict) -> str:
     """Compact summary of EDGAR data for agent context."""
     if not edgar.get("available"):
         return f"EDGAR: {edgar.get('error', 'unavailable')}"
-    return json.dumps({
-        "source": "SEC EDGAR (verified)",
-        "revenue_B": round((edgar.get("revenue") or 0) / 1e9, 2),
-        "net_income_B": round((edgar.get("net_income") or 0) / 1e9, 2),
-        "eps": edgar.get("eps"),
-        "operating_cash_flow_B": round((edgar.get("operating_cash_flow") or 0) / 1e9, 2),
-        "free_cash_flow_B": round((edgar.get("free_cash_flow") or 0) / 1e9, 2),
-        "total_debt_B": round((edgar.get("total_debt") or 0) / 1e9, 2),
-        "shares_outstanding_M": round((edgar.get("shares_outstanding") or 0) / 1e6, 1),
-    }, default=str)
+    return json.dumps(
+        {
+            "source": "SEC EDGAR (verified)",
+            "revenue_B": round((edgar.get("revenue") or 0) / 1e9, 2),
+            "net_income_B": round((edgar.get("net_income") or 0) / 1e9, 2),
+            "eps": edgar.get("eps"),
+            "operating_cash_flow_B": round((edgar.get("operating_cash_flow") or 0) / 1e9, 2),
+            "free_cash_flow_B": round((edgar.get("free_cash_flow") or 0) / 1e9, 2),
+            "total_debt_B": round((edgar.get("total_debt") or 0) / 1e9, 2),
+            "shares_outstanding_M": round((edgar.get("shares_outstanding") or 0) / 1e6, 1),
+        },
+        default=str,
+    )
 
 
 # ============== TOOL: WEB SEARCH ==============
+
 
 def _web_search(query: str, max_results: int = 4) -> str:
     """DuckDuckGo text search. Returns formatted text snippets."""
@@ -275,9 +289,7 @@ _TOOLS = [
             "description": "Fetch price, valuation ratios, growth metrics, and analyst targets from Yahoo Finance.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "ticker": {"type": "string", "description": "Stock ticker symbol e.g. AAPL"}
-                },
+                "properties": {"ticker": {"type": "string", "description": "Stock ticker symbol e.g. AAPL"}},
                 "required": ["ticker"],
             },
         },
@@ -312,9 +324,7 @@ _TOOLS = [
             "description": "Search the web for recent news, competitor analysis, and industry trends about a company.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Search query string"}
-                },
+                "properties": {"query": {"type": "string", "description": "Search query string"}},
                 "required": ["query"],
             },
         },
@@ -323,6 +333,7 @@ _TOOLS = [
 
 
 # ============== DETERMINISTIC PIPELINE (no-LLM fallback) ==============
+
 
 def _run_pipeline(
     ticker: str,
@@ -353,13 +364,15 @@ def _run_pipeline(
         )
     else:
         summary = f"EDGAR unavailable — {edgar.get('error', 'unknown')}"
-    trace_log.append({
-        "step": 1,
-        "tool": "get_sec_filing",
-        "args": {"ticker": ticker, "filing_type": "10-K"},
-        "result_summary": summary,
-        "agent_reasoning": "Pipeline step (fixed order, no LLM)",
-    })
+    trace_log.append(
+        {
+            "step": 1,
+            "tool": "get_sec_filing",
+            "args": {"ticker": ticker, "filing_type": "10-K"},
+            "result_summary": summary,
+            "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+        }
+    )
 
     # Step 2: web search
     if on_step:
@@ -367,13 +380,15 @@ def _run_pipeline(
     query = f"{ticker} stock news outlook competitors 2025"
     text = _web_search(query)
     accumulated["web_searches"].append({"query": query, "result": text})
-    trace_log.append({
-        "step": 2,
-        "tool": "web_search",
-        "args": {"query": query},
-        "result_summary": text[:150] + "...",
-        "agent_reasoning": "Pipeline step (fixed order, no LLM)",
-    })
+    trace_log.append(
+        {
+            "step": 2,
+            "tool": "web_search",
+            "args": {"query": query},
+            "result_summary": text[:150] + "...",
+            "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+        }
+    )
 
     # Step 3: insider trades (Form 4)
     if on_step:
@@ -383,22 +398,26 @@ def _run_pipeline(
         insider_data = fetch_insider_trades(_cik, months=6)
         _sig = insider_data.get("summary", {}).get("signal", "N/A")
         _n_trades = len(insider_data.get("trades", []))
-        trace_log.append({
-            "step": 3,
-            "tool": "fetch_insider_trades",
-            "args": {"cik": _cik, "months": 6},
-            "result_summary": f"Signal: {_sig} | {_n_trades} open-market trades found",
-            "agent_reasoning": "Pipeline step (fixed order, no LLM)",
-        })
+        trace_log.append(
+            {
+                "step": 3,
+                "tool": "fetch_insider_trades",
+                "args": {"cik": _cik, "months": 6},
+                "result_summary": f"Signal: {_sig} | {_n_trades} open-market trades found",
+                "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+            }
+        )
     else:
         insider_data = {"available": False, "error": "No CIK", "months": 6, "trades": [], "summary": _empty_summary()}
-        trace_log.append({
-            "step": 3,
-            "tool": "fetch_insider_trades",
-            "args": {},
-            "result_summary": "Insider data unavailable — non-US or unknown ticker",
-            "agent_reasoning": "Pipeline step (fixed order, no LLM)",
-        })
+        trace_log.append(
+            {
+                "step": 3,
+                "tool": "fetch_insider_trades",
+                "args": {},
+                "result_summary": "Insider data unavailable — non-US or unknown ticker",
+                "agent_reasoning": "Pipeline step (fixed order, no LLM)",
+            }
+        )
     accumulated["insider"] = insider_data
     accumulated["insider_signal_text"] = analyze_insider_signal(insider_data, ticker, api_key="")
 
@@ -406,6 +425,7 @@ def _run_pipeline(
 
 
 # ============== RESEARCH AGENT ==============
+
 
 def run_research_agent(
     ticker: str,
@@ -427,19 +447,21 @@ def run_research_agent(
         on_step(f"Fetching Yahoo Finance data for {ticker}...")
     yf_data = _yfinance_fetch(ticker)
 
-    fallback_trace = [{
-        "step": 0,
-        "tool": "get_yfinance_data",
-        "args": {"ticker": ticker},
-        "result_summary": (
-            f"Price: ${yf_data.get('price', 'N/A')} | "
-            f"P/E: {yf_data.get('pe_ratio', 'N/A')} | "
-            f"FCF: ${(yf_data.get('free_cash_flow') or 0) / 1e9:.1f}B"
-            if yf_data.get("valid")
-            else f"Failed: {yf_data.get('error', 'unknown')}"
-        ),
-        "agent_reasoning": "Base data layer — always fetched first",
-    }]
+    fallback_trace = [
+        {
+            "step": 0,
+            "tool": "get_yfinance_data",
+            "args": {"ticker": ticker},
+            "result_summary": (
+                f"Price: ${yf_data.get('price', 'N/A')} | "
+                f"P/E: {yf_data.get('pe_ratio', 'N/A')} | "
+                f"FCF: ${(yf_data.get('free_cash_flow') or 0) / 1e9:.1f}B"
+                if yf_data.get("valid")
+                else f"Failed: {yf_data.get('error', 'unknown')}"
+            ),
+            "agent_reasoning": "Base data layer — always fetched first",
+        }
+    ]
 
     if not yf_data.get("valid"):
         return yf_data, fallback_trace
@@ -449,6 +471,7 @@ def run_research_agent(
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
         # Quick connectivity check — catches 401 / wrong key before the loop
         client.models.list()
@@ -488,13 +511,15 @@ def run_research_agent(
                 max_tokens=800,
             )
         except Exception as e:
-            trace_log.append({
-                "step": len(trace_log),
-                "tool": "ERROR",
-                "args": {},
-                "result_summary": f"OpenAI call failed: {e}",
-                "agent_reasoning": "Agent loop aborted — using data collected so far",
-            })
+            trace_log.append(
+                {
+                    "step": len(trace_log),
+                    "tool": "ERROR",
+                    "args": {},
+                    "result_summary": f"OpenAI call failed: {e}",
+                    "agent_reasoning": "Agent loop aborted — using data collected so far",
+                }
+            )
             break
 
         msg = response.choices[0].message
@@ -561,7 +586,7 @@ def run_research_agent(
                     on_step(f"Step {len(trace_log)}: searching — {query[:60]}...")
                 text = _web_search(query)
                 accumulated["web_searches"].append({"query": query, "result": text})
-                step_entry["result_summary"] = f"Search: \"{query}\" → {text[:120]}..."
+                step_entry["result_summary"] = f'Search: "{query}" → {text[:120]}...'
                 result_str = text[:3000]
 
             else:
@@ -570,11 +595,13 @@ def run_research_agent(
 
             trace_log.append(step_entry)
 
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": result_str[:4000],
-            })
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": result_str[:4000],
+                }
+            )
 
     # Fetch insider trades after agent loop completes
     if on_step:
@@ -584,13 +611,15 @@ def run_research_agent(
         insider_data = fetch_insider_trades(_cik, months=6)
         _sig = insider_data.get("summary", {}).get("signal", "N/A")
         _n_trades = len(insider_data.get("trades", []))
-        trace_log.append({
-            "step": len(trace_log),
-            "tool": "fetch_insider_trades",
-            "args": {"cik": _cik, "months": 6},
-            "result_summary": f"Signal: {_sig} | {_n_trades} open-market trades found",
-            "agent_reasoning": "Post-loop insider data fetch",
-        })
+        trace_log.append(
+            {
+                "step": len(trace_log),
+                "tool": "fetch_insider_trades",
+                "args": {"cik": _cik, "months": 6},
+                "result_summary": f"Signal: {_sig} | {_n_trades} open-market trades found",
+                "agent_reasoning": "Post-loop insider data fetch",
+            }
+        )
     else:
         insider_data = {"available": False, "error": "No CIK", "months": 6, "trades": [], "summary": _empty_summary()}
     accumulated["insider"] = insider_data
@@ -627,15 +656,18 @@ def _merge_data(accumulated: Dict) -> Dict:
 
     # Attach raw sources for fact checker and research log UI
     merged["_edgar_data"] = edgar
-    merged["_web_context"] = "\n\n".join(
-        f"Query: {w['query']}\n{w['result']}" for w in web
-    )
+    merged["_web_context"] = "\n\n".join(f"Query: {w['query']}\n{w['result']}" for w in web)
     merged["_data_sources"] = {
         "yfinance": base.get("valid", False),
         "edgar": edgar.get("available", False),
         "web_searches": len(web),
     }
-    merged["_insider_trades"] = accumulated.get("insider") or {"available": False, "months": 6, "trades": [], "summary": _empty_summary()}
+    merged["_insider_trades"] = accumulated.get("insider") or {
+        "available": False,
+        "months": 6,
+        "trades": [],
+        "summary": _empty_summary(),
+    }
     merged["_insider_signal_text"] = accumulated.get("insider_signal_text") or ""
     merged["_orchestrator_thesis"] = accumulated.get("orchestrator_thesis") or ""
     merged["_valuation"] = accumulated.get("valuation") or {}
@@ -644,6 +676,7 @@ def _merge_data(accumulated: Dict) -> Dict:
 
 
 # ============== FACT CHECKER ==============
+
 
 def run_fact_checker(context_str: str, raw_data: Dict) -> List[Dict]:
     """
@@ -655,14 +688,14 @@ def run_fact_checker(context_str: str, raw_data: Dict) -> List[Dict]:
     # (label, raw_data_key, regex_pattern, scale_to_raw)
     # scale_to_raw: multiply the parsed number by this to get the raw unit
     checks = [
-        ("P/E Ratio",      "pe_ratio",       r"P/E Ratio[:\s]+([\d.]+)",                1.0),
-        ("Forward P/E",    "forward_pe",      r"Forward P/E[:\s]+([\d.]+)",              1.0),
-        ("EPS",            "eps",             r"\bEPS[:\s]+\$([\d.]+)",                  1.0),
-        ("Forward EPS",    "forward_eps",     r"Forward EPS[:\s]+\$([\d.]+)",            1.0),
-        ("Beta",           "beta",            r"\bBeta[:\s]+([\d.]+)",                   1.0),
-        ("Free Cash Flow", "free_cash_flow",  r"Free Cash Flow[:\s]+\$([\d.]+)B",        1e9),
-        ("Market Cap",     "market_cap",      r"Market Cap[:\s]+\$([\d.]+)B",            1e9),
-        ("ROE",            "roe",             r"\bROE[:\s]+([\d.]+)%",                   0.01),
+        ("P/E Ratio", "pe_ratio", r"P/E Ratio[:\s]+([\d.]+)", 1.0),
+        ("Forward P/E", "forward_pe", r"Forward P/E[:\s]+([\d.]+)", 1.0),
+        ("EPS", "eps", r"\bEPS[:\s]+\$([\d.]+)", 1.0),
+        ("Forward EPS", "forward_eps", r"Forward EPS[:\s]+\$([\d.]+)", 1.0),
+        ("Beta", "beta", r"\bBeta[:\s]+([\d.]+)", 1.0),
+        ("Free Cash Flow", "free_cash_flow", r"Free Cash Flow[:\s]+\$([\d.]+)B", 1e9),
+        ("Market Cap", "market_cap", r"Market Cap[:\s]+\$([\d.]+)B", 1e9),
+        ("ROE", "roe", r"\bROE[:\s]+([\d.]+)%", 0.01),
     ]
 
     for label, key, pattern, scale in checks:
@@ -679,13 +712,15 @@ def run_fact_checker(context_str: str, raw_data: Dict) -> List[Dict]:
                 continue
             diff_pct = abs(reported_raw - actual) / abs(actual) * 100
             if diff_pct > 5:
-                discrepancies.append({
-                    "field": label,
-                    "in_report": float(match.group(1)),
-                    "in_raw_data": actual / scale,
-                    "diff_pct": round(diff_pct, 1),
-                    "unit": "B USD" if scale == 1e9 else ("%" if scale == 0.01 else ""),
-                })
+                discrepancies.append(
+                    {
+                        "field": label,
+                        "in_report": float(match.group(1)),
+                        "in_raw_data": actual / scale,
+                        "diff_pct": round(diff_pct, 1),
+                        "unit": "B USD" if scale == 1e9 else ("%" if scale == 0.01 else ""),
+                    }
+                )
         except (ValueError, TypeError):
             continue
 
@@ -772,15 +807,17 @@ def _parse_form4_xml(content: bytes, filing_date: str) -> List[Dict]:
         if code not in ("P", "S") or shares <= 0:
             continue
 
-        trades.append({
-            "date": date,
-            "insider": insider_name or "Unknown",
-            "title": insider_title or "Director/Officer",
-            "type": "BUY" if code == "P" else "SELL",
-            "shares": int(shares),
-            "price": price,
-            "value": shares * price,
-        })
+        trades.append(
+            {
+                "date": date,
+                "insider": insider_name or "Unknown",
+                "title": insider_title or "Director/Officer",
+                "type": "BUY" if code == "P" else "SELL",
+                "shares": int(shares),
+                "price": price,
+                "value": shares * price,
+            }
+        )
 
     return trades
 
@@ -850,8 +887,7 @@ def fetch_insider_trades(cik: str, months: int = 6) -> Dict:
     form4_entries = [
         (dates[i], accessions[i], primary_docs[i])
         for i in range(len(forms))
-        if i < len(dates) and i < len(accessions) and i < len(primary_docs)
-        and forms[i] == "4" and dates[i] >= cutoff
+        if i < len(dates) and i < len(accessions) and i < len(primary_docs) and forms[i] == "4" and dates[i] >= cutoff
     ][:15]
 
     trades: List[Dict] = []
@@ -941,6 +977,7 @@ def analyze_insider_signal(trades_data: Dict, company_name: str, api_key: str) -
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
         prompt = (
             f"Analyze the following insider trading activity for {company_name} "

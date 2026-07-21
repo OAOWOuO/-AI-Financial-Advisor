@@ -10,6 +10,7 @@ Architecture:
   - Raw narrative (MD) → embedding similarity (hybrid)
   - Deterministic "why matched" reasons (no extra LLM call)
 """
+
 from __future__ import annotations
 import json, os, logging
 from typing import List, Dict, Any, Optional
@@ -21,38 +22,42 @@ logger = logging.getLogger(__name__)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-_BASE       = os.path.join(os.path.dirname(__file__), "data", "cases")
-RAW_DIR     = os.path.join(_BASE, "raw")
-RAW_EXT_DIR = os.path.join(_BASE, "raw_external")   # gitignored PDFs
-STRUCT_DIR  = os.path.join(_BASE, "structured")
-INDEX_PATH  = os.path.join(_BASE, "index", "case_index.json")
+_BASE = os.path.join(os.path.dirname(__file__), "data", "cases")
+RAW_DIR = os.path.join(_BASE, "raw")
+RAW_EXT_DIR = os.path.join(_BASE, "raw_external")  # gitignored PDFs
+STRUCT_DIR = os.path.join(_BASE, "structured")
+INDEX_PATH = os.path.join(_BASE, "index", "case_index.json")
 EMBED_MODEL = "text-embedding-3-small"
 
 _CAT_TO_TOPIC = {
     "EMERGENCY_FUND": "cash_flow",
-    "DEBT":           "debt",
-    "INSURANCE":      "insurance",
-    "RETIREMENT":     "retirement",
-    "TAX":            "tax",
-    "ESTATE":         "estate",
-    "INVESTMENT":     "investing",
-    "GOALS":          "goals",
-    "CASH_FLOW":      "cash_flow",
-    "NET_WORTH":      "investing",
+    "DEBT": "debt",
+    "INSURANCE": "insurance",
+    "RETIREMENT": "retirement",
+    "TAX": "tax",
+    "ESTATE": "estate",
+    "INVESTMENT": "investing",
+    "GOALS": "goals",
+    "CASH_FLOW": "cash_flow",
+    "NET_WORTH": "investing",
 }
 
 
 # ── Session-level store ────────────────────────────────────────────────────────
 
+
 def _get_store() -> Optional[Dict]:
     return st.session_state.get("fp_case_store")
+
 
 def _set_store(store: Dict) -> None:
     st.session_state["fp_case_store"] = store
 
+
 def is_indexed() -> bool:
     store = _get_store()
     return store is not None and store.get("has_embeddings", False)
+
 
 def clear_case_store() -> None:
     if "fp_case_store" in st.session_state:
@@ -61,11 +66,13 @@ def clear_case_store() -> None:
 
 # ── File loaders ──────────────────────────────────────────────────────────────
 
+
 def load_case_index() -> List[Dict]:
     if not os.path.exists(INDEX_PATH):
         return []
     with open(INDEX_PATH, encoding="utf-8") as f:
         return json.load(f)
+
 
 def load_structured_summary(case_id: str) -> Dict:
     path = os.path.join(STRUCT_DIR, f"{case_id}_summary.json")
@@ -73,6 +80,7 @@ def load_structured_summary(case_id: str) -> Dict:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
     return {}
+
 
 def load_raw_case(case_id: str) -> str:
     """Return raw narrative text.  MD file for internal cases; raw_text_excerpt from JSON for external."""
@@ -84,12 +92,15 @@ def load_raw_case(case_id: str) -> str:
     structured = load_structured_summary(case_id)
     return structured.get("raw_text_excerpt", "")
 
+
 def is_external(case_id: str) -> bool:
     """True if the case comes from an external PDF source (not a built-in MD narrative)."""
     return not os.path.exists(os.path.join(RAW_DIR, f"{case_id}.md"))
 
+
 def case_count() -> int:
     return len(load_case_index())
+
 
 def case_count_by_source() -> Dict[str, int]:
     """Return {source_type: count} for Settings display."""
@@ -102,6 +113,7 @@ def case_count_by_source() -> Dict[str, int]:
 
 # ── Embedding builder ─────────────────────────────────────────────────────────
 
+
 def build_case_embeddings(openai_client) -> Dict:
     """
     Load all cases, embed them, and cache in session state.
@@ -113,26 +125,31 @@ def build_case_embeddings(openai_client) -> Dict:
 
     index = load_case_index()
     if not index:
-        store = {"cases": [], "has_embeddings": False,
-                 "error": "Case index not found at data/cases/index/case_index.json"}
+        store = {
+            "cases": [],
+            "has_embeddings": False,
+            "error": "Case index not found at data/cases/index/case_index.json",
+        }
         _set_store(store)
         logger.warning("Case index missing: %s", INDEX_PATH)
         return store
 
     cases = []
     for meta in index:
-        case_id    = meta["case_id"]
-        raw        = load_raw_case(case_id)
+        case_id = meta["case_id"]
+        raw = load_raw_case(case_id)
         structured = load_structured_summary(case_id)
         embed_text = _build_embed_text(meta, structured, raw)
-        cases.append({
-            "case_id":    case_id,
-            "metadata":   meta,
-            "structured": structured,
-            "raw":        raw,
-            "embed_text": embed_text,
-            "embedding":  None,
-        })
+        cases.append(
+            {
+                "case_id": case_id,
+                "metadata": meta,
+                "structured": structured,
+                "raw": raw,
+                "embed_text": embed_text,
+                "embedding": None,
+            }
+        )
 
     logger.info("Embedding %d cases from built-in library…", len(cases))
 
@@ -142,12 +159,10 @@ def build_case_embeddings(openai_client) -> Dict:
         embeddings = [r.embedding for r in resp.data]
         for i, case in enumerate(cases):
             case["embedding"] = embeddings[i]
-        store = {"cases": cases, "has_embeddings": True,
-                 "count": len(cases), "error": None}
+        store = {"cases": cases, "has_embeddings": True, "count": len(cases), "error": None}
         logger.info("Case library indexed: %d cases, %d embeddings", len(cases), len(embeddings))
     except Exception as e:
-        store = {"cases": cases, "has_embeddings": False,
-                 "count": len(cases), "error": str(e)}
+        store = {"cases": cases, "has_embeddings": False, "count": len(cases), "error": str(e)}
         logger.error("Case embedding failed: %s", e)
 
     _set_store(store)
@@ -180,9 +195,10 @@ def _build_embed_text(meta: Dict, structured: Dict, raw: str) -> str:
 
 # ── Retrieval ─────────────────────────────────────────────────────────────────
 
+
 def retrieve_similar_cases(
-    profile,           # fp_schemas.ClientProfile
-    issues: List[Any], # List[PlanningIssue]
+    profile,  # fp_schemas.ClientProfile
+    issues: List[Any],  # List[PlanningIssue]
     openai_client,
     top_k: int = 3,
     mode: str = "hybrid",  # "structured" | "hybrid"
@@ -243,17 +259,17 @@ def _make_result(case: Dict, score: float, reasons: List[str]) -> Dict:
         citation = "Built-in case library"
 
     return {
-        "case_id":     case["case_id"],
-        "metadata":    meta,
-        "structured":  structured,
+        "case_id": case["case_id"],
+        "metadata": meta,
+        "structured": structured,
         "raw_excerpt": (case.get("raw") or "")[:800],
-        "score":       round(score, 4),
-        "score_pct":   round(score * 100, 1),
-        "reasons":     reasons,
+        "score": round(score, 4),
+        "score_pct": round(score * 100, 1),
+        "reasons": reasons,
         "source_type": source_type,
         "source_file": source_file,
         "source_pages": source_pages,
-        "citation":    citation,
+        "citation": citation,
     }
 
 
@@ -285,7 +301,7 @@ def _explain_match(profile, issues, case: Dict) -> List[str]:
     # Topic overlap with issue categories
     case_topics = set(meta.get("major_topics", []))
     matched_topics = []
-    for iss in (issues or []):
+    for iss in issues or []:
         topic = _CAT_TO_TOPIC.get(str(iss.category), "")
         if topic and topic in case_topics and topic not in matched_topics:
             matched_topics.append(topic)
@@ -302,11 +318,11 @@ def _explain_match(profile, issues, case: Dict) -> List[str]:
     situation = profile.situation_summary.lower() if profile.situation_summary else ""
     stage = meta.get("life_stage", "")
     stage_keywords = {
-        "early_career":    ["student loan", "renting", "entry level", "early career", "recent grad"],
-        "mid_career":      ["mid career", "growing family", "mortgage", "business owner"],
-        "pre_retirement":  ["retirement", "10 years", "catch up", "pre-retirement"],
-        "retirement":      ["retired", "rmd", "social security", "decumulation"],
-        "family_formation":["kids", "children", "college", "529", "daycare"],
+        "early_career": ["student loan", "renting", "entry level", "early career", "recent grad"],
+        "mid_career": ["mid career", "growing family", "mortgage", "business owner"],
+        "pre_retirement": ["retirement", "10 years", "catch up", "pre-retirement"],
+        "retirement": ["retired", "rmd", "social security", "decumulation"],
+        "family_formation": ["kids", "children", "college", "529", "daycare"],
     }
     for kw in stage_keywords.get(stage, []):
         if kw in situation:

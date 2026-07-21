@@ -21,6 +21,7 @@ from sa_peers import get_peer_tickers, fetch_peer_data
 
 # ============== SUB-AGENT: FUNDAMENTAL ==============
 
+
 def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
     """
     GPT-4o-mini agent: financial health via yfinance + EDGAR.
@@ -42,6 +43,7 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
     except Exception as e:
         return {"summary": "", "edgar_data": {}, "yf_data": yf_data, "trace": trace, "error": str(e)}
@@ -75,13 +77,23 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
                 max_tokens=600,
             )
         except Exception as e:
-            return {"summary": "", "edgar_data": accumulated_edgar or {}, "yf_data": accumulated_yf, "trace": trace, "error": str(e)}
+            return {
+                "summary": "",
+                "edgar_data": accumulated_edgar or {},
+                "yf_data": accumulated_yf,
+                "trace": trace,
+                "error": str(e),
+            }
 
         msg = response.choices[0].message
         msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:
             msg_dict["tool_calls"] = [
-                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
                 for tc in msg.tool_calls
             ]
         messages.append(msg_dict)
@@ -110,7 +122,9 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
                 if fresh.get("valid"):
                     accumulated_yf = fresh
                 result_str = _yfinance_summary(fresh)
-                step["result_summary"] = f"yfinance: P/E={fresh.get('pe_ratio', 'N/A')}, FCF=${(fresh.get('free_cash_flow') or 0)/1e9:.1f}B"
+                step["result_summary"] = (
+                    f"yfinance: P/E={fresh.get('pe_ratio', 'N/A')}, FCF=${(fresh.get('free_cash_flow') or 0)/1e9:.1f}B"
+                )
             elif fn == "get_sec_filing":
                 edgar = _edgar_fetch(args.get("ticker", ticker), args.get("filing_type", "10-K"))
                 if edgar.get("available"):
@@ -140,6 +154,7 @@ def run_fundamental_agent(ticker: str, yf_data: Dict, api_key: str) -> Dict:
 
 # ============== SUB-AGENT: CATALYST ==============
 
+
 def run_catalyst_agent(ticker: str, company_name: str, api_key: str) -> Dict:
     """
     GPT-4o-mini agent: near-term catalysts and risks from web search.
@@ -153,6 +168,7 @@ def run_catalyst_agent(ticker: str, company_name: str, api_key: str) -> Dict:
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
     except Exception as e:
         return {"summary": "", "web_searches": web_searches, "trace": trace, "error": str(e)}
@@ -190,7 +206,11 @@ def run_catalyst_agent(ticker: str, company_name: str, api_key: str) -> Dict:
         msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:
             msg_dict["tool_calls"] = [
-                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
                 for tc in msg.tool_calls
             ]
         messages.append(msg_dict)
@@ -232,6 +252,7 @@ def run_catalyst_agent(ticker: str, company_name: str, api_key: str) -> Dict:
 
 # ============== SUB-AGENT: MACRO ==============
 
+
 def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
     """
     GPT-4o-mini agent: macro headwinds/tailwinds and sector positioning.
@@ -245,6 +266,7 @@ def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
     except Exception as e:
         return {"summary": "", "web_searches": web_searches, "trace": trace, "error": str(e)}
@@ -281,7 +303,11 @@ def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
         msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:
             msg_dict["tool_calls"] = [
-                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
                 for tc in msg.tool_calls
             ]
         messages.append(msg_dict)
@@ -323,6 +349,7 @@ def run_macro_agent(ticker: str, sector: str, api_key: str) -> Dict:
 
 # ============== VALUATION HELPERS ==============
 
+
 def _compute_dcf(
     fcf_base: float,
     growth_rate: float,
@@ -340,7 +367,7 @@ def _compute_dcf(
     fcf = fcf_base
     pv_sum = 0.0
     for i in range(1, years + 1):
-        fcf *= (1 + growth_rate)
+        fcf *= 1 + growth_rate
         pv_sum += fcf / (1 + wacc) ** i
 
     terminal_value = fcf * (1 + terminal_growth) / (wacc - terminal_growth)
@@ -373,6 +400,7 @@ def _compute_ev_ebitda(yf_data: Dict) -> Optional[float]:
 
 # ============== SUB-AGENT: VALUATION ==============
 
+
 def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: str) -> Dict:
     """
     Computes DCF intrinsic value, P/E comparison, and EV/EBITDA for ticker.
@@ -396,11 +424,7 @@ def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: s
     eps = yf_data.get("eps")
 
     intrinsic_value, dcf_assumptions = _compute_dcf(fcf_base, growth_rate, shares)
-    upside_pct = (
-        round((intrinsic_value - price) / price * 100, 1)
-        if price > 0 and intrinsic_value > 0
-        else 0.0
-    )
+    upside_pct = round((intrinsic_value - price) / price * 100, 1) if price > 0 and intrinsic_value > 0 else 0.0
     ev_ebitda = _compute_ev_ebitda(yf_data)
 
     _base_result: Dict = {
@@ -428,6 +452,7 @@ def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: s
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
     except Exception as e:
         _base_result["error"] = str(e)
@@ -489,7 +514,11 @@ def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: s
         msg_dict: Dict = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:
             msg_dict["tool_calls"] = [
-                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
                 for tc in msg.tool_calls
             ]
         messages.append(msg_dict)
@@ -519,8 +548,7 @@ def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: s
                     new_fcf = edgar["free_cash_flow"]
                     intrinsic_value, dcf_assumptions = _compute_dcf(new_fcf, growth_rate, shares)
                     upside_pct = (
-                        round((intrinsic_value - price) / price * 100, 1)
-                        if price > 0 and intrinsic_value > 0 else 0.0
+                        round((intrinsic_value - price) / price * 100, 1) if price > 0 and intrinsic_value > 0 else 0.0
                     )
                     _base_result["intrinsic_value"] = intrinsic_value
                     _base_result["upside_pct"] = upside_pct
@@ -545,9 +573,9 @@ def run_valuation_agent(ticker: str, yf_data: Dict, edgar_data: Dict, api_key: s
     in_summary = False
     for line in content.split("\n"):
         if line.startswith("PE_ANALYSIS:"):
-            pe_analysis = line[len("PE_ANALYSIS:"):].strip()
+            pe_analysis = line[len("PE_ANALYSIS:") :].strip()
         elif line.startswith("SUMMARY:"):
-            summary_lines.append(line[len("SUMMARY:"):].strip())
+            summary_lines.append(line[len("SUMMARY:") :].strip())
             in_summary = True
         elif in_summary and line.strip():
             summary_lines.append(line.strip())
@@ -575,6 +603,7 @@ def run_orchestrator(
     GPT-4o synthesis of four sub-agent reports into a 3-5 sentence investment thesis.
     Falls back to deterministic concatenation on any failure or missing API key.
     """
+
     def _fallback() -> str:
         parts = []
         for label, report in [
@@ -616,6 +645,7 @@ def run_orchestrator(
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -628,6 +658,7 @@ def run_orchestrator(
 
 
 # ============== ENTRY POINT ==============
+
 
 def run_multi_agent_research(
     ticker: str,
@@ -645,20 +676,22 @@ def run_multi_agent_research(
         on_step(f"Fetching Yahoo Finance data for {ticker}...")
     yf_data = _yfinance_fetch(ticker)
 
-    fallback_trace = [{
-        "step": 0,
-        "agent": "Base",
-        "tool": "get_yfinance_data",
-        "args": {"ticker": ticker},
-        "result_summary": (
-            f"Price: ${yf_data.get('price', 'N/A')} | "
-            f"P/E: {yf_data.get('pe_ratio', 'N/A')} | "
-            f"FCF: ${(yf_data.get('free_cash_flow') or 0) / 1e9:.1f}B"
-            if yf_data.get("valid")
-            else f"Failed: {yf_data.get('error', 'unknown')}"
-        ),
-        "agent_reasoning": "Base data layer — always fetched first",
-    }]
+    fallback_trace = [
+        {
+            "step": 0,
+            "agent": "Base",
+            "tool": "get_yfinance_data",
+            "args": {"ticker": ticker},
+            "result_summary": (
+                f"Price: ${yf_data.get('price', 'N/A')} | "
+                f"P/E: {yf_data.get('pe_ratio', 'N/A')} | "
+                f"FCF: ${(yf_data.get('free_cash_flow') or 0) / 1e9:.1f}B"
+                if yf_data.get("valid")
+                else f"Failed: {yf_data.get('error', 'unknown')}"
+            ),
+            "agent_reasoning": "Base data layer — always fetched first",
+        }
+    ]
 
     if not yf_data.get("valid"):
         return yf_data, fallback_trace
@@ -670,6 +703,7 @@ def run_multi_agent_research(
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
         client.models.list()
     except Exception as e:
@@ -685,11 +719,18 @@ def run_multi_agent_research(
         on_step("Fundamental · Catalyst · Macro agents running in parallel...")
 
     fundamental_report: Dict = {"summary": "", "edgar_data": {}, "yf_data": yf_data, "trace": [], "error": None}
-    catalyst_report: Dict    = {"summary": "", "web_searches": [], "trace": [], "error": None}
-    macro_report: Dict       = {"summary": "", "web_searches": [], "trace": [], "error": None}
-    valuation_report: Dict   = {"summary": "", "intrinsic_value": 0.0, "upside_pct": 0.0,
-                                 "pe_analysis": "", "ev_ebitda": None, "dcf_assumptions": {},
-                                 "trace": [], "error": None}
+    catalyst_report: Dict = {"summary": "", "web_searches": [], "trace": [], "error": None}
+    macro_report: Dict = {"summary": "", "web_searches": [], "trace": [], "error": None}
+    valuation_report: Dict = {
+        "summary": "",
+        "intrinsic_value": 0.0,
+        "upside_pct": 0.0,
+        "pe_analysis": "",
+        "ev_ebitda": None,
+        "dcf_assumptions": {},
+        "trace": [],
+        "error": None,
+    }
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         futures = {
@@ -721,7 +762,9 @@ def run_multi_agent_research(
 
     if on_step:
         on_step("Orchestrator synthesizing reports...")
-    thesis = run_orchestrator(ticker, fundamental_report, catalyst_report, macro_report, valuation_report, yf_data, api_key)
+    thesis = run_orchestrator(
+        ticker, fundamental_report, catalyst_report, macro_report, valuation_report, yf_data, api_key
+    )
 
     # Build unified trace log
     trace_log: List[Dict] = list(fallback_trace)
@@ -729,14 +772,16 @@ def run_multi_agent_research(
         for step in report.get("trace", []):
             step["step"] = len(trace_log)
             trace_log.append(step)
-    trace_log.append({
-        "step": len(trace_log),
-        "agent": "Orchestrator",
-        "tool": "synthesize",
-        "args": {},
-        "result_summary": (thesis[:200] + "...") if len(thesis) > 200 else thesis,
-        "agent_reasoning": "GPT-4o synthesis of Fundamental + Catalyst + Macro + Valuation reports",
-    })
+    trace_log.append(
+        {
+            "step": len(trace_log),
+            "agent": "Orchestrator",
+            "tool": "synthesize",
+            "args": {},
+            "result_summary": (thesis[:200] + "...") if len(thesis) > 200 else thesis,
+            "agent_reasoning": "GPT-4o synthesis of Fundamental + Catalyst + Macro + Valuation reports",
+        }
+    )
 
     # Step 5: insider trades
     if on_step:
@@ -745,17 +790,19 @@ def run_multi_agent_research(
     _cik = edgar_data.get("cik") or _get_cik(ticker)
     if _cik:
         insider_data = fetch_insider_trades(_cik, months=6)
-        trace_log.append({
-            "step": len(trace_log),
-            "agent": "Base",
-            "tool": "fetch_insider_trades",
-            "args": {"cik": _cik, "months": 6},
-            "result_summary": (
-                f"Signal: {insider_data.get('summary', {}).get('signal', 'N/A')} | "
-                f"{len(insider_data.get('trades', []))} trades"
-            ),
-            "agent_reasoning": "Post-parallel insider data fetch",
-        })
+        trace_log.append(
+            {
+                "step": len(trace_log),
+                "agent": "Base",
+                "tool": "fetch_insider_trades",
+                "args": {"cik": _cik, "months": 6},
+                "result_summary": (
+                    f"Signal: {insider_data.get('summary', {}).get('signal', 'N/A')} | "
+                    f"{len(insider_data.get('trades', []))} trades"
+                ),
+                "agent_reasoning": "Post-parallel insider data fetch",
+            }
+        )
     else:
         insider_data = {"available": False, "error": "No CIK", "months": 6, "trades": [], "summary": _empty_summary()}
 

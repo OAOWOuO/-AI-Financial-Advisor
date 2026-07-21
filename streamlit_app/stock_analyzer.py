@@ -23,6 +23,7 @@ def fetch_comprehensive_data(ticker: str) -> Dict:
     """Fetch all data needed for institutional analysis."""
     try:
         import yfinance as yf
+
         stock = yf.Ticker(ticker)
         info = stock.info
 
@@ -59,7 +60,7 @@ def fetch_comprehensive_data(ticker: str) -> Dict:
             "name": info.get("shortName", ticker),
             "sector": info.get("sector", "Unknown"),
             "industry": info.get("industry", "Unknown"),
-            "price": info.get("currentPrice") or info.get("regularMarketPrice") or float(hist_1y['Close'].iloc[-1]),
+            "price": info.get("currentPrice") or info.get("regularMarketPrice") or float(hist_1y["Close"].iloc[-1]),
             "prev_close": info.get("previousClose", 0),
             "open": info.get("open", 0),
             "high": info.get("dayHigh", 0),
@@ -145,6 +146,7 @@ def fetch_peer_comparison(ticker: str, sector: str) -> pd.DataFrame:
     rows = []
     try:
         import yfinance as yf
+
         for sym in peers:
             try:
                 info = yf.Ticker(sym).info
@@ -153,15 +155,17 @@ def fetch_peer_comparison(ticker: str, sector: str) -> pd.DataFrame:
                 rev_growth = info.get("revenueGrowth")
                 net_margin = info.get("profitMargins")
                 roe = info.get("returnOnEquity")
-                rows.append({
-                    "Ticker": sym,
-                    "P/E": f"{pe:.1f}x" if pe else "N/A",
-                    "EV/EBITDA": f"{ev_ebitda:.1f}x" if ev_ebitda else "N/A",
-                    "Rev Growth": f"{rev_growth*100:.1f}%" if rev_growth else "N/A",
-                    "Net Margin": f"{net_margin*100:.1f}%" if net_margin else "N/A",
-                    "ROE": f"{roe*100:.1f}%" if roe else "N/A",
-                    "_is_subject": sym == ticker,
-                })
+                rows.append(
+                    {
+                        "Ticker": sym,
+                        "P/E": f"{pe:.1f}x" if pe else "N/A",
+                        "EV/EBITDA": f"{ev_ebitda:.1f}x" if ev_ebitda else "N/A",
+                        "Rev Growth": f"{rev_growth*100:.1f}%" if rev_growth else "N/A",
+                        "Net Margin": f"{net_margin*100:.1f}%" if net_margin else "N/A",
+                        "ROE": f"{roe*100:.1f}%" if roe else "N/A",
+                        "_is_subject": sym == ticker,
+                    }
+                )
             except Exception:
                 pass
     except Exception:
@@ -175,58 +179,58 @@ def calculate_technical_indicators(hist: pd.DataFrame) -> pd.DataFrame:
     df = hist.copy()
 
     # Moving Averages
-    df['SMA_10'] = df['Close'].rolling(10).mean()
-    df['SMA_20'] = df['Close'].rolling(20).mean()
-    df['SMA_50'] = df['Close'].rolling(50).mean()
-    df['SMA_100'] = df['Close'].rolling(100).mean()
-    df['SMA_200'] = df['Close'].rolling(200).mean()
-    df['EMA_12'] = df['Close'].ewm(span=12).mean()
-    df['EMA_26'] = df['Close'].ewm(span=26).mean()
+    df["SMA_10"] = df["Close"].rolling(10).mean()
+    df["SMA_20"] = df["Close"].rolling(20).mean()
+    df["SMA_50"] = df["Close"].rolling(50).mean()
+    df["SMA_100"] = df["Close"].rolling(100).mean()
+    df["SMA_200"] = df["Close"].rolling(200).mean()
+    df["EMA_12"] = df["Close"].ewm(span=12).mean()
+    df["EMA_26"] = df["Close"].ewm(span=26).mean()
 
     # RSI
-    delta = df['Close'].diff()
+    delta = df["Close"].diff()
     gain = delta.where(delta > 0, 0).rolling(14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
     rs = gain / loss
-    df['RSI'] = 100 - (100 / (1 + rs))
+    df["RSI"] = 100 - (100 / (1 + rs))
 
     # MACD
-    df['MACD'] = df['EMA_12'] - df['EMA_26']
-    df['MACD_Signal'] = df['MACD'].ewm(span=9).mean()
-    df['MACD_Hist'] = df['MACD'] - df['MACD_Signal']
+    df["MACD"] = df["EMA_12"] - df["EMA_26"]
+    df["MACD_Signal"] = df["MACD"].ewm(span=9).mean()
+    df["MACD_Hist"] = df["MACD"] - df["MACD_Signal"]
 
     # Bollinger Bands
-    df['BB_Middle'] = df['Close'].rolling(20).mean()
-    bb_std = df['Close'].rolling(20).std()
-    df['BB_Upper'] = df['BB_Middle'] + (bb_std * 2)
-    df['BB_Lower'] = df['BB_Middle'] - (bb_std * 2)
-    df['BB_Width'] = (df['BB_Upper'] - df['BB_Lower']) / df['BB_Middle']
-    df['BB_Position'] = (df['Close'] - df['BB_Lower']) / (df['BB_Upper'] - df['BB_Lower'])
+    df["BB_Middle"] = df["Close"].rolling(20).mean()
+    bb_std = df["Close"].rolling(20).std()
+    df["BB_Upper"] = df["BB_Middle"] + (bb_std * 2)
+    df["BB_Lower"] = df["BB_Middle"] - (bb_std * 2)
+    df["BB_Width"] = (df["BB_Upper"] - df["BB_Lower"]) / df["BB_Middle"]
+    df["BB_Position"] = (df["Close"] - df["BB_Lower"]) / (df["BB_Upper"] - df["BB_Lower"])
 
     # ATR (Average True Range)
-    high_low = df['High'] - df['Low']
-    high_close = abs(df['High'] - df['Close'].shift())
-    low_close = abs(df['Low'] - df['Close'].shift())
+    high_low = df["High"] - df["Low"]
+    high_close = abs(df["High"] - df["Close"].shift())
+    low_close = abs(df["Low"] - df["Close"].shift())
     true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-    df['ATR'] = true_range.rolling(14).mean()
-    df['ATR_Percent'] = df['ATR'] / df['Close'] * 100
+    df["ATR"] = true_range.rolling(14).mean()
+    df["ATR_Percent"] = df["ATR"] / df["Close"] * 100
 
     # Volume indicators
-    df['Volume_SMA'] = df['Volume'].rolling(20).mean()
-    df['Volume_Ratio'] = df['Volume'] / df['Volume_SMA']
+    df["Volume_SMA"] = df["Volume"].rolling(20).mean()
+    df["Volume_Ratio"] = df["Volume"] / df["Volume_SMA"]
 
     # OBV (On-Balance Volume)
-    df['OBV'] = (np.sign(df['Close'].diff()) * df['Volume']).fillna(0).cumsum()
+    df["OBV"] = (np.sign(df["Close"].diff()) * df["Volume"]).fillna(0).cumsum()
 
     # Stochastic
-    low_14 = df['Low'].rolling(14).min()
-    high_14 = df['High'].rolling(14).max()
-    df['Stoch_K'] = 100 * (df['Close'] - low_14) / (high_14 - low_14)
-    df['Stoch_D'] = df['Stoch_K'].rolling(3).mean()
+    low_14 = df["Low"].rolling(14).min()
+    high_14 = df["High"].rolling(14).max()
+    df["Stoch_K"] = 100 * (df["Close"] - low_14) / (high_14 - low_14)
+    df["Stoch_D"] = df["Stoch_K"].rolling(3).mean()
 
     # ADX (Average Directional Index)
-    plus_dm = df['High'].diff()
-    minus_dm = df['Low'].diff()
+    plus_dm = df["High"].diff()
+    minus_dm = df["Low"].diff()
     plus_dm[plus_dm < 0] = 0
     minus_dm[minus_dm > 0] = 0
 
@@ -234,9 +238,9 @@ def calculate_technical_indicators(hist: pd.DataFrame) -> pd.DataFrame:
     plus_di = 100 * (plus_dm.rolling(14).sum() / tr14)
     minus_di = 100 * (abs(minus_dm).rolling(14).sum() / tr14)
     dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
-    df['ADX'] = dx.rolling(14).mean()
-    df['Plus_DI'] = plus_di
-    df['Minus_DI'] = minus_di
+    df["ADX"] = dx.rolling(14).mean()
+    df["Plus_DI"] = plus_di
+    df["Minus_DI"] = minus_di
 
     return df
 
@@ -247,11 +251,11 @@ def identify_support_resistance(hist: pd.DataFrame, lookback: int = 60) -> Tuple
 
     # Find local minima and maxima
     window = 5
-    df['Local_Min'] = df['Low'].rolling(window, center=True).min()
-    df['Local_Max'] = df['High'].rolling(window, center=True).max()
+    df["Local_Min"] = df["Low"].rolling(window, center=True).min()
+    df["Local_Max"] = df["High"].rolling(window, center=True).max()
 
-    supports = df[df['Low'] == df['Local_Min']]['Low'].tolist()
-    resistances = df[df['High'] == df['Local_Max']]['High'].tolist()
+    supports = df[df["Low"] == df["Local_Min"]]["Low"].tolist()
+    resistances = df[df["High"] == df["Local_Max"]]["High"].tolist()
 
     # Cluster nearby levels
     def cluster_levels(levels, threshold_pct=0.02):
@@ -283,7 +287,7 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
 
     latest = tech_df.iloc[-1]
     prev = tech_df.iloc[-2] if len(tech_df) > 1 else latest
-    price = data['price']
+    price = data["price"]
 
     # ===== TREND SIGNALS (Weight: 30%) =====
     trend_score = 0
@@ -291,99 +295,139 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
 
     # MA Alignment (10 points)
     ma_score = 0
-    if pd.notna(latest['SMA_20']) and pd.notna(latest['SMA_50']) and pd.notna(latest['SMA_200']):
-        if latest['SMA_20'] > latest['SMA_50'] > latest['SMA_200']:
+    if pd.notna(latest["SMA_20"]) and pd.notna(latest["SMA_50"]) and pd.notna(latest["SMA_200"]):
+        if latest["SMA_20"] > latest["SMA_50"] > latest["SMA_200"]:
             ma_score = 10
-            signals.append({
-                "category": "Trend", "indicator": "MA Alignment",
-                "signal": "BULLISH", "score": "+10",
-                "detail": "SMA20 > SMA50 > SMA200 - Strong uptrend structure",
-                "threshold": "All MAs aligned ascending"
-            })
-        elif latest['SMA_20'] < latest['SMA_50'] < latest['SMA_200']:
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Alignment",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": "SMA20 > SMA50 > SMA200 - Strong uptrend structure",
+                    "threshold": "All MAs aligned ascending",
+                }
+            )
+        elif latest["SMA_20"] < latest["SMA_50"] < latest["SMA_200"]:
             ma_score = -10
-            signals.append({
-                "category": "Trend", "indicator": "MA Alignment",
-                "signal": "BEARISH", "score": "-10",
-                "detail": "SMA20 < SMA50 < SMA200 - Strong downtrend structure",
-                "threshold": "All MAs aligned descending"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Alignment",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": "SMA20 < SMA50 < SMA200 - Strong downtrend structure",
+                    "threshold": "All MAs aligned descending",
+                }
+            )
         else:
             ma_score = 0
-            signals.append({
-                "category": "Trend", "indicator": "MA Alignment",
-                "signal": "NEUTRAL", "score": "0",
-                "detail": "Mixed MA alignment - No clear trend",
-                "threshold": "MAs not aligned"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Alignment",
+                    "signal": "NEUTRAL",
+                    "score": "0",
+                    "detail": "Mixed MA alignment - No clear trend",
+                    "threshold": "MAs not aligned",
+                }
+            )
     trend_score += ma_score
 
     # Price vs MAs (10 points)
     price_ma_score = 0
-    if pd.notna(latest['SMA_50']) and pd.notna(latest['SMA_200']):
-        above_50 = price > latest['SMA_50']
-        above_200 = price > latest['SMA_200']
+    if pd.notna(latest["SMA_50"]) and pd.notna(latest["SMA_200"]):
+        above_50 = price > latest["SMA_50"]
+        above_200 = price > latest["SMA_200"]
         if above_50 and above_200:
             price_ma_score = 10
-            signals.append({
-                "category": "Trend", "indicator": "Price Position",
-                "signal": "BULLISH", "score": "+10",
-                "detail": f"Price ${price:.2f} above both SMA50 (${latest['SMA_50']:.2f}) and SMA200 (${latest['SMA_200']:.2f})",
-                "threshold": "Price > SMA50 AND Price > SMA200"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "Price Position",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": f"Price ${price:.2f} above both SMA50 (${latest['SMA_50']:.2f}) and SMA200 (${latest['SMA_200']:.2f})",
+                    "threshold": "Price > SMA50 AND Price > SMA200",
+                }
+            )
         elif not above_50 and not above_200:
             price_ma_score = -10
-            signals.append({
-                "category": "Trend", "indicator": "Price Position",
-                "signal": "BEARISH", "score": "-10",
-                "detail": f"Price ${price:.2f} below both SMA50 (${latest['SMA_50']:.2f}) and SMA200 (${latest['SMA_200']:.2f})",
-                "threshold": "Price < SMA50 AND Price < SMA200"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "Price Position",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": f"Price ${price:.2f} below both SMA50 (${latest['SMA_50']:.2f}) and SMA200 (${latest['SMA_200']:.2f})",
+                    "threshold": "Price < SMA50 AND Price < SMA200",
+                }
+            )
         else:
             price_ma_score = 0
-            signals.append({
-                "category": "Trend", "indicator": "Price Position",
-                "signal": "NEUTRAL", "score": "0",
-                "detail": f"Price between key MAs",
-                "threshold": "Mixed position relative to MAs"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "Price Position",
+                    "signal": "NEUTRAL",
+                    "score": "0",
+                    "detail": f"Price between key MAs",
+                    "threshold": "Mixed position relative to MAs",
+                }
+            )
     trend_score += price_ma_score
 
     # Golden/Death Cross (10 points)
     cross_score = 0
-    if pd.notna(latest['SMA_50']) and pd.notna(latest['SMA_200']):
-        if latest['SMA_50'] > latest['SMA_200'] and prev['SMA_50'] <= prev['SMA_200']:
+    if pd.notna(latest["SMA_50"]) and pd.notna(latest["SMA_200"]):
+        if latest["SMA_50"] > latest["SMA_200"] and prev["SMA_50"] <= prev["SMA_200"]:
             cross_score = 10
-            signals.append({
-                "category": "Trend", "indicator": "MA Cross",
-                "signal": "BULLISH", "score": "+10",
-                "detail": "Golden Cross - SMA50 crossed above SMA200",
-                "threshold": "SMA50 crosses above SMA200"
-            })
-        elif latest['SMA_50'] < latest['SMA_200'] and prev['SMA_50'] >= prev['SMA_200']:
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Cross",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": "Golden Cross - SMA50 crossed above SMA200",
+                    "threshold": "SMA50 crosses above SMA200",
+                }
+            )
+        elif latest["SMA_50"] < latest["SMA_200"] and prev["SMA_50"] >= prev["SMA_200"]:
             cross_score = -10
-            signals.append({
-                "category": "Trend", "indicator": "MA Cross",
-                "signal": "BEARISH", "score": "-10",
-                "detail": "Death Cross - SMA50 crossed below SMA200",
-                "threshold": "SMA50 crosses below SMA200"
-            })
-        elif latest['SMA_50'] > latest['SMA_200']:
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Cross",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": "Death Cross - SMA50 crossed below SMA200",
+                    "threshold": "SMA50 crosses below SMA200",
+                }
+            )
+        elif latest["SMA_50"] > latest["SMA_200"]:
             cross_score = 5
-            signals.append({
-                "category": "Trend", "indicator": "MA Cross",
-                "signal": "BULLISH", "score": "+5",
-                "detail": "SMA50 above SMA200 (post Golden Cross)",
-                "threshold": "SMA50 > SMA200"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Cross",
+                    "signal": "BULLISH",
+                    "score": "+5",
+                    "detail": "SMA50 above SMA200 (post Golden Cross)",
+                    "threshold": "SMA50 > SMA200",
+                }
+            )
         else:
             cross_score = -5
-            signals.append({
-                "category": "Trend", "indicator": "MA Cross",
-                "signal": "BEARISH", "score": "-5",
-                "detail": "SMA50 below SMA200 (post Death Cross)",
-                "threshold": "SMA50 < SMA200"
-            })
+            signals.append(
+                {
+                    "category": "Trend",
+                    "indicator": "MA Cross",
+                    "signal": "BEARISH",
+                    "score": "-5",
+                    "detail": "SMA50 below SMA200 (post Death Cross)",
+                    "threshold": "SMA50 < SMA200",
+                }
+            )
     trend_score += cross_score
 
     total_score += trend_score
@@ -394,105 +438,149 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
     momentum_max = 30
 
     # RSI (15 points)
-    rsi = latest['RSI']
+    rsi = latest["RSI"]
     rsi_score = 0
     if pd.notna(rsi):
         if rsi < 30:
             rsi_score = 15
-            signals.append({
-                "category": "Momentum", "indicator": "RSI",
-                "signal": "BULLISH", "score": "+15",
-                "detail": f"RSI at {rsi:.1f} - Oversold, potential bounce",
-                "threshold": "RSI < 30 (Oversold)"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "RSI",
+                    "signal": "BULLISH",
+                    "score": "+15",
+                    "detail": f"RSI at {rsi:.1f} - Oversold, potential bounce",
+                    "threshold": "RSI < 30 (Oversold)",
+                }
+            )
         elif rsi > 70:
             rsi_score = -15
-            signals.append({
-                "category": "Momentum", "indicator": "RSI",
-                "signal": "BEARISH", "score": "-15",
-                "detail": f"RSI at {rsi:.1f} - Overbought, potential pullback",
-                "threshold": "RSI > 70 (Overbought)"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "RSI",
+                    "signal": "BEARISH",
+                    "score": "-15",
+                    "detail": f"RSI at {rsi:.1f} - Overbought, potential pullback",
+                    "threshold": "RSI > 70 (Overbought)",
+                }
+            )
         elif 40 <= rsi <= 60:
             rsi_score = 0
-            signals.append({
-                "category": "Momentum", "indicator": "RSI",
-                "signal": "NEUTRAL", "score": "0",
-                "detail": f"RSI at {rsi:.1f} - Neutral zone, no directional bias",
-                "threshold": "40 ≤ RSI ≤ 60 (Neutral)"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "RSI",
+                    "signal": "NEUTRAL",
+                    "score": "0",
+                    "detail": f"RSI at {rsi:.1f} - Neutral zone, no directional bias",
+                    "threshold": "40 ≤ RSI ≤ 60 (Neutral)",
+                }
+            )
         elif rsi < 40:
             rsi_score = 8
-            signals.append({
-                "category": "Momentum", "indicator": "RSI",
-                "signal": "BULLISH", "score": "+8",
-                "detail": f"RSI at {rsi:.1f} - Approaching oversold",
-                "threshold": "30 ≤ RSI < 40"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "RSI",
+                    "signal": "BULLISH",
+                    "score": "+8",
+                    "detail": f"RSI at {rsi:.1f} - Approaching oversold",
+                    "threshold": "30 ≤ RSI < 40",
+                }
+            )
         else:
             rsi_score = -8
-            signals.append({
-                "category": "Momentum", "indicator": "RSI",
-                "signal": "BEARISH", "score": "-8",
-                "detail": f"RSI at {rsi:.1f} - Approaching overbought",
-                "threshold": "60 < RSI ≤ 70"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "RSI",
+                    "signal": "BEARISH",
+                    "score": "-8",
+                    "detail": f"RSI at {rsi:.1f} - Approaching overbought",
+                    "threshold": "60 < RSI ≤ 70",
+                }
+            )
     momentum_score += rsi_score
 
     # MACD (15 points)
     macd_score = 0
-    if pd.notna(latest['MACD']) and pd.notna(latest['MACD_Signal']):
-        macd_cross_bull = latest['MACD'] > latest['MACD_Signal'] and prev['MACD'] <= prev['MACD_Signal']
-        macd_cross_bear = latest['MACD'] < latest['MACD_Signal'] and prev['MACD'] >= prev['MACD_Signal']
+    if pd.notna(latest["MACD"]) and pd.notna(latest["MACD_Signal"]):
+        macd_cross_bull = latest["MACD"] > latest["MACD_Signal"] and prev["MACD"] <= prev["MACD_Signal"]
+        macd_cross_bear = latest["MACD"] < latest["MACD_Signal"] and prev["MACD"] >= prev["MACD_Signal"]
 
         if macd_cross_bull:
             macd_score = 15
-            signals.append({
-                "category": "Momentum", "indicator": "MACD",
-                "signal": "BULLISH", "score": "+15",
-                "detail": "MACD bullish crossover - Buy signal",
-                "threshold": "MACD crosses above Signal line"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "MACD",
+                    "signal": "BULLISH",
+                    "score": "+15",
+                    "detail": "MACD bullish crossover - Buy signal",
+                    "threshold": "MACD crosses above Signal line",
+                }
+            )
         elif macd_cross_bear:
             macd_score = -15
-            signals.append({
-                "category": "Momentum", "indicator": "MACD",
-                "signal": "BEARISH", "score": "-15",
-                "detail": "MACD bearish crossover - Sell signal",
-                "threshold": "MACD crosses below Signal line"
-            })
-        elif latest['MACD'] > latest['MACD_Signal'] and latest['MACD_Hist'] > prev['MACD_Hist']:
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "MACD",
+                    "signal": "BEARISH",
+                    "score": "-15",
+                    "detail": "MACD bearish crossover - Sell signal",
+                    "threshold": "MACD crosses below Signal line",
+                }
+            )
+        elif latest["MACD"] > latest["MACD_Signal"] and latest["MACD_Hist"] > prev["MACD_Hist"]:
             macd_score = 10
-            signals.append({
-                "category": "Momentum", "indicator": "MACD",
-                "signal": "BULLISH", "score": "+10",
-                "detail": f"MACD above signal, histogram {latest['MACD_Hist']:+.4f} (expanding from {prev['MACD_Hist']:+.4f})",
-                "threshold": "MACD > Signal, Histogram increasing"
-            })
-        elif latest['MACD'] < latest['MACD_Signal'] and latest['MACD_Hist'] < prev['MACD_Hist']:
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "MACD",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": f"MACD above signal, histogram {latest['MACD_Hist']:+.4f} (expanding from {prev['MACD_Hist']:+.4f})",
+                    "threshold": "MACD > Signal, Histogram increasing",
+                }
+            )
+        elif latest["MACD"] < latest["MACD_Signal"] and latest["MACD_Hist"] < prev["MACD_Hist"]:
             macd_score = -10
-            signals.append({
-                "category": "Momentum", "indicator": "MACD",
-                "signal": "BEARISH", "score": "-10",
-                "detail": f"MACD below signal, histogram {latest['MACD_Hist']:+.4f} (expanding from {prev['MACD_Hist']:+.4f})",
-                "threshold": "MACD < Signal, Histogram decreasing"
-            })
-        elif latest['MACD'] > latest['MACD_Signal']:
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "MACD",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": f"MACD below signal, histogram {latest['MACD_Hist']:+.4f} (expanding from {prev['MACD_Hist']:+.4f})",
+                    "threshold": "MACD < Signal, Histogram decreasing",
+                }
+            )
+        elif latest["MACD"] > latest["MACD_Signal"]:
             macd_score = 5
-            signals.append({
-                "category": "Momentum", "indicator": "MACD",
-                "signal": "BULLISH", "score": "+5",
-                "detail": "MACD above signal line",
-                "threshold": "MACD > Signal"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "MACD",
+                    "signal": "BULLISH",
+                    "score": "+5",
+                    "detail": "MACD above signal line",
+                    "threshold": "MACD > Signal",
+                }
+            )
         else:
             macd_score = -5
-            signals.append({
-                "category": "Momentum", "indicator": "MACD",
-                "signal": "BEARISH", "score": "-5",
-                "detail": "MACD below signal line",
-                "threshold": "MACD < Signal"
-            })
+            signals.append(
+                {
+                    "category": "Momentum",
+                    "indicator": "MACD",
+                    "signal": "BEARISH",
+                    "score": "-5",
+                    "detail": "MACD below signal line",
+                    "threshold": "MACD < Signal",
+                }
+            )
     momentum_score += macd_score
 
     total_score += momentum_score
@@ -504,81 +592,113 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
 
     # Bollinger Bands (10 points)
     bb_score = 0
-    if pd.notna(latest['BB_Position']):
-        bb_pos = latest['BB_Position']
+    if pd.notna(latest["BB_Position"]):
+        bb_pos = latest["BB_Position"]
         if bb_pos < 0:
             bb_score = 10
-            signals.append({
-                "category": "Volatility", "indicator": "Bollinger Bands",
-                "signal": "BULLISH", "score": "+10",
-                "detail": f"Price below lower band - Oversold",
-                "threshold": "Price < Lower BB"
-            })
+            signals.append(
+                {
+                    "category": "Volatility",
+                    "indicator": "Bollinger Bands",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": f"Price below lower band - Oversold",
+                    "threshold": "Price < Lower BB",
+                }
+            )
         elif bb_pos > 1:
             bb_score = -10
-            signals.append({
-                "category": "Volatility", "indicator": "Bollinger Bands",
-                "signal": "BEARISH", "score": "-10",
-                "detail": f"Price above upper band - Overbought",
-                "threshold": "Price > Upper BB"
-            })
+            signals.append(
+                {
+                    "category": "Volatility",
+                    "indicator": "Bollinger Bands",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": f"Price above upper band - Overbought",
+                    "threshold": "Price > Upper BB",
+                }
+            )
         elif bb_pos < 0.2:
             bb_score = 5
-            signals.append({
-                "category": "Volatility", "indicator": "Bollinger Bands",
-                "signal": "BULLISH", "score": "+5",
-                "detail": f"Price near lower band ({bb_pos*100:.0f}%)",
-                "threshold": "BB Position < 20%"
-            })
+            signals.append(
+                {
+                    "category": "Volatility",
+                    "indicator": "Bollinger Bands",
+                    "signal": "BULLISH",
+                    "score": "+5",
+                    "detail": f"Price near lower band ({bb_pos*100:.0f}%)",
+                    "threshold": "BB Position < 20%",
+                }
+            )
         elif bb_pos > 0.8:
             bb_score = -5
-            signals.append({
-                "category": "Volatility", "indicator": "Bollinger Bands",
-                "signal": "BEARISH", "score": "-5",
-                "detail": f"Price near upper band ({bb_pos*100:.0f}%)",
-                "threshold": "BB Position > 80%"
-            })
+            signals.append(
+                {
+                    "category": "Volatility",
+                    "indicator": "Bollinger Bands",
+                    "signal": "BEARISH",
+                    "score": "-5",
+                    "detail": f"Price near upper band ({bb_pos*100:.0f}%)",
+                    "threshold": "BB Position > 80%",
+                }
+            )
         else:
             bb_score = 0
-            signals.append({
-                "category": "Volatility", "indicator": "Bollinger Bands",
-                "signal": "NEUTRAL", "score": "0",
-                "detail": f"Price in middle of bands ({bb_pos*100:.0f}%)",
-                "threshold": "20% ≤ BB Position ≤ 80%"
-            })
+            signals.append(
+                {
+                    "category": "Volatility",
+                    "indicator": "Bollinger Bands",
+                    "signal": "NEUTRAL",
+                    "score": "0",
+                    "detail": f"Price in middle of bands ({bb_pos*100:.0f}%)",
+                    "threshold": "20% ≤ BB Position ≤ 80%",
+                }
+            )
     volatility_score += bb_score
 
     # ATR Volatility (10 points)
     atr_score = 0
-    if pd.notna(latest['ATR_Percent']):
-        atr_pct = latest['ATR_Percent']
+    if pd.notna(latest["ATR_Percent"]):
+        atr_pct = latest["ATR_Percent"]
         # Compare to historical
-        atr_avg = tech_df['ATR_Percent'].tail(60).mean()
+        atr_avg = tech_df["ATR_Percent"].tail(60).mean()
         if pd.notna(atr_avg):
             if atr_pct > atr_avg * 1.5:
                 atr_score = -5  # High volatility is risky
-                signals.append({
-                    "category": "Volatility", "indicator": "ATR",
-                    "signal": "CAUTION", "score": "-5",
-                    "detail": f"ATR {atr_pct:.2f}% - Elevated volatility (avg: {atr_avg:.2f}%)",
-                    "threshold": "ATR > 1.5x average"
-                })
+                signals.append(
+                    {
+                        "category": "Volatility",
+                        "indicator": "ATR",
+                        "signal": "CAUTION",
+                        "score": "-5",
+                        "detail": f"ATR {atr_pct:.2f}% - Elevated volatility (avg: {atr_avg:.2f}%)",
+                        "threshold": "ATR > 1.5x average",
+                    }
+                )
             elif atr_pct < atr_avg * 0.7:
                 atr_score = 5  # Low volatility, potential breakout
-                signals.append({
-                    "category": "Volatility", "indicator": "ATR",
-                    "signal": "WATCH", "score": "+5",
-                    "detail": f"ATR {atr_pct:.2f}% - Low volatility, potential breakout setup",
-                    "threshold": "ATR < 0.7x average"
-                })
+                signals.append(
+                    {
+                        "category": "Volatility",
+                        "indicator": "ATR",
+                        "signal": "WATCH",
+                        "score": "+5",
+                        "detail": f"ATR {atr_pct:.2f}% - Low volatility, potential breakout setup",
+                        "threshold": "ATR < 0.7x average",
+                    }
+                )
             else:
                 atr_score = 0
-                signals.append({
-                    "category": "Volatility", "indicator": "ATR",
-                    "signal": "NEUTRAL", "score": "0",
-                    "detail": f"ATR {atr_pct:.2f}% - Normal volatility",
-                    "threshold": "0.7x < ATR < 1.5x average"
-                })
+                signals.append(
+                    {
+                        "category": "Volatility",
+                        "indicator": "ATR",
+                        "signal": "NEUTRAL",
+                        "score": "0",
+                        "detail": f"ATR {atr_pct:.2f}% - Normal volatility",
+                        "threshold": "0.7x < ATR < 1.5x average",
+                    }
+                )
     volatility_score += atr_score
 
     total_score += volatility_score
@@ -590,77 +710,113 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
 
     # Volume vs Average (10 points)
     vol_score = 0
-    if pd.notna(latest['Volume_Ratio']):
-        vol_ratio = latest['Volume_Ratio']
-        price_change = (latest['Close'] - prev['Close']) / prev['Close'] * 100 if prev['Close'] > 0 else 0
+    if pd.notna(latest["Volume_Ratio"]):
+        vol_ratio = latest["Volume_Ratio"]
+        price_change = (latest["Close"] - prev["Close"]) / prev["Close"] * 100 if prev["Close"] > 0 else 0
 
         if vol_ratio > 1.5 and price_change > 0:
             vol_score = 10
-            signals.append({
-                "category": "Volume", "indicator": "Volume Surge",
-                "signal": "BULLISH", "score": "+10",
-                "detail": f"Volume {vol_ratio:.1f}x average with price up {price_change:.1f}%",
-                "threshold": "Volume > 1.5x avg + Price up"
-            })
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "Volume Surge",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": f"Volume {vol_ratio:.1f}x average with price up {price_change:.1f}%",
+                    "threshold": "Volume > 1.5x avg + Price up",
+                }
+            )
         elif vol_ratio > 1.5 and price_change < 0:
             vol_score = -10
-            signals.append({
-                "category": "Volume", "indicator": "Volume Surge",
-                "signal": "BEARISH", "score": "-10",
-                "detail": f"Volume {vol_ratio:.1f}x average with price down {price_change:.1f}%",
-                "threshold": "Volume > 1.5x avg + Price down"
-            })
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "Volume Surge",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": f"Volume {vol_ratio:.1f}x average with price down {price_change:.1f}%",
+                    "threshold": "Volume > 1.5x avg + Price down",
+                }
+            )
         elif vol_ratio < 0.5:
             vol_score = -5
-            signals.append({
-                "category": "Volume", "indicator": "Volume",
-                "signal": "CAUTION", "score": "-5",
-                "detail": f"Low volume ({vol_ratio:.1f}x avg) - Weak conviction / volume shrinkage risk",
-                "threshold": "Volume < 0.5x average"
-            })
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "Volume",
+                    "signal": "CAUTION",
+                    "score": "-5",
+                    "detail": f"Low volume ({vol_ratio:.1f}x avg) - Weak conviction / volume shrinkage risk",
+                    "threshold": "Volume < 0.5x average",
+                }
+            )
         else:
             vol_score = 0
-            signals.append({
-                "category": "Volume", "indicator": "Volume",
-                "signal": "NEUTRAL", "score": "0",
-                "detail": f"Normal volume ({vol_ratio:.1f}x average)",
-                "threshold": "0.5x ≤ Volume ≤ 1.5x average"
-            })
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "Volume",
+                    "signal": "NEUTRAL",
+                    "score": "0",
+                    "detail": f"Normal volume ({vol_ratio:.1f}x average)",
+                    "threshold": "0.5x ≤ Volume ≤ 1.5x average",
+                }
+            )
     volume_score += vol_score
 
     # OBV Trend (10 points)
     obv_score = 0
     if len(tech_df) > 20:
-        obv_sma = tech_df['OBV'].tail(20).mean()
-        obv_current = latest['OBV']
+        obv_sma = tech_df["OBV"].tail(20).mean()
+        obv_current = latest["OBV"]
         obv_trend = (obv_current - obv_sma) / abs(obv_sma) * 100 if obv_sma != 0 else 0
 
         if obv_trend > 10:
             obv_score = 10
-            signals.append({
-                "category": "Volume", "indicator": "OBV",
-                "signal": "BULLISH", "score": "+10",
-                "detail": f"OBV trending up {obv_trend:.0f}% above 20-day avg",
-                "threshold": "OBV > 10% above average"
-            })
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "OBV",
+                    "signal": "BULLISH",
+                    "score": "+10",
+                    "detail": f"OBV trending up {obv_trend:.0f}% above 20-day avg",
+                    "threshold": "OBV > 10% above average",
+                }
+            )
         elif obv_trend < -10:
             obv_score = -10
-            signals.append({
-                "category": "Volume", "indicator": "OBV",
-                "signal": "BEARISH", "score": "-10",
-                "detail": f"OBV trending down {obv_trend:.0f}% below 20-day avg",
-                "threshold": "OBV < -10% below average"
-            })
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "OBV",
+                    "signal": "BEARISH",
+                    "score": "-10",
+                    "detail": f"OBV trending down {obv_trend:.0f}% below 20-day avg",
+                    "threshold": "OBV < -10% below average",
+                }
+            )
         else:
             obv_score = 0
-            _obv_slope_pct = ((latest['OBV'] - tech_df['OBV'].iloc[-10]) / (abs(tech_df['OBV'].iloc[-10]) + 1e-10) * 100) if len(tech_df) > 10 else 0
-            _obv_slope_desc = "slight upward slope" if _obv_slope_pct > 2 else "slight downward slope" if _obv_slope_pct < -2 else "flat"
-            signals.append({
-                "category": "Volume", "indicator": "OBV",
-                "signal": "NEUTRAL", "score": "0",
-                "detail": f"OBV {_obv_slope_desc} ({obv_trend:+.1f}% vs 20-day avg) — no sustained accumulation or distribution",
-                "threshold": "-10% ≤ OBV deviation ≤ 10%"
-            })
+            _obv_slope_pct = (
+                ((latest["OBV"] - tech_df["OBV"].iloc[-10]) / (abs(tech_df["OBV"].iloc[-10]) + 1e-10) * 100)
+                if len(tech_df) > 10
+                else 0
+            )
+            _obv_slope_desc = (
+                "slight upward slope"
+                if _obv_slope_pct > 2
+                else "slight downward slope" if _obv_slope_pct < -2 else "flat"
+            )
+            signals.append(
+                {
+                    "category": "Volume",
+                    "indicator": "OBV",
+                    "signal": "NEUTRAL",
+                    "score": "0",
+                    "detail": f"OBV {_obv_slope_desc} ({obv_trend:+.1f}% vs 20-day avg) — no sustained accumulation or distribution",
+                    "threshold": "-10% ≤ OBV deviation ≤ 10%",
+                }
+            )
     volume_score += obv_score
 
     total_score += volume_score
@@ -692,8 +848,8 @@ def generate_technical_signals(data: Dict, tech_df: pd.DataFrame) -> Dict:
             "trend": {"score": trend_score, "max": trend_max},
             "momentum": {"score": momentum_score, "max": momentum_max},
             "volatility": {"score": volatility_score, "max": volatility_max},
-            "volume": {"score": volume_score, "max": volume_max}
-        }
+            "volume": {"score": volume_score, "max": volume_max},
+        },
     }
 
 
@@ -732,118 +888,178 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
     valuation_max = 30
 
     # P/E Analysis (10 points)
-    pe = data.get('pe_ratio')
-    forward_pe = data.get('forward_pe')
+    pe = data.get("pe_ratio")
+    forward_pe = data.get("forward_pe")
     if pe:
         if pe < 15:
             valuation_score += 10
-            signals.append({
-                "category": "Valuation", "metric": "P/E Ratio",
-                "value": f"{pe:.1f}x", "signal": "UNDERVALUED", "score": "+10",
-                "detail": "Low P/E suggests undervaluation vs market average (~20x)",
-                "benchmark": "Market avg: ~20x, Threshold: <15x"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "P/E Ratio",
+                    "value": f"{pe:.1f}x",
+                    "signal": "UNDERVALUED",
+                    "score": "+10",
+                    "detail": "Low P/E suggests undervaluation vs market average (~20x)",
+                    "benchmark": "Market avg: ~20x, Threshold: <15x",
+                }
+            )
         elif pe < 20:
             valuation_score += 5
-            signals.append({
-                "category": "Valuation", "metric": "P/E Ratio",
-                "value": f"{pe:.1f}x", "signal": "FAIR", "score": "+5",
-                "detail": "P/E in line with market average",
-                "benchmark": "Market avg: ~20x"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "P/E Ratio",
+                    "value": f"{pe:.1f}x",
+                    "signal": "FAIR",
+                    "score": "+5",
+                    "detail": "P/E in line with market average",
+                    "benchmark": "Market avg: ~20x",
+                }
+            )
         elif pe < 30:
             valuation_score += 0
-            signals.append({
-                "category": "Valuation", "metric": "P/E Ratio",
-                "value": f"{pe:.1f}x", "signal": "ELEVATED", "score": "0",
-                "detail": "Premium valuation, needs growth to justify",
-                "benchmark": "Above market avg"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "P/E Ratio",
+                    "value": f"{pe:.1f}x",
+                    "signal": "ELEVATED",
+                    "score": "0",
+                    "detail": "Premium valuation, needs growth to justify",
+                    "benchmark": "Above market avg",
+                }
+            )
         else:
             valuation_score -= 10
-            signals.append({
-                "category": "Valuation", "metric": "P/E Ratio",
-                "value": f"{pe:.1f}x", "signal": "OVERVALUED", "score": "-10",
-                "detail": "High P/E - significant premium to market",
-                "benchmark": "Threshold: >30x"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "P/E Ratio",
+                    "value": f"{pe:.1f}x",
+                    "signal": "OVERVALUED",
+                    "score": "-10",
+                    "detail": "High P/E - significant premium to market",
+                    "benchmark": "Threshold: >30x",
+                }
+            )
 
     # PEG Ratio (10 points) — calculate manually if yfinance doesn't provide it
-    peg = data.get('peg_ratio')
+    peg = data.get("peg_ratio")
     if not peg:
-        _pe = data.get('pe_ratio')
-        _eg = data.get('earnings_growth')
+        _pe = data.get("pe_ratio")
+        _eg = data.get("earnings_growth")
         if _pe and _eg and _eg > 0:
             peg = _pe / (_eg * 100)
     if peg:
         if peg < 1:
             valuation_score += 10
-            signals.append({
-                "category": "Valuation", "metric": "PEG Ratio",
-                "value": f"{peg:.2f}", "signal": "UNDERVALUED", "score": "+10",
-                "detail": "PEG < 1 suggests growth not fully priced in",
-                "benchmark": "Fair value: PEG = 1"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "PEG Ratio",
+                    "value": f"{peg:.2f}",
+                    "signal": "UNDERVALUED",
+                    "score": "+10",
+                    "detail": "PEG < 1 suggests growth not fully priced in",
+                    "benchmark": "Fair value: PEG = 1",
+                }
+            )
         elif peg < 1.5:
             valuation_score += 5
-            signals.append({
-                "category": "Valuation", "metric": "PEG Ratio",
-                "value": f"{peg:.2f}", "signal": "FAIR", "score": "+5",
-                "detail": "Reasonable valuation for growth",
-                "benchmark": "Fair value: PEG = 1-1.5"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "PEG Ratio",
+                    "value": f"{peg:.2f}",
+                    "signal": "FAIR",
+                    "score": "+5",
+                    "detail": "Reasonable valuation for growth",
+                    "benchmark": "Fair value: PEG = 1-1.5",
+                }
+            )
         elif peg < 2:
             valuation_score += 0
-            signals.append({
-                "category": "Valuation", "metric": "PEG Ratio",
-                "value": f"{peg:.2f}", "signal": "ELEVATED", "score": "0",
-                "detail": "Paying premium for growth",
-                "benchmark": "PEG > 1.5"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "PEG Ratio",
+                    "value": f"{peg:.2f}",
+                    "signal": "ELEVATED",
+                    "score": "0",
+                    "detail": "Paying premium for growth",
+                    "benchmark": "PEG > 1.5",
+                }
+            )
         else:
             valuation_score -= 5
-            signals.append({
-                "category": "Valuation", "metric": "PEG Ratio",
-                "value": f"{peg:.2f}", "signal": "OVERVALUED", "score": "-5",
-                "detail": "Growth fully priced in and more",
-                "benchmark": "PEG > 2"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "PEG Ratio",
+                    "value": f"{peg:.2f}",
+                    "signal": "OVERVALUED",
+                    "score": "-5",
+                    "detail": "Growth fully priced in and more",
+                    "benchmark": "PEG > 2",
+                }
+            )
 
     # EV/EBITDA (10 points)
-    ev_ebitda = data.get('ev_ebitda')
+    ev_ebitda = data.get("ev_ebitda")
     if ev_ebitda:
         if ev_ebitda < 8:
             valuation_score += 10
-            signals.append({
-                "category": "Valuation", "metric": "EV/EBITDA",
-                "value": f"{ev_ebitda:.1f}x", "signal": "UNDERVALUED", "score": "+10",
-                "detail": "Low EV/EBITDA - attractive on cash flow basis",
-                "benchmark": "Threshold: <8x (value)"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "EV/EBITDA",
+                    "value": f"{ev_ebitda:.1f}x",
+                    "signal": "UNDERVALUED",
+                    "score": "+10",
+                    "detail": "Low EV/EBITDA - attractive on cash flow basis",
+                    "benchmark": "Threshold: <8x (value)",
+                }
+            )
         elif ev_ebitda < 12:
             valuation_score += 5
-            signals.append({
-                "category": "Valuation", "metric": "EV/EBITDA",
-                "value": f"{ev_ebitda:.1f}x", "signal": "FAIR", "score": "+5",
-                "detail": "Reasonable EV/EBITDA multiple",
-                "benchmark": "Market avg: 10-12x"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "EV/EBITDA",
+                    "value": f"{ev_ebitda:.1f}x",
+                    "signal": "FAIR",
+                    "score": "+5",
+                    "detail": "Reasonable EV/EBITDA multiple",
+                    "benchmark": "Market avg: 10-12x",
+                }
+            )
         elif ev_ebitda < 18:
             valuation_score += 0
-            signals.append({
-                "category": "Valuation", "metric": "EV/EBITDA",
-                "value": f"{ev_ebitda:.1f}x", "signal": "ELEVATED", "score": "0",
-                "detail": "Premium EV/EBITDA multiple",
-                "benchmark": "Growth premium: 12-18x"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "EV/EBITDA",
+                    "value": f"{ev_ebitda:.1f}x",
+                    "signal": "ELEVATED",
+                    "score": "0",
+                    "detail": "Premium EV/EBITDA multiple",
+                    "benchmark": "Growth premium: 12-18x",
+                }
+            )
         else:
             valuation_score -= 5
-            signals.append({
-                "category": "Valuation", "metric": "EV/EBITDA",
-                "value": f"{ev_ebitda:.1f}x", "signal": "EXPENSIVE", "score": "-5",
-                "detail": "High EV/EBITDA - rich valuation",
-                "benchmark": "Threshold: >18x"
-            })
+            signals.append(
+                {
+                    "category": "Valuation",
+                    "metric": "EV/EBITDA",
+                    "value": f"{ev_ebitda:.1f}x",
+                    "signal": "EXPENSIVE",
+                    "score": "-5",
+                    "detail": "High EV/EBITDA - rich valuation",
+                    "benchmark": "Threshold: >18x",
+                }
+            )
 
     total_score += valuation_score
     max_score += valuation_max
@@ -853,122 +1069,183 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
     profitability_max = 25
 
     # Operating Margin (10 points)
-    op_margin = data.get('operating_margin')
+    op_margin = data.get("operating_margin")
     if op_margin:
         op_margin_pct = op_margin * 100
         if op_margin_pct > 20:
             profitability_score += 10
-            signals.append({
-                "category": "Profitability", "metric": "Operating Margin",
-                "value": f"{op_margin_pct:.1f}%", "signal": "STRONG", "score": "+10",
-                "detail": "Excellent operating efficiency",
-                "benchmark": "Elite: >20%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Operating Margin",
+                    "value": f"{op_margin_pct:.1f}%",
+                    "signal": "STRONG",
+                    "score": "+10",
+                    "detail": "Excellent operating efficiency",
+                    "benchmark": "Elite: >20%",
+                }
+            )
         elif op_margin_pct > 10:
             profitability_score += 5
-            signals.append({
-                "category": "Profitability", "metric": "Operating Margin",
-                "value": f"{op_margin_pct:.1f}%", "signal": "GOOD", "score": "+5",
-                "detail": "Healthy operating margin",
-                "benchmark": "Good: 10-20%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Operating Margin",
+                    "value": f"{op_margin_pct:.1f}%",
+                    "signal": "GOOD",
+                    "score": "+5",
+                    "detail": "Healthy operating margin",
+                    "benchmark": "Good: 10-20%",
+                }
+            )
         elif op_margin_pct > 0:
             profitability_score += 0
-            signals.append({
-                "category": "Profitability", "metric": "Operating Margin",
-                "value": f"{op_margin_pct:.1f}%", "signal": "WEAK", "score": "0",
-                "detail": "Low operating margin",
-                "benchmark": "Below avg: <10%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Operating Margin",
+                    "value": f"{op_margin_pct:.1f}%",
+                    "signal": "WEAK",
+                    "score": "0",
+                    "detail": "Low operating margin",
+                    "benchmark": "Below avg: <10%",
+                }
+            )
         else:
             profitability_score -= 5
-            signals.append({
-                "category": "Profitability", "metric": "Operating Margin",
-                "value": f"{op_margin_pct:.1f}%", "signal": "LOSS", "score": "-5",
-                "detail": "Operating at a loss",
-                "benchmark": "Negative margin"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Operating Margin",
+                    "value": f"{op_margin_pct:.1f}%",
+                    "signal": "LOSS",
+                    "score": "-5",
+                    "detail": "Operating at a loss",
+                    "benchmark": "Negative margin",
+                }
+            )
 
     # ROE (10 points)
-    roe = data.get('roe')
+    roe = data.get("roe")
     if roe:
         roe_pct = roe * 100
         if roe_pct > 20:
             profitability_score += 10
-            _de_check = data.get('debt_to_equity')
+            _de_check = data.get("debt_to_equity")
             _roe_note = (
                 "High ROE partly driven by share buybacks reducing book equity — "
                 "operating profitability is strong but the metric is amplified by capital structure"
-                if (_de_check and _de_check > 10) else "Superior capital efficiency"
+                if (_de_check and _de_check > 10)
+                else "Superior capital efficiency"
             )
-            signals.append({
-                "category": "Profitability", "metric": "Return on Equity",
-                "value": f"{roe_pct:.1f}%", "signal": "EXCELLENT", "score": "+10",
-                "detail": _roe_note,
-                "benchmark": "Elite: >20%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Return on Equity",
+                    "value": f"{roe_pct:.1f}%",
+                    "signal": "EXCELLENT",
+                    "score": "+10",
+                    "detail": _roe_note,
+                    "benchmark": "Elite: >20%",
+                }
+            )
         elif roe_pct > 15:
             profitability_score += 7
-            signals.append({
-                "category": "Profitability", "metric": "Return on Equity",
-                "value": f"{roe_pct:.1f}%", "signal": "STRONG", "score": "+7",
-                "detail": "Above-average ROE",
-                "benchmark": "Good: 15-20%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Return on Equity",
+                    "value": f"{roe_pct:.1f}%",
+                    "signal": "STRONG",
+                    "score": "+7",
+                    "detail": "Above-average ROE",
+                    "benchmark": "Good: 15-20%",
+                }
+            )
         elif roe_pct > 10:
             profitability_score += 3
-            signals.append({
-                "category": "Profitability", "metric": "Return on Equity",
-                "value": f"{roe_pct:.1f}%", "signal": "ADEQUATE", "score": "+3",
-                "detail": "Acceptable ROE",
-                "benchmark": "Fair: 10-15%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Return on Equity",
+                    "value": f"{roe_pct:.1f}%",
+                    "signal": "ADEQUATE",
+                    "score": "+3",
+                    "detail": "Acceptable ROE",
+                    "benchmark": "Fair: 10-15%",
+                }
+            )
         else:
             profitability_score += 0
-            signals.append({
-                "category": "Profitability", "metric": "Return on Equity",
-                "value": f"{roe_pct:.1f}%", "signal": "WEAK", "score": "0",
-                "detail": "Below-average capital efficiency",
-                "benchmark": "Weak: <10%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "Return on Equity",
+                    "value": f"{roe_pct:.1f}%",
+                    "signal": "WEAK",
+                    "score": "0",
+                    "detail": "Below-average capital efficiency",
+                    "benchmark": "Weak: <10%",
+                }
+            )
 
     # Free Cash Flow (5 points)
-    fcf = data.get('free_cash_flow')
-    market_cap = data.get('market_cap')
+    fcf = data.get("free_cash_flow")
+    market_cap = data.get("market_cap")
     if fcf and market_cap and market_cap > 0:
         fcf_yield = fcf / market_cap * 100
         if fcf_yield > 5:
             profitability_score += 5
-            signals.append({
-                "category": "Profitability", "metric": "FCF Yield",
-                "value": f"{fcf_yield:.1f}%", "signal": "STRONG", "score": "+5",
-                "detail": "Excellent free cash flow generation",
-                "benchmark": "Strong: >5%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "FCF Yield",
+                    "value": f"{fcf_yield:.1f}%",
+                    "signal": "STRONG",
+                    "score": "+5",
+                    "detail": "Excellent free cash flow generation",
+                    "benchmark": "Strong: >5%",
+                }
+            )
         elif fcf_yield > 2:
             profitability_score += 3
-            signals.append({
-                "category": "Profitability", "metric": "FCF Yield",
-                "value": f"{fcf_yield:.1f}%", "signal": "GOOD", "score": "+3",
-                "detail": "Healthy cash flow",
-                "benchmark": "Good: 2-5%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "FCF Yield",
+                    "value": f"{fcf_yield:.1f}%",
+                    "signal": "GOOD",
+                    "score": "+3",
+                    "detail": "Healthy cash flow",
+                    "benchmark": "Good: 2-5%",
+                }
+            )
         elif fcf_yield > 0:
             profitability_score += 0
-            signals.append({
-                "category": "Profitability", "metric": "FCF Yield",
-                "value": f"{fcf_yield:.1f}%", "signal": "LOW", "score": "0",
-                "detail": "Minimal free cash flow",
-                "benchmark": "Low: 0-2%"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "FCF Yield",
+                    "value": f"{fcf_yield:.1f}%",
+                    "signal": "LOW",
+                    "score": "0",
+                    "detail": "Minimal free cash flow",
+                    "benchmark": "Low: 0-2%",
+                }
+            )
         else:
             profitability_score -= 3
-            signals.append({
-                "category": "Profitability", "metric": "FCF Yield",
-                "value": f"{fcf_yield:.1f}%", "signal": "NEGATIVE", "score": "-3",
-                "detail": "Cash burn - needs financing",
-                "benchmark": "Negative FCF"
-            })
+            signals.append(
+                {
+                    "category": "Profitability",
+                    "metric": "FCF Yield",
+                    "value": f"{fcf_yield:.1f}%",
+                    "signal": "NEGATIVE",
+                    "score": "-3",
+                    "detail": "Cash burn - needs financing",
+                    "benchmark": "Negative FCF",
+                }
+            )
 
     total_score += profitability_score
     max_score += profitability_max
@@ -978,78 +1255,118 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
     growth_max = 25
 
     # Revenue Growth (12 points)
-    rev_growth = data.get('revenue_growth')
+    rev_growth = data.get("revenue_growth")
     if rev_growth:
         rev_growth_pct = rev_growth * 100
         if rev_growth_pct > 25:
             growth_score += 12
-            signals.append({
-                "category": "Growth", "metric": "Revenue Growth",
-                "value": f"{rev_growth_pct:.1f}%", "signal": "HIGH GROWTH", "score": "+12",
-                "detail": "Exceptional revenue growth",
-                "benchmark": "High growth: >25%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Revenue Growth",
+                    "value": f"{rev_growth_pct:.1f}%",
+                    "signal": "HIGH GROWTH",
+                    "score": "+12",
+                    "detail": "Exceptional revenue growth",
+                    "benchmark": "High growth: >25%",
+                }
+            )
         elif rev_growth_pct > 10:
             growth_score += 8
-            signals.append({
-                "category": "Growth", "metric": "Revenue Growth",
-                "value": f"{rev_growth_pct:.1f}%", "signal": "SOLID", "score": "+8",
-                "detail": "Strong revenue growth",
-                "benchmark": "Solid: 10-25%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Revenue Growth",
+                    "value": f"{rev_growth_pct:.1f}%",
+                    "signal": "SOLID",
+                    "score": "+8",
+                    "detail": "Strong revenue growth",
+                    "benchmark": "Solid: 10-25%",
+                }
+            )
         elif rev_growth_pct > 0:
             growth_score += 4
-            signals.append({
-                "category": "Growth", "metric": "Revenue Growth",
-                "value": f"{rev_growth_pct:.1f}%", "signal": "MODERATE", "score": "+4",
-                "detail": "Modest revenue growth",
-                "benchmark": "Moderate: 0-10%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Revenue Growth",
+                    "value": f"{rev_growth_pct:.1f}%",
+                    "signal": "MODERATE",
+                    "score": "+4",
+                    "detail": "Modest revenue growth",
+                    "benchmark": "Moderate: 0-10%",
+                }
+            )
         else:
             growth_score -= 5
-            signals.append({
-                "category": "Growth", "metric": "Revenue Growth",
-                "value": f"{rev_growth_pct:.1f}%", "signal": "DECLINING", "score": "-5",
-                "detail": "Revenue contraction",
-                "benchmark": "Declining: <0%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Revenue Growth",
+                    "value": f"{rev_growth_pct:.1f}%",
+                    "signal": "DECLINING",
+                    "score": "-5",
+                    "detail": "Revenue contraction",
+                    "benchmark": "Declining: <0%",
+                }
+            )
 
     # Earnings Growth (13 points)
-    earn_growth = data.get('earnings_growth')
+    earn_growth = data.get("earnings_growth")
     if earn_growth:
         earn_growth_pct = earn_growth * 100
         if earn_growth_pct > 30:
             growth_score += 13
-            signals.append({
-                "category": "Growth", "metric": "Earnings Growth",
-                "value": f"{earn_growth_pct:.1f}%", "signal": "HIGH GROWTH", "score": "+13",
-                "detail": "Exceptional earnings growth",
-                "benchmark": "High growth: >30%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Earnings Growth",
+                    "value": f"{earn_growth_pct:.1f}%",
+                    "signal": "HIGH GROWTH",
+                    "score": "+13",
+                    "detail": "Exceptional earnings growth",
+                    "benchmark": "High growth: >30%",
+                }
+            )
         elif earn_growth_pct > 15:
             growth_score += 8
-            signals.append({
-                "category": "Growth", "metric": "Earnings Growth",
-                "value": f"{earn_growth_pct:.1f}%", "signal": "SOLID", "score": "+8",
-                "detail": "Strong earnings growth",
-                "benchmark": "Solid: 15-30%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Earnings Growth",
+                    "value": f"{earn_growth_pct:.1f}%",
+                    "signal": "SOLID",
+                    "score": "+8",
+                    "detail": "Strong earnings growth",
+                    "benchmark": "Solid: 15-30%",
+                }
+            )
         elif earn_growth_pct > 0:
             growth_score += 4
-            signals.append({
-                "category": "Growth", "metric": "Earnings Growth",
-                "value": f"{earn_growth_pct:.1f}%", "signal": "MODERATE", "score": "+4",
-                "detail": "Modest earnings growth",
-                "benchmark": "Moderate: 0-15%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Earnings Growth",
+                    "value": f"{earn_growth_pct:.1f}%",
+                    "signal": "MODERATE",
+                    "score": "+4",
+                    "detail": "Modest earnings growth",
+                    "benchmark": "Moderate: 0-15%",
+                }
+            )
         else:
             growth_score -= 5
-            signals.append({
-                "category": "Growth", "metric": "Earnings Growth",
-                "value": f"{earn_growth_pct:.1f}%", "signal": "DECLINING", "score": "-5",
-                "detail": "Earnings contraction",
-                "benchmark": "Declining: <0%"
-            })
+            signals.append(
+                {
+                    "category": "Growth",
+                    "metric": "Earnings Growth",
+                    "value": f"{earn_growth_pct:.1f}%",
+                    "signal": "DECLINING",
+                    "score": "-5",
+                    "detail": "Earnings contraction",
+                    "benchmark": "Declining: <0%",
+                }
+            )
 
     total_score += growth_score
     max_score += growth_max
@@ -1061,11 +1378,11 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
     # Debt/Equity (10 points)
     # Note: companies with large buybacks (e.g. Apple) can have negative book equity,
     # making D/E artificially high. Detect this and use Debt/EBITDA instead.
-    de_ratio = data.get('debt_to_equity')
+    de_ratio = data.get("debt_to_equity")
     if de_ratio is not None:
-        _ev_ebitda = data.get('ev_ebitda')
-        _ev = data.get('enterprise_value')
-        _total_debt = data.get('total_debt')
+        _ev_ebitda = data.get("ev_ebitda")
+        _ev = data.get("enterprise_value")
+        _total_debt = data.get("total_debt")
         _debt_ebitda = None
         if _ev_ebitda and _ev and _ev_ebitda > 0 and _total_debt:
             _ebitda_est = _ev / _ev_ebitda
@@ -1077,108 +1394,163 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
         if _negative_equity and _debt_ebitda is not None:
             if _debt_ebitda < 2:
                 health_score += 7
-                signals.append({
-                    "category": "Financial Health", "metric": "Debt/Equity",
-                    "value": f"{de_ratio:.1f}x (see note)", "signal": "MANAGEABLE", "score": "+7",
-                    "detail": f"D/E of {de_ratio:.1f}x is distorted by negative book equity from share buybacks. Debt/EBITDA of {_debt_ebitda:.1f}x shows manageable leverage.",
-                    "benchmark": "Debt/EBITDA < 2x = healthy leverage"
-                })
+                signals.append(
+                    {
+                        "category": "Financial Health",
+                        "metric": "Debt/Equity",
+                        "value": f"{de_ratio:.1f}x (see note)",
+                        "signal": "MANAGEABLE",
+                        "score": "+7",
+                        "detail": f"D/E of {de_ratio:.1f}x is distorted by negative book equity from share buybacks. Debt/EBITDA of {_debt_ebitda:.1f}x shows manageable leverage.",
+                        "benchmark": "Debt/EBITDA < 2x = healthy leverage",
+                    }
+                )
             elif _debt_ebitda < 4:
                 health_score += 3
-                signals.append({
-                    "category": "Financial Health", "metric": "Debt/Equity",
-                    "value": f"{de_ratio:.1f}x (see note)", "signal": "MODERATE", "score": "+3",
-                    "detail": f"D/E of {de_ratio:.1f}x distorted by negative book equity (buybacks). Debt/EBITDA of {_debt_ebitda:.1f}x shows moderate leverage.",
-                    "benchmark": "Debt/EBITDA 2-4x = moderate leverage"
-                })
+                signals.append(
+                    {
+                        "category": "Financial Health",
+                        "metric": "Debt/Equity",
+                        "value": f"{de_ratio:.1f}x (see note)",
+                        "signal": "MODERATE",
+                        "score": "+3",
+                        "detail": f"D/E of {de_ratio:.1f}x distorted by negative book equity (buybacks). Debt/EBITDA of {_debt_ebitda:.1f}x shows moderate leverage.",
+                        "benchmark": "Debt/EBITDA 2-4x = moderate leverage",
+                    }
+                )
             else:
                 health_score += 0
-                signals.append({
-                    "category": "Financial Health", "metric": "Debt/Equity",
-                    "value": f"{de_ratio:.1f}x (see note)", "signal": "ELEVATED", "score": "0",
-                    "detail": f"D/E of {de_ratio:.1f}x distorted by negative book equity (buybacks). Debt/EBITDA of {_debt_ebitda:.1f}x is elevated.",
-                    "benchmark": "Debt/EBITDA > 4x = elevated leverage"
-                })
+                signals.append(
+                    {
+                        "category": "Financial Health",
+                        "metric": "Debt/Equity",
+                        "value": f"{de_ratio:.1f}x (see note)",
+                        "signal": "ELEVATED",
+                        "score": "0",
+                        "detail": f"D/E of {de_ratio:.1f}x distorted by negative book equity (buybacks). Debt/EBITDA of {_debt_ebitda:.1f}x is elevated.",
+                        "benchmark": "Debt/EBITDA > 4x = elevated leverage",
+                    }
+                )
         elif de_ratio < 0.3:
             health_score += 10
-            signals.append({
-                "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}x", "signal": "STRONG", "score": "+10",
-                "detail": "Very low leverage - conservative balance sheet",
-                "benchmark": "Conservative: <0.3"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.2f}x",
+                    "signal": "STRONG",
+                    "score": "+10",
+                    "detail": "Very low leverage - conservative balance sheet",
+                    "benchmark": "Conservative: <0.3",
+                }
+            )
         elif de_ratio < 0.7:
             health_score += 7
-            signals.append({
-                "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}x", "signal": "HEALTHY", "score": "+7",
-                "detail": "Moderate leverage",
-                "benchmark": "Healthy: 0.3-0.7"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.2f}x",
+                    "signal": "HEALTHY",
+                    "score": "+7",
+                    "detail": "Moderate leverage",
+                    "benchmark": "Healthy: 0.3-0.7",
+                }
+            )
         elif de_ratio < 1.5:
             health_score += 3
-            signals.append({
-                "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}x", "signal": "ELEVATED", "score": "+3",
-                "detail": "Higher leverage - monitor interest coverage",
-                "benchmark": "Elevated: 0.7-1.5"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.2f}x",
+                    "signal": "ELEVATED",
+                    "score": "+3",
+                    "detail": "Higher leverage - monitor interest coverage",
+                    "benchmark": "Elevated: 0.7-1.5",
+                }
+            )
         else:
             health_score -= 5
-            signals.append({
-                "category": "Financial Health", "metric": "Debt/Equity",
-                "value": f"{de_ratio:.2f}x", "signal": "HIGH RISK", "score": "-5",
-                "detail": "High leverage - balance sheet risk",
-                "benchmark": "High risk: >1.5"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Debt/Equity",
+                    "value": f"{de_ratio:.2f}x",
+                    "signal": "HIGH RISK",
+                    "score": "-5",
+                    "detail": "High leverage - balance sheet risk",
+                    "benchmark": "High risk: >1.5",
+                }
+            )
 
     # Current Ratio (10 points)
-    current_ratio = data.get('current_ratio')
+    current_ratio = data.get("current_ratio")
     if current_ratio:
         if current_ratio > 2:
             health_score += 10
-            signals.append({
-                "category": "Financial Health", "metric": "Current Ratio",
-                "value": f"{current_ratio:.2f}", "signal": "STRONG", "score": "+10",
-                "detail": "Excellent liquidity position",
-                "benchmark": "Strong: >2.0"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Current Ratio",
+                    "value": f"{current_ratio:.2f}",
+                    "signal": "STRONG",
+                    "score": "+10",
+                    "detail": "Excellent liquidity position",
+                    "benchmark": "Strong: >2.0",
+                }
+            )
         elif current_ratio > 1.5:
             health_score += 7
-            signals.append({
-                "category": "Financial Health", "metric": "Current Ratio",
-                "value": f"{current_ratio:.2f}", "signal": "HEALTHY", "score": "+7",
-                "detail": "Good liquidity",
-                "benchmark": "Healthy: 1.5-2.0"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Current Ratio",
+                    "value": f"{current_ratio:.2f}",
+                    "signal": "HEALTHY",
+                    "score": "+7",
+                    "detail": "Good liquidity",
+                    "benchmark": "Healthy: 1.5-2.0",
+                }
+            )
         elif current_ratio > 1:
             health_score += 3
-            signals.append({
-                "category": "Financial Health", "metric": "Current Ratio",
-                "value": f"{current_ratio:.2f}", "signal": "ADEQUATE", "score": "+3",
-                "detail": "Adequate liquidity",
-                "benchmark": "Adequate: 1.0-1.5"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Current Ratio",
+                    "value": f"{current_ratio:.2f}",
+                    "signal": "ADEQUATE",
+                    "score": "+3",
+                    "detail": "Adequate liquidity",
+                    "benchmark": "Adequate: 1.0-1.5",
+                }
+            )
         else:
             health_score -= 5
-            signals.append({
-                "category": "Financial Health", "metric": "Current Ratio",
-                "value": f"{current_ratio:.2f}", "signal": "WEAK", "score": "-5",
-                "detail": "Liquidity concerns",
-                "benchmark": "Weak: <1.0"
-            })
+            signals.append(
+                {
+                    "category": "Financial Health",
+                    "metric": "Current Ratio",
+                    "value": f"{current_ratio:.2f}",
+                    "signal": "WEAK",
+                    "score": "-5",
+                    "detail": "Liquidity concerns",
+                    "benchmark": "Weak: <1.0",
+                }
+            )
 
     # ===== INSIDER WEIGHT SCALING =====
     # Rescale all four sub-scores so insider fits within a total of 100 points.
     scale = (100 - insider_weight_pct) / 100.0
-    valuation_score     = valuation_score     * scale
+    valuation_score = valuation_score * scale
     profitability_score = profitability_score * scale
-    growth_score        = growth_score        * scale
-    health_score        = health_score        * scale
-    valuation_max_w     = valuation_max   * scale
+    growth_score = growth_score * scale
+    health_score = health_score * scale
+    valuation_max_w = valuation_max * scale
     profitability_max_w = profitability_max * scale
-    growth_max_w        = growth_max      * scale
-    health_max_w        = health_max      * scale
+    growth_max_w = growth_max * scale
+    health_max_w = health_max * scale
 
     # ===== INSIDER SIGNAL (up to insider_weight_pct points) =====
     insider_trades = data.get("_insider_trades") or {}
@@ -1189,27 +1561,25 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
     insider_max_w = float(insider_weight_pct)
 
     insider_signal_label = insider_summary.get("signal", "N/A") if insider_available else "Unavailable"
-    signals.append({
-        "category": "Insider Signal",
-        "metric": "Insider Trading (Form 4)",
-        "value": insider_signal_label,
-        "signal": insider_signal_label,
-        "score": f"{insider_score:+.1f}",
-        "detail": (
-            f"{insider_summary.get('num_buys', 0)} buys / {insider_summary.get('num_sells', 0)} sells · "
-            f"Net: ${insider_summary.get('net_buy_value', 0)/1e6:.1f}M"
-            if insider_available and not insider_summary.get("no_activity")
-            else "No open-market activity in window"
-        ),
-        "benchmark": "Weight: adjustable via sidebar slider",
-    })
+    signals.append(
+        {
+            "category": "Insider Signal",
+            "metric": "Insider Trading (Form 4)",
+            "value": insider_signal_label,
+            "signal": insider_signal_label,
+            "score": f"{insider_score:+.1f}",
+            "detail": (
+                f"{insider_summary.get('num_buys', 0)} buys / {insider_summary.get('num_sells', 0)} sells · "
+                f"Net: ${insider_summary.get('net_buy_value', 0)/1e6:.1f}M"
+                if insider_available and not insider_summary.get("no_activity")
+                else "No open-market activity in window"
+            ),
+            "benchmark": "Weight: adjustable via sidebar slider",
+        }
+    )
 
-    total_score = (
-        valuation_score + profitability_score + growth_score + health_score + insider_score
-    )
-    max_score = (
-        valuation_max_w + profitability_max_w + growth_max_w + health_max_w + insider_max_w
-    )
+    total_score = valuation_score + profitability_score + growth_score + health_score + insider_score
+    max_score = valuation_max_w + profitability_max_w + growth_max_w + health_max_w + insider_max_w
 
     # Calculate percentages
     score_pct = (total_score / max_score * 100) if max_score > 0 else 0
@@ -1239,25 +1609,25 @@ def analyze_fundamentals(data: Dict, insider_weight_pct: int = 15) -> Dict:
         "rating": fund_rating[0],
         "rating_color": fund_rating[1],
         "breakdown": {
-            "valuation":     {"score": valuation_score,     "max": valuation_max_w},
+            "valuation": {"score": valuation_score, "max": valuation_max_w},
             "profitability": {"score": profitability_score, "max": profitability_max_w},
-            "growth":        {"score": growth_score,        "max": growth_max_w},
-            "health":        {"score": health_score,        "max": health_max_w},
-            "insider":       {"score": insider_score,       "max": insider_max_w},
-        }
+            "growth": {"score": growth_score, "max": growth_max_w},
+            "health": {"score": health_score, "max": health_max_w},
+            "insider": {"score": insider_score, "max": insider_max_w},
+        },
     }
 
 
 # ============== VALUATION MODEL ==============
 def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
     """Calculate price targets using multiple valuation methods."""
-    price = data['price']
+    price = data["price"]
     results = {}
 
     # ===== RELATIVE VALUATION =====
-    pe = data.get('pe_ratio')
-    eps = data.get('eps')
-    forward_eps = data.get('forward_eps')
+    pe = data.get("pe_ratio")
+    eps = data.get("eps")
+    forward_eps = data.get("forward_eps")
 
     # P/E Based Valuation
     if pe and eps:
@@ -1270,12 +1640,7 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
         pe_target_mid = eps * sector_pe_mid
         pe_target_high = eps * sector_pe_high
 
-        results['pe_valuation'] = {
-            'low': pe_target_low,
-            'mid': pe_target_mid,
-            'high': pe_target_high,
-            'current_pe': pe
-        }
+        results["pe_valuation"] = {"low": pe_target_low, "mid": pe_target_mid, "high": pe_target_high, "current_pe": pe}
 
     # Forward P/E Valuation
     if forward_eps:
@@ -1287,25 +1652,25 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
         fwd_target_mid = forward_eps * fwd_pe_mid
         fwd_target_high = forward_eps * fwd_pe_high
 
-        results['forward_pe_valuation'] = {
-            'low': fwd_target_low,
-            'mid': fwd_target_mid,
-            'high': fwd_target_high,
-            'forward_eps': forward_eps
+        results["forward_pe_valuation"] = {
+            "low": fwd_target_low,
+            "mid": fwd_target_mid,
+            "high": fwd_target_high,
+            "forward_eps": forward_eps,
         }
 
     # ===== ANALYST CONSENSUS =====
-    if data.get('target_price'):
-        results['analyst_target'] = {
-            'low': data.get('target_low', data['target_price'] * 0.85),
-            'mid': data['target_price'],
-            'high': data.get('target_high', data['target_price'] * 1.15),
-            'num_analysts': data.get('num_analysts', 0)
+    if data.get("target_price"):
+        results["analyst_target"] = {
+            "low": data.get("target_low", data["target_price"] * 0.85),
+            "mid": data["target_price"],
+            "high": data.get("target_high", data["target_price"] * 1.15),
+            "num_analysts": data.get("num_analysts", 0),
         }
 
     # ===== SIMPLIFIED DCF =====
-    fcf = data.get('free_cash_flow')
-    shares = data.get('shares_outstanding')
+    fcf = data.get("free_cash_flow")
+    shares = data.get("shares_outstanding")
 
     if fcf and shares and fcf > 0:
         fcf_per_share = fcf / shares
@@ -1323,7 +1688,7 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
             terminal_pv = terminal_value / (1 + discount_rate) ** years
             return total_pv + terminal_pv
 
-        _rev_g = (data.get('revenue_growth') or 0)
+        _rev_g = data.get("revenue_growth") or 0
         _dcf_g_base = float(max(min(_rev_g, 0.18), 0.03))
         _dcf_g_bull = float(min(_dcf_g_base * 1.35, 0.25))
         _dcf_g_bear = float(max(_dcf_g_base * 0.50, 0.02))
@@ -1332,14 +1697,14 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
         dcf_base = simple_dcf(fcf_per_share, _dcf_g_base, 0.10)
         dcf_bull = simple_dcf(fcf_per_share, _dcf_g_bull, 0.08)
 
-        results['dcf_valuation'] = {
-            'bear': dcf_bear,
-            'base': dcf_base,
-            'bull': dcf_bull,
-            'fcf_per_share': fcf_per_share,
-            'growth_bear': _dcf_g_bear,
-            'growth_base': _dcf_g_base,
-            'growth_bull': _dcf_g_bull,
+        results["dcf_valuation"] = {
+            "bear": dcf_bear,
+            "base": dcf_base,
+            "bull": dcf_bull,
+            "fcf_per_share": fcf_per_share,
+            "growth_bear": _dcf_g_bear,
+            "growth_base": _dcf_g_base,
+            "growth_bull": _dcf_g_bull,
         }
 
     # ===== COMPOSITE TARGET =====
@@ -1347,34 +1712,34 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
     all_lows = []
     all_highs = []
 
-    if 'pe_valuation' in results:
-        all_mids.append(results['pe_valuation']['mid'])
-        all_lows.append(results['pe_valuation']['low'])
-        all_highs.append(results['pe_valuation']['high'])
+    if "pe_valuation" in results:
+        all_mids.append(results["pe_valuation"]["mid"])
+        all_lows.append(results["pe_valuation"]["low"])
+        all_highs.append(results["pe_valuation"]["high"])
 
-    if 'forward_pe_valuation' in results:
-        all_mids.append(results['forward_pe_valuation']['mid'])
-        all_lows.append(results['forward_pe_valuation']['low'])
-        all_highs.append(results['forward_pe_valuation']['high'])
+    if "forward_pe_valuation" in results:
+        all_mids.append(results["forward_pe_valuation"]["mid"])
+        all_lows.append(results["forward_pe_valuation"]["low"])
+        all_highs.append(results["forward_pe_valuation"]["high"])
 
-    if 'analyst_target' in results:
-        all_mids.append(results['analyst_target']['mid'])
-        all_lows.append(results['analyst_target']['low'])
-        all_highs.append(results['analyst_target']['high'])
+    if "analyst_target" in results:
+        all_mids.append(results["analyst_target"]["mid"])
+        all_lows.append(results["analyst_target"]["low"])
+        all_highs.append(results["analyst_target"]["high"])
 
-    if 'dcf_valuation' in results:
-        all_mids.append(results['dcf_valuation']['base'])
-        all_lows.append(results['dcf_valuation']['bear'])
-        all_highs.append(results['dcf_valuation']['bull'])
+    if "dcf_valuation" in results:
+        all_mids.append(results["dcf_valuation"]["base"])
+        all_lows.append(results["dcf_valuation"]["bear"])
+        all_highs.append(results["dcf_valuation"]["bull"])
 
     if all_mids:
-        results['composite'] = {
-            'target_low': np.mean(all_lows),
-            'target_mid': np.mean(all_mids),
-            'target_high': np.mean(all_highs),
-            'upside_low': (np.mean(all_lows) - price) / price * 100,
-            'upside_mid': (np.mean(all_mids) - price) / price * 100,
-            'upside_high': (np.mean(all_highs) - price) / price * 100
+        results["composite"] = {
+            "target_low": np.mean(all_lows),
+            "target_mid": np.mean(all_mids),
+            "target_high": np.mean(all_highs),
+            "upside_low": (np.mean(all_lows) - price) / price * 100,
+            "upside_mid": (np.mean(all_mids) - price) / price * 100,
+            "upside_high": (np.mean(all_highs) - price) / price * 100,
         }
 
     return results
@@ -1383,62 +1748,68 @@ def calculate_valuation(data: Dict, fundamental_analysis: Dict) -> Dict:
 # ============== RETURN FORECASTING ==============
 def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valuation: Dict) -> Dict:
     """Generate expected returns with confidence intervals."""
-    price = data['price']
-    beta = data.get('beta', 1) or 1
+    price = data["price"]
+    beta = data.get("beta", 1) or 1
 
     # Base expected return from valuation
-    if 'composite' in valuation:
-        base_annual_return = valuation['composite']['upside_mid']
+    if "composite" in valuation:
+        base_annual_return = valuation["composite"]["upside_mid"]
     else:
         base_annual_return = 0
 
     # Adjust based on technical score (score_pct -100 to +100 → ±5%)
-    tech_adjustment = tech_analysis['score_pct'] / 100 * 5
+    tech_adjustment = tech_analysis["score_pct"] / 100 * 5
 
     # Adjust based on fundamental score (display_score 0-100 → -5% to +5%)
-    _fund_disp = fund_analysis.get('display_score', max(0.0, min(100.0, 50.0 + fund_analysis['score_pct'] * 0.5)))
+    _fund_disp = fund_analysis.get("display_score", max(0.0, min(100.0, 50.0 + fund_analysis["score_pct"] * 0.5)))
     fund_adjustment = (_fund_disp - 50) / 50 * 5
 
     # Combined expected annual return
     expected_annual = base_annual_return + tech_adjustment + fund_adjustment
 
     # Calculate historical volatility for confidence intervals
-    hist = data.get('hist_1y')
+    hist = data.get("hist_1y")
     if hist is not None and len(hist) > 20:
-        daily_returns = hist['Close'].pct_change().dropna()
+        daily_returns = hist["Close"].pct_change().dropna()
         daily_vol = daily_returns.std()
         annual_vol = daily_vol * np.sqrt(252) * 100
     else:
         annual_vol = 25  # Default assumption
 
     # Pre-compute confidence metrics (signal consistency + valuation alignment)
-    _tech_disp_fc = (tech_analysis['score_pct'] + 100) / 2
-    _fund_disp_fc = fund_analysis.get('display_score', max(0.0, min(100.0, 50.0 + fund_analysis['score_pct'] * 0.5)))
+    _tech_disp_fc = (tech_analysis["score_pct"] + 100) / 2
+    _fund_disp_fc = fund_analysis.get("display_score", max(0.0, min(100.0, 50.0 + fund_analysis["score_pct"] * 0.5)))
     _combined_disp_fc = (_tech_disp_fc + _fund_disp_fc) / 2
     _dist_from_neutral = abs(_combined_disp_fc - 50)
 
     # Signal consistency: fraction of signals pointing in one direction
-    _n_bull_fc = sum(1 for s in tech_analysis['signals'] + fund_analysis['signals']
-                     if s.get('signal') in ['BULLISH', 'STRONG', 'UNDERVALUED', 'HIGH GROWTH', 'EXCELLENT'])
-    _n_bear_fc = sum(1 for s in tech_analysis['signals'] + fund_analysis['signals']
-                     if s.get('signal') in ['BEARISH', 'WEAK', 'OVERVALUED', 'DECLINING', 'HIGH RISK', 'LOSS'])
+    _n_bull_fc = sum(
+        1
+        for s in tech_analysis["signals"] + fund_analysis["signals"]
+        if s.get("signal") in ["BULLISH", "STRONG", "UNDERVALUED", "HIGH GROWTH", "EXCELLENT"]
+    )
+    _n_bear_fc = sum(
+        1
+        for s in tech_analysis["signals"] + fund_analysis["signals"]
+        if s.get("signal") in ["BEARISH", "WEAK", "OVERVALUED", "DECLINING", "HIGH RISK", "LOSS"]
+    )
     _total_sig_fc = _n_bull_fc + _n_bear_fc
     _signal_consistency = abs(_n_bull_fc - _n_bear_fc) / _total_sig_fc if _total_sig_fc > 0 else 0
 
     # Valuation alignment: does target direction match score direction?
-    _target_upside_fc = valuation['composite']['upside_mid'] if 'composite' in valuation else 0
+    _target_upside_fc = valuation["composite"]["upside_mid"] if "composite" in valuation else 0
     _score_bullish = _combined_disp_fc > 50
     _target_bullish = _target_upside_fc > 0
-    _valuation_aligned = (_score_bullish == _target_bullish)
+    _valuation_aligned = _score_bullish == _target_bullish
 
     # Composite confidence score
     _conf_score = _dist_from_neutral
     if _signal_consistency > 0.5:
-        _conf_score += 10   # signals predominantly point one way
+        _conf_score += 10  # signals predominantly point one way
     if _valuation_aligned:
-        _conf_score += 5    # score direction matches target direction
+        _conf_score += 5  # score direction matches target direction
     if abs(_target_upside_fc) > 15:
-        _conf_score += 5    # strong valuation signal (large gap between price and target)
+        _conf_score += 5  # strong valuation signal (large gap between price and target)
 
     if _conf_score > 18:
         _base_confidence = "High"
@@ -1450,7 +1821,7 @@ def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valua
     # Time-scaled forecasts
     forecasts = {}
 
-    for period, days, name in [(7, 7, '1 Week'), (30, 30, '1 Month'), (90, 90, '3 Months'), (180, 180, '6 Months')]:
+    for period, days, name in [(7, 7, "1 Week"), (30, 30, "1 Month"), (90, 90, "3 Months"), (180, 180, "6 Months")]:
         # Scale expected return and volatility
         period_return = expected_annual * (days / 365)
         period_vol = annual_vol * np.sqrt(days / 252)
@@ -1466,9 +1837,9 @@ def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valua
         # 1W: one tier down; 6M: one tier up. Also apply noise penalty to probability range.
         _tier_val = {"High": 2, "Medium": 1, "Low": 0}[_base_confidence]
         if period == 7:
-            _tier_val = max(0, _tier_val - 1)   # 1W: one tier lower
+            _tier_val = max(0, _tier_val - 1)  # 1W: one tier lower
         elif period == 180:
-            _tier_val = min(2, _tier_val + 1)   # 6M: one tier higher
+            _tier_val = min(2, _tier_val + 1)  # 6M: one tier higher
         confidence = ["Low", "Medium", "High"][_tier_val]
         _noise = {7: 10, 30: 7, 90: 3, 180: 0}.get(days, 0)
         if _base_confidence == "High":
@@ -1477,7 +1848,7 @@ def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valua
             _p_lo, _p_hi = (52, 62) if expected_annual >= 0 else (33, 43)
         else:  # Low
             _p_lo, _p_hi = (42, 52) if expected_annual >= 0 else (38, 48)
-        _p_lo = max(5,  _p_lo - _noise)
+        _p_lo = max(5, _p_lo - _noise)
         _p_hi = max(10, _p_hi - _noise)
         probability = f"{_p_lo}-{_p_hi}%"
 
@@ -1487,30 +1858,37 @@ def forecast_returns(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valua
         price_high = price * (1 + range_high / 100)
 
         forecasts[name] = {
-            'point_estimate': point_estimate,
-            'range_low': range_low,
-            'range_high': range_high,
-            'price_target': price_target,
-            'price_low': price_low,
-            'price_high': price_high,
-            'confidence': confidence,
-            'probability': probability,
-            'volatility': period_vol
+            "point_estimate": point_estimate,
+            "range_low": range_low,
+            "range_high": range_high,
+            "price_target": price_target,
+            "price_low": price_low,
+            "price_high": price_high,
+            "confidence": confidence,
+            "probability": probability,
+            "volatility": period_vol,
         }
 
     return forecasts
 
 
 # ============== FINAL RECOMMENDATION ==============
-def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict, valuation: Dict, forecasts: Dict,
-                            supports=None, resistances=None) -> Dict:
+def generate_recommendation(
+    data: Dict,
+    tech_analysis: Dict,
+    fund_analysis: Dict,
+    valuation: Dict,
+    forecasts: Dict,
+    supports=None,
+    resistances=None,
+) -> Dict:
     """Generate final institutional-grade recommendation."""
-    price = data['price']
+    price = data["price"]
 
     # Combined score on 0-100 display scale (50 = neutral)
     # Use display_score for fundamentals and remap tech score_pct similarly
-    fund_display = fund_analysis.get('display_score', max(0.0, min(100.0, 50.0 + fund_analysis['score_pct'] * 0.5)))
-    tech_display = max(0.0, min(100.0, (tech_analysis['score_pct'] + 100) / 2))
+    fund_display = fund_analysis.get("display_score", max(0.0, min(100.0, 50.0 + fund_analysis["score_pct"] * 0.5)))
+    tech_display = max(0.0, min(100.0, (tech_analysis["score_pct"] + 100) / 2))
     combined_score = fund_display * 0.6 + tech_display * 0.4
 
     # Determine action based on 0-100 display scale (80/60/40/20/0)
@@ -1539,11 +1917,11 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
         trade_decision = "HOLD - WAIT FOR CLEARER SIGNAL"
 
     # Price target and upside (enforce Bear ≤ Base ≤ Bull)
-    if 'composite' in valuation:
-        target_price = valuation['composite']['target_mid']
-        upside = valuation['composite']['upside_mid']
-        target_low = valuation['composite']['target_low']
-        target_high = valuation['composite']['target_high']
+    if "composite" in valuation:
+        target_price = valuation["composite"]["target_mid"]
+        upside = valuation["composite"]["upside_mid"]
+        target_low = valuation["composite"]["target_low"]
+        target_high = valuation["composite"]["target_high"]
         # Enforce ordering: bear ≤ base ≤ bull
         sorted_targets = sorted([target_low, target_price, target_high])
         target_low, target_price, target_high = sorted_targets
@@ -1569,16 +1947,16 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
     bearish_risks = []
     roe_capital_note = None  # ROE note when buyback-driven (Fix 4)
 
-    roe = data.get('roe', 0) or 0
-    cr = data.get('current_ratio', 0) or 0
+    roe = data.get("roe", 0) or 0
+    cr = data.get("current_ratio", 0) or 0
 
-    for signal in tech_analysis['signals'] + fund_analysis['signals']:
-        metric_name = signal.get('metric', signal.get('indicator', 'N/A'))
-        sig_type = signal.get('signal', '')
+    for signal in tech_analysis["signals"] + fund_analysis["signals"]:
+        metric_name = signal.get("metric", signal.get("indicator", "N/A"))
+        sig_type = signal.get("signal", "")
 
-        if sig_type in ['BULLISH', 'STRONG', 'UNDERVALUED', 'HIGH GROWTH', 'EXCELLENT']:
+        if sig_type in ["BULLISH", "STRONG", "UNDERVALUED", "HIGH GROWTH", "EXCELLENT"]:
             # Fix 4: ROE >100% is buyback-driven — move to capital structure note, not bullish driver
-            if 'ROE' in metric_name and roe * 100 > 100:
+            if "ROE" in metric_name and roe * 100 > 100:
                 roe_capital_note = (
                     f"ROE of {roe*100:.0f}% is largely buyback-driven (aggressive share repurchases "
                     f"have reduced book equity); reflects capital return policy rather than pure operational efficiency."
@@ -1586,9 +1964,9 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
                 continue
             bullish_drivers.append(f"{metric_name}: {signal.get('detail', '')}")
 
-        elif sig_type in ['BEARISH', 'WEAK', 'OVERVALUED', 'DECLINING', 'HIGH RISK', 'LOSS']:
+        elif sig_type in ["BEARISH", "WEAK", "OVERVALUED", "DECLINING", "HIGH RISK", "LOSS"]:
             # Fix 3: Exclude Current Ratio from risks when company has strong FCF (cr > 0.5)
-            if 'Current Ratio' in metric_name and cr > 0.5:
+            if "Current Ratio" in metric_name and cr > 0.5:
                 continue
             bearish_risks.append(f"{metric_name}: {signal.get('detail', '')}")
 
@@ -1604,8 +1982,16 @@ def generate_recommendation(data: Dict, tech_analysis: Dict, fund_analysis: Dict
     if roe_capital_note:
         capital_note_section = f"\n**Capital Structure Note:**\n{roe_capital_note}\n"
 
-    _driver_list = '\n'.join(['- ' + d for d in bullish_drivers[:3]]) if bullish_drivers else '- No significant bullish factors identified'
-    _risk_list   = '\n'.join(['- ' + r for r in bearish_risks[:3]])   if bearish_risks   else '- No significant bearish factors identified'
+    _driver_list = (
+        "\n".join(["- " + d for d in bullish_drivers[:3]])
+        if bullish_drivers
+        else "- No significant bullish factors identified"
+    )
+    _risk_list = (
+        "\n".join(["- " + r for r in bearish_risks[:3]])
+        if bearish_risks
+        else "- No significant bearish factors identified"
+    )
     rationale = f"""**Investment Thesis:**
 {data['name']} ({data['ticker']}) rates as a **{action}** based on combined technical and fundamental analysis.
 
@@ -1636,7 +2022,9 @@ Current price of \\${price:.2f} {valuation_desc} with a base case target of \\${
     if action in ["STRONG BUY", "BUY"]:
         if support_below:
             pct = (support_below / price - 1) * 100
-            invalidation = f"Exit if price breaks below key support at \\${support_below:.2f} ({pct:+.1f}%) on a closing basis."
+            invalidation = (
+                f"Exit if price breaks below key support at \\${support_below:.2f} ({pct:+.1f}%) on a closing basis."
+            )
         else:
             invalidation = f"Exit if price falls below \\${price * 0.9:.2f} (-10%) or if key technical support breaks."
     elif action in ["UNDERPERFORM", "SELL"]:
@@ -1647,30 +2035,33 @@ Current price of \\${price:.2f} {valuation_desc} with a base case target of \\${
             invalidation = f"Reconsider if price breaks above \\${price * 1.1:.2f} (+10%) with strong volume."
     else:
         if support_below and resistance_above:
-            invalidation = (f"Monitor range \\${support_below:.2f} – \\${resistance_above:.2f}. "
-                            f"Decisive close outside this band signals next directional move.")
+            invalidation = (
+                f"Monitor range \\${support_below:.2f} – \\${resistance_above:.2f}. "
+                f"Decisive close outside this band signals next directional move."
+            )
         else:
             invalidation = "Monitor for decisive breakout above resistance or breakdown below support."
 
     return {
-        'action': action,
-        'action_color': action_color,
-        'trade_decision': trade_decision,
-        'combined_score': combined_score,
-        'target_price': target_price,
-        'target_low': target_low,
-        'target_high': target_high,
-        'upside': upside,
-        'rationale': rationale,
-        'bullish_drivers': bullish_drivers[:5],
-        'bearish_risks': bearish_risks[:5],
-        'invalidation': invalidation
+        "action": action,
+        "action_color": action_color,
+        "trade_decision": trade_decision,
+        "combined_score": combined_score,
+        "target_price": target_price,
+        "target_low": target_low,
+        "target_high": target_high,
+        "upside": upside,
+        "rationale": rationale,
+        "bullish_drivers": bullish_drivers[:5],
+        "bearish_risks": bearish_risks[:5],
+        "invalidation": invalidation,
     }
 
 
 # ============== CHAT CONTEXT BUILDER ==============
-def build_analysis_context(data: Dict, tech_analysis: Dict, fund_analysis: Dict,
-                           valuation: Dict, forecasts: Dict, recommendation: Dict) -> str:
+def build_analysis_context(
+    data: Dict, tech_analysis: Dict, fund_analysis: Dict, valuation: Dict, forecasts: Dict, recommendation: Dict
+) -> str:
     """Build comprehensive context string for the AI chat."""
     ctx = f"""STOCK ANALYSIS REPORT - {data['name']} ({data['ticker']})
 Data Sources: Yahoo Finance (price, ratios, analyst estimates){", SEC EDGAR XBRL (verified financials)" if data.get("_data_sources", {}).get("edgar") else ""}{f", Web search x{data['_data_sources']['web_searches']}" if data.get("_data_sources", {}).get("web_searches") else ""}
@@ -1696,7 +2087,7 @@ Breakdown:
 
 Technical Signals:
 """
-    for s in tech_analysis['signals']:
+    for s in tech_analysis["signals"]:
         ctx += f"- {s.get('indicator', 'N/A')}: {s['signal']} ({s['score']}) - {s['detail']} [Threshold: {s.get('threshold', 'N/A')}]\n"
 
     ctx += f"""
@@ -1730,24 +2121,24 @@ Key Metrics (from Yahoo Finance / SEC filings):
 
 Fundamental Signals:
 """
-    for s in fund_analysis['signals']:
+    for s in fund_analysis["signals"]:
         ctx += f"- {s.get('metric', 'N/A')}: {s['value']} - {s['signal']} ({s['score']}) - {s['detail']} [Benchmark: {s.get('benchmark', 'N/A')}]\n"
 
     ctx += "\n=== VALUATION MODELS ===\n"
-    if 'pe_valuation' in valuation:
-        v = valuation['pe_valuation']
+    if "pe_valuation" in valuation:
+        v = valuation["pe_valuation"]
         ctx += f"P/E Based: Bear ${v['low']:.2f} | Base ${v['mid']:.2f} | Bull ${v['high']:.2f}\n"
-    if 'forward_pe_valuation' in valuation:
-        v = valuation['forward_pe_valuation']
+    if "forward_pe_valuation" in valuation:
+        v = valuation["forward_pe_valuation"]
         ctx += f"Forward P/E: Bear ${v['low']:.2f} | Base ${v['mid']:.2f} | Bull ${v['high']:.2f}\n"
-    if 'analyst_target' in valuation:
-        v = valuation['analyst_target']
+    if "analyst_target" in valuation:
+        v = valuation["analyst_target"]
         ctx += f"Analyst Consensus ({v['num_analysts']} analysts): Low ${v['low']:.2f} | Mean ${v['mid']:.2f} | High ${v['high']:.2f}\n"
-    if 'dcf_valuation' in valuation:
-        v = valuation['dcf_valuation']
+    if "dcf_valuation" in valuation:
+        v = valuation["dcf_valuation"]
         ctx += f"DCF Model (FCF/share ${v['fcf_per_share']:.2f}): Bear ${v['bear']:.2f} | Base ${v['base']:.2f} | Bull ${v['bull']:.2f}\n"
-    if 'composite' in valuation:
-        v = valuation['composite']
+    if "composite" in valuation:
+        v = valuation["composite"]
         ctx += f"COMPOSITE TARGET: ${v['target_mid']:.2f} (Range: ${v['target_low']:.2f} - ${v['target_high']:.2f}) | Upside: {v['upside_mid']:+.1f}%\n"
 
     ctx += f"""
@@ -1766,10 +2157,10 @@ Trade Decision: {recommendation['trade_decision']}
 
 Bullish Factors:
 """
-    for d in recommendation.get('bullish_drivers', []):
+    for d in recommendation.get("bullish_drivers", []):
         ctx += f"- {d}\n"
     ctx += "\nBearish Risks:\n"
-    for r in recommendation.get('bearish_risks', []):
+    for r in recommendation.get("bearish_risks", []):
         ctx += f"- {r}\n"
     ctx += f"\nInvalidation: {recommendation['invalidation']}\n"
 
@@ -1792,7 +2183,7 @@ def show_stock_analyzer():
     with col_back:
         st.markdown('<div class="btn-back"></div>', unsafe_allow_html=True)
         if st.button("← Back", key="back_analyzer"):
-            st.session_state.current_view = 'home'
+            st.session_state.current_view = "home"
             st.rerun()
     with col_title:
         st.write("# 📈 Stock Analyzer")
@@ -1807,7 +2198,7 @@ def show_stock_analyzer():
         icon="⚠️",
     )
 
-    if 'inst_data' not in st.session_state:
+    if "inst_data" not in st.session_state:
         st.session_state.inst_data = None
     if "insider_weight" not in st.session_state:
         st.session_state["insider_weight"] = 15
@@ -1823,7 +2214,7 @@ def show_stock_analyzer():
 
     if has_data:
         data = st.session_state.inst_data
-        hist = data['hist_1y']
+        hist = data["hist_1y"]
         tech_df = calculate_technical_indicators(hist)
         tech_analysis = generate_technical_signals(data, tech_df)
         _insider_w = st.session_state.get("insider_weight", 15)
@@ -1834,8 +2225,9 @@ def show_stock_analyzer():
         valuation = calculate_valuation(data, fund_analysis)
         forecasts = forecast_returns(data, tech_analysis, fund_analysis, valuation)
         supports, resistances = identify_support_resistance(hist)
-        recommendation = generate_recommendation(data, tech_analysis, fund_analysis, valuation, forecasts,
-                                                 supports=supports, resistances=resistances)
+        recommendation = generate_recommendation(
+            data, tech_analysis, fund_analysis, valuation, forecasts, supports=supports, resistances=resistances
+        )
 
     # ── PRE-GENERATE PDF (before columns so errors surface at page level) ─────
     _pdf_bytes = None
@@ -1843,7 +2235,8 @@ def show_stock_analyzer():
     if has_data and valuation is not None:
         try:
             _pdf_bytes = generate_pdf(
-                data, valuation,
+                data,
+                valuation,
                 tech_analysis=tech_analysis,
                 fund_analysis=fund_analysis,
                 forecasts=forecasts,
@@ -1851,18 +2244,26 @@ def show_stock_analyzer():
             )
         except Exception as _e:
             import traceback
+
             _pdf_error = traceback.format_exc()
 
     # ── TWO-COLUMN LAYOUT: LEFT (input + company info) | RIGHT (analysis tabs) ─
     col_left, col_right = st.columns([1, 2])
 
     with col_left:
-        st.markdown("""
+        st.markdown(
+            """
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px 14px 10px 14px;margin-bottom:12px;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px;">Stock Ticker</div>""",
-            unsafe_allow_html=True)
-        ticker = st.text_input("Ticker Symbol", value="AAPL", key="inst_ticker",
-                               placeholder="e.g. AAPL, MSFT, NVDA", label_visibility="collapsed")
+            unsafe_allow_html=True,
+        )
+        ticker = st.text_input(
+            "Ticker Symbol",
+            value="AAPL",
+            key="inst_ticker",
+            placeholder="e.g. AAPL, MSFT, NVDA",
+            label_visibility="collapsed",
+        )
         ticker = ticker.strip().upper()
         st.markdown('<div class="btn-rfa"></div>', unsafe_allow_html=True)
         analyze_btn = st.button("Run Full Analysis", type="primary", use_container_width=True)
@@ -1870,8 +2271,10 @@ def show_stock_analyzer():
 
         if analyze_btn and ticker:
             with st.status(f"Researching {ticker}\u2026", expanded=True) as _status:
+
                 def _on_step(msg):
                     _status.write(msg)
+
                 _result, _trace = run_multi_agent_research(ticker, openai_api_key, on_step=_on_step)
                 st.session_state.inst_data = _result
                 st.session_state[f"_trace_{ticker}"] = _trace
@@ -1885,13 +2288,16 @@ def show_stock_analyzer():
         # Insider weight slider — only when data available and EDGAR found a CIK
         _insider_avail = has_data and (data.get("_insider_trades") or {}).get("available", False)
         if _insider_avail:
-            st.markdown("""
+            st.markdown(
+                """
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px 6px 14px;margin-bottom:10px;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px;">⚙️ Insider Signal Weight</div>""",
-                unsafe_allow_html=True)
+                unsafe_allow_html=True,
+            )
             _new_weight = st.slider(
                 "insider_weight_label",
-                min_value=0, max_value=25,
+                min_value=0,
+                max_value=25,
                 value=st.session_state.get("insider_weight", 15),
                 step=5,
                 format="%d%%",
@@ -1908,13 +2314,16 @@ def show_stock_analyzer():
         if _chat_key not in st.session_state:
             st.session_state[_chat_key] = []
 
-        st.markdown("""
+        st.markdown(
+            """
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px 14px 10px 14px;margin-bottom:10px;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px;">Ask the AI Analyst</div>""",
-            unsafe_allow_html=True)
+            unsafe_allow_html=True,
+        )
         with st.form("chat_form", clear_on_submit=True):
-            _prompt = st.text_input("q", label_visibility="collapsed",
-                                    placeholder="e.g. What\u2019s the risk/reward here?")
+            _prompt = st.text_input(
+                "q", label_visibility="collapsed", placeholder="e.g. What\u2019s the risk/reward here?"
+            )
             _submitted = st.form_submit_button("Send \u2192", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1923,10 +2332,13 @@ def show_stock_analyzer():
             _chat_sub = f"<span style='font-size:11px;color:#6e7681;'>Chatting about <strong style='color:#58a6ff;'>{data['ticker']} \u2014 {data['name']}</strong></span>"
         else:
             _chat_sub = "<span style='font-size:11px;color:#6e7681;'>Run an analysis to start chatting.</span>"
-        st.markdown(f"""
+        st.markdown(
+            f"""
 <div style="font-size:13px;font-weight:600;color:#e6edf3;margin:6px 0 6px 0;">
   \U0001f4ac AI Financial Analyst<br>{_chat_sub}
-</div>""", unsafe_allow_html=True)
+</div>""",
+            unsafe_allow_html=True,
+        )
 
         _chat_box = st.container(height=320)
         # Track whether we had messages BEFORE this render pass so we can
@@ -1940,7 +2352,7 @@ def show_stock_analyzer():
                     "<div style='color:#6e7681;font-size:12px;text-align:center;padding-top:36px;'>"
                     "No messages yet<br>"
                     "<span style='font-size:11px;'>Ask a question above to get started.</span></div>",
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
             for _msg in st.session_state[_chat_key]:
                 with st.chat_message(_msg["role"]):
@@ -1951,7 +2363,6 @@ def show_stock_analyzer():
             if st.button("Clear Chat", key="clear_chat_top", use_container_width=True):
                 st.session_state[_chat_key] = []
                 st.rerun()
-
 
         # ── FORM SUBMISSION PROCESSING ───────────────────────────────────────────
         if _submitted and _prompt:
@@ -1985,6 +2396,7 @@ def show_stock_analyzer():
                 )
                 try:
                     from openai import OpenAI as _OpenAI
+
                     _client = _OpenAI(api_key=openai_api_key)
                     _api_msgs = [{"role": "system", "content": _system_msg}]
                     for _m in st.session_state[_chat_key]:
@@ -2016,10 +2428,18 @@ def show_stock_analyzer():
                         with st.chat_message("assistant"):
                             st.markdown(_reply)
 
-
     with col_right:
         tab_profile, tab_tech, tab_fund, tab_valuation, tab_peers, tab_insider, tab_conclusion, tab_research = st.tabs(
-            ["🏢 Profile", "📊 Technical Analysis", "📋 Fundamental Analysis", "💰 Valuation", "🔍 Peers", "👥 Insider", "🎯 Conclusion & Forecast", "🔍 Research Log"]
+            [
+                "🏢 Profile",
+                "📊 Technical Analysis",
+                "📋 Fundamental Analysis",
+                "💰 Valuation",
+                "🔍 Peers",
+                "👥 Insider",
+                "🎯 Conclusion & Forecast",
+                "🔍 Research Log",
+            ]
         )
 
         # ── PROFILE TAB ────────────────────────────────────────────────────────
@@ -2027,14 +2447,27 @@ def show_stock_analyzer():
             if not has_data:
                 st.info("Enter a ticker and click **Run Full Analysis** to see the profile.")
             else:
-                change_pct = ((data['price'] - data.get('prev_close', data['price'])) / data.get('prev_close', data['price']) * 100) if data.get('prev_close') else 0
+                change_pct = (
+                    (
+                        (data["price"] - data.get("prev_close", data["price"]))
+                        / data.get("prev_close", data["price"])
+                        * 100
+                    )
+                    if data.get("prev_close")
+                    else 0
+                )
                 price_arrow = "\u25b2" if change_pct >= 0 else "\u25bc"
                 price_c = "#3fb950" if change_pct >= 0 else "#f85149"
-                pos = (data['price'] - data['low_52w']) / (data['high_52w'] - data['low_52w']) if data['high_52w'] > data['low_52w'] else 0.5
+                pos = (
+                    (data["price"] - data["low_52w"]) / (data["high_52w"] - data["low_52w"])
+                    if data["high_52w"] > data["low_52w"]
+                    else 0.5
+                )
                 pos_pct = min(100, max(0, pos * 100))
-                _biz = data.get('info', {}).get('longBusinessSummary', '')
-                _biz_short = '. '.join(_biz.replace('\n', ' ').split('. ')[:3]) + '.' if _biz else ''
-                st.markdown(f"""
+                _biz = data.get("info", {}).get("longBusinessSummary", "")
+                _biz_short = ". ".join(_biz.replace("\n", " ").split(". ")[:3]) + "." if _biz else ""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:20px 18px;margin-bottom:10px;">
   <div style="font-size:20px;font-weight:700;color:#e6edf3 !important;">{data['name']}</div>
   <div style="font-size:12px;color:#8b949e !important;margin-top:2px;">{data['sector']} &middot; {data['industry']}</div>
@@ -2060,33 +2493,38 @@ def show_stock_analyzer():
     </div>
     <div style="text-align:center;font-size:11px;color:#6e7681 !important;margin-top:4px;">{pos_pct:.0f}% of annual range</div>
   </div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
                 if _biz_short:
-                    st.markdown(f"""
+                    st.markdown(
+                        f"""
 <div style="background:#0d1f38;border:1px solid #1d4ed8;border-radius:8px;padding:14px 16px;margin-top:4px;">
   <div style="font-size:10px;color:#3b82f6 !important;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;">About the Company</div>
   <div style="font-size:13px;color:#8b9db5 !important;line-height:1.65;">{_biz_short}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                        unsafe_allow_html=True,
+                    )
 
                 # ── KEY STATS CARD ─────────────────────────────────────────────
                 st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-                _pe_ks   = data.get('pe_ratio')
-                _fpe_ks  = data.get('forward_pe')
-                _eps_ks  = data.get('eps')
-                _rev_ks  = data.get('info', {}).get('totalRevenue', 0) or 0
-                _div_ks  = data.get('dividend_yield')   # already sanitized at fetch (None if >15% or <0)
-                _beta_ks = data.get('info', {}).get('beta', None)
+                _pe_ks = data.get("pe_ratio")
+                _fpe_ks = data.get("forward_pe")
+                _eps_ks = data.get("eps")
+                _rev_ks = data.get("info", {}).get("totalRevenue", 0) or 0
+                _div_ks = data.get("dividend_yield")  # already sanitized at fetch (None if >15% or <0)
+                _beta_ks = data.get("info", {}).get("beta", None)
                 _div_str = f"{_div_ks*100:.2f}%" if _div_ks else "—"
                 _beta_str = f"{_beta_ks:.2f}" if _beta_ks is not None else "N/A"
                 _rev_str = f"${_rev_ks/1e9:.1f}B" if _rev_ks >= 1e9 else f"${_rev_ks/1e6:.0f}M" if _rev_ks else "N/A"
 
                 _ks_items = [
-                    ("P/E (TTM)",      f"{_pe_ks:.1f}x" if _pe_ks else "N/A",   "Trailing 12 months"),
-                    ("Forward P/E",    f"{_fpe_ks:.1f}x" if _fpe_ks else "N/A", "NTM consensus est."),
-                    ("EPS (TTM)",      f"${_eps_ks:.2f}" if _eps_ks else "N/A",  "Trailing 12 months"),
-                    ("Revenue (TTM)",  _rev_str,                                  "Last 12 months"),
-                    ("Dividend Yield", _div_str,                                  "Annual indicated"),
-                    ("Beta (5Y)",      _beta_str,                                 "vs S&P 500"),
+                    ("P/E (TTM)", f"{_pe_ks:.1f}x" if _pe_ks else "N/A", "Trailing 12 months"),
+                    ("Forward P/E", f"{_fpe_ks:.1f}x" if _fpe_ks else "N/A", "NTM consensus est."),
+                    ("EPS (TTM)", f"${_eps_ks:.2f}" if _eps_ks else "N/A", "Trailing 12 months"),
+                    ("Revenue (TTM)", _rev_str, "Last 12 months"),
+                    ("Dividend Yield", _div_str, "Annual indicated"),
+                    ("Beta (5Y)", _beta_str, "vs S&P 500"),
                 ]
                 _ks_cells = "".join(
                     f"<div style='flex:1;min-width:80px;padding:8px 6px;border-right:1px solid #21262d;'>"
@@ -2095,37 +2533,46 @@ def show_stock_analyzer():
                     f"<div style='font-size:10px;color:#6e7681;margin-top:1px;'>{sub}</div></div>"
                     for lbl, val, sub in _ks_items
                 )
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;">
   <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:8px 12px;background:#161b22;border-bottom:1px solid #30363d;">Key Statistics</div>
   <div style="display:flex;flex-wrap:wrap;">{_ks_cells}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 # ── FINANCIAL QUALITY CARD ─────────────────────────────────────
                 st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-                _gm_fq   = data.get('gross_margin', 0) or 0
-                _opm_fq  = data.get('operating_margin', 0) or 0
-                _npm_fq  = data.get('profit_margin', 0) or 0
-                _fcf_fq  = data.get('free_cash_flow', 0) or 0
-                _cash_fq = data.get('total_cash', 0) or 0
-                _debt_fq = data.get('total_debt', 0) or 0
+                _gm_fq = data.get("gross_margin", 0) or 0
+                _opm_fq = data.get("operating_margin", 0) or 0
+                _npm_fq = data.get("profit_margin", 0) or 0
+                _fcf_fq = data.get("free_cash_flow", 0) or 0
+                _cash_fq = data.get("total_cash", 0) or 0
+                _debt_fq = data.get("total_debt", 0) or 0
                 _net_cash = _cash_fq - _debt_fq
                 _net_cash_abs = abs(_net_cash)
                 # Always display magnitude (never negative): label tells the direction
-                _net_cash_str = (f"${_net_cash_abs/1e9:.1f}B" if _net_cash_abs >= 1e9 else f"${_net_cash_abs/1e6:.0f}M") if _net_cash_abs > 0 else "N/A"
+                _net_cash_str = (
+                    (f"${_net_cash_abs/1e9:.1f}B" if _net_cash_abs >= 1e9 else f"${_net_cash_abs/1e6:.0f}M")
+                    if _net_cash_abs > 0
+                    else "N/A"
+                )
                 _net_cash_label = "Net Cash" if _net_cash > 0 else "Net Debt"
-                _net_cash_sub   = "Cash > Debt" if _net_cash > 0 else "Debt > Cash"
-                _fcf_str = (f"${_fcf_fq/1e9:.1f}B" if abs(_fcf_fq) >= 1e9 else f"${_fcf_fq/1e6:.0f}M") if _fcf_fq else "N/A"
+                _net_cash_sub = "Cash > Debt" if _net_cash > 0 else "Debt > Cash"
+                _fcf_str = (
+                    (f"${_fcf_fq/1e9:.1f}B" if abs(_fcf_fq) >= 1e9 else f"${_fcf_fq/1e6:.0f}M") if _fcf_fq else "N/A"
+                )
 
                 def _margin_color(pct, bench):
                     return "#3fb950" if pct >= bench else "#d29922" if pct >= bench * 0.5 else "#f85149"
 
                 _fq_items = [
-                    ("Gross Margin",  f"{_gm_fq*100:.1f}%",  "TTM", _margin_color(_gm_fq*100, 40)),
-                    ("Op. Margin",    f"{_opm_fq*100:.1f}%", "TTM", _margin_color(_opm_fq*100, 15)),
-                    ("Net Margin",    f"{_npm_fq*100:.1f}%", "TTM", _margin_color(_npm_fq*100, 10)),
-                    ("FCF (TTM)",     _fcf_str,               "Free cash flow", "#3fb950" if _fcf_fq > 0 else "#f85149"),
-                    (_net_cash_label, _net_cash_str,          _net_cash_sub,     "#3fb950" if _net_cash > 0 else "#f85149"),
+                    ("Gross Margin", f"{_gm_fq*100:.1f}%", "TTM", _margin_color(_gm_fq * 100, 40)),
+                    ("Op. Margin", f"{_opm_fq*100:.1f}%", "TTM", _margin_color(_opm_fq * 100, 15)),
+                    ("Net Margin", f"{_npm_fq*100:.1f}%", "TTM", _margin_color(_npm_fq * 100, 10)),
+                    ("FCF (TTM)", _fcf_str, "Free cash flow", "#3fb950" if _fcf_fq > 0 else "#f85149"),
+                    (_net_cash_label, _net_cash_str, _net_cash_sub, "#3fb950" if _net_cash > 0 else "#f85149"),
                 ]
                 _fq_cells = "".join(
                     f"<div style='flex:1;min-width:80px;padding:8px 6px;border-right:1px solid #21262d;'>"
@@ -2134,12 +2581,14 @@ def show_stock_analyzer():
                     f"<div style='font-size:10px;color:#6e7681;margin-top:1px;'>{sub}</div></div>"
                     for lbl, val, sub, c in _fq_items
                 )
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;">
   <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:8px 12px;background:#161b22;border-bottom:1px solid #30363d;">Financial Quality</div>
   <div style="display:flex;flex-wrap:wrap;">{_fq_cells}</div>
-</div>""", unsafe_allow_html=True)
-
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
         # ── TECHNICAL TAB ──────────────────────────────────────────────────────
         with tab_tech:
@@ -2147,43 +2596,61 @@ def show_stock_analyzer():
                 st.info("Enter a ticker and click **Run Full Analysis** to generate the report.")
             else:
                 chart_data = tech_df.reset_index()
-                chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_convert(None)
+                chart_data["Date"] = pd.to_datetime(chart_data["Date"]).dt.tz_convert(None)
 
                 # ── 1. PROFESSIONAL OVERVIEW ─────────────────────────────────
-                tech_score  = tech_analysis['score_pct']
-                rsi_val     = tech_df['RSI'].iloc[-1]
-                macd_val    = tech_df['MACD'].iloc[-1]
-                macd_sig    = tech_df['MACD_Signal'].iloc[-1]
-                sma50_val   = tech_df['SMA_50'].iloc[-1]
-                sma200_val  = tech_df['SMA_200'].iloc[-1]
-                close_val   = tech_df['Close'].iloc[-1]
-                vs50  = (close_val / sma50_val  - 1) * 100 if sma50_val  and not pd.isna(sma50_val)  else 0
+                tech_score = tech_analysis["score_pct"]
+                rsi_val = tech_df["RSI"].iloc[-1]
+                macd_val = tech_df["MACD"].iloc[-1]
+                macd_sig = tech_df["MACD_Signal"].iloc[-1]
+                sma50_val = tech_df["SMA_50"].iloc[-1]
+                sma200_val = tech_df["SMA_200"].iloc[-1]
+                close_val = tech_df["Close"].iloc[-1]
+                vs50 = (close_val / sma50_val - 1) * 100 if sma50_val and not pd.isna(sma50_val) else 0
                 vs200 = (close_val / sma200_val - 1) * 100 if sma200_val and not pd.isna(sma200_val) else 0
 
                 if tech_score >= 30:
-                    stance = "**bullish technical setup**"; s_color = "#3fb950"
+                    stance = "**bullish technical setup**"
+                    s_color = "#3fb950"
                     outlook = "Price action shows sustained buying pressure. Trend indicators align positively, supporting continuation of the uptrend barring macro disruptions."
                 elif tech_score >= 10:
-                    stance = "**mildly constructive posture**"; s_color = "#3fb950"
+                    stance = "**mildly constructive posture**"
+                    s_color = "#3fb950"
                     outlook = "Positive signals outnumber negative ones, but conviction is limited. Watch for confirmation above key resistance to validate the bullish tilt."
                 elif tech_score >= -10:
-                    stance = "**mixed signals — no clear directional bias**"; s_color = "#d29922"
+                    stance = "**mixed signals — no clear directional bias**"
+                    s_color = "#d29922"
                     outlook = "Bullish and bearish indicators are roughly offsetting each other. No actionable directional edge; wait for a decisive break above resistance or below support."
                 elif tech_score >= -30:
-                    stance = "**mildly bearish deterioration**"; s_color = "#f85149"
+                    stance = "**mildly bearish deterioration**"
+                    s_color = "#f85149"
                     outlook = "More indicators are pointing down than up. Exercise caution with new long positions; a confirmed bounce off support would be needed to turn the bias constructive."
                 else:
-                    stance = "**bearish technical breakdown**"; s_color = "#f85149"
+                    stance = "**bearish technical breakdown**"
+                    s_color = "#f85149"
                     outlook = "Selling pressure dominates price discovery across most indicators. Traders should exercise caution; wait for a confirmed technical base before re-entering long positions."
 
-                rsi_desc  = (f"overbought at {rsi_val:.1f} — near-term exhaustion risk" if rsi_val > 70
-                             else f"oversold at {rsi_val:.1f} — potential mean-reversion setup" if rsi_val < 30
-                             else f"neutral at {rsi_val:.1f} — no directional bias from momentum")
-                macd_desc = "MACD has crossed above its signal line, generating a bullish momentum signal" if macd_val > macd_sig else "MACD sits below its signal line, flagging negative momentum"
-                sma_desc  = (f"{abs(vs50):.1f}% {'above' if vs50 >= 0 else 'below'} the 50-day SMA "
-                             f"and {abs(vs200):.1f}% {'above' if vs200 >= 0 else 'below'} the 200-day SMA")
+                rsi_desc = (
+                    f"overbought at {rsi_val:.1f} — near-term exhaustion risk"
+                    if rsi_val > 70
+                    else (
+                        f"oversold at {rsi_val:.1f} — potential mean-reversion setup"
+                        if rsi_val < 30
+                        else f"neutral at {rsi_val:.1f} — no directional bias from momentum"
+                    )
+                )
+                macd_desc = (
+                    "MACD has crossed above its signal line, generating a bullish momentum signal"
+                    if macd_val > macd_sig
+                    else "MACD sits below its signal line, flagging negative momentum"
+                )
+                sma_desc = (
+                    f"{abs(vs50):.1f}% {'above' if vs50 >= 0 else 'below'} the 50-day SMA "
+                    f"and {abs(vs200):.1f}% {'above' if vs200 >= 0 else 'below'} the 200-day SMA"
+                )
 
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px 22px;margin-bottom:6px;">
 <p style="color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">Technical Analysis Overview</p>
 <p style="color:#c9d1d9;line-height:1.8;margin:0;font-size:14px;">
@@ -2193,19 +2660,21 @@ The stock is currently {sma_desc}, a key barometer of trend health — sustained
 signals an intact primary uptrend, while a cross below the 200-day SMA would indicate structural deterioration.
 The RSI(14) reads {rsi_desc}.
 {macd_desc}. {outlook}
-</p></div>""", unsafe_allow_html=True)
+</p></div>""",
+                    unsafe_allow_html=True,
+                )
 
                 # ── 2. DIMENSION SCORE CARDS ─────────────────────────────────
                 st.markdown("##### Dimensional Breakdown")
-                bd = tech_analysis['breakdown']
+                bd = tech_analysis["breakdown"]
                 _show_overall = (tech_score + 100) / 2
                 dim_cols = st.columns(5)
                 dims = [
-                    ("Overall",    _show_overall,            100, tech_analysis['rating'] + " · 50=neutral"),
-                    ("Trend",      bd['trend']['score'],     bd['trend']['max'],      ""),
-                    ("Momentum",   bd['momentum']['score'],  bd['momentum']['max'],   ""),
-                    ("Volatility", bd['volatility']['score'],bd['volatility']['max'], ""),
-                    ("Volume",     bd['volume']['score'],    bd['volume']['max'],     ""),
+                    ("Overall", _show_overall, 100, tech_analysis["rating"] + " · 50=neutral"),
+                    ("Trend", bd["trend"]["score"], bd["trend"]["max"], ""),
+                    ("Momentum", bd["momentum"]["score"], bd["momentum"]["max"], ""),
+                    ("Volatility", bd["volatility"]["score"], bd["volatility"]["max"], ""),
+                    ("Volume", bd["volume"]["score"], bd["volume"]["max"], ""),
                 ]
                 for idx, (col, (label, score, mx, sub)) in enumerate(zip(dim_cols, dims)):
                     if idx == 0:
@@ -2217,7 +2686,8 @@ The RSI(14) reads {rsi_desc}.
                         pct = max(0, min(100, (score / mx + 1) / 2 * 100)) if mx else 50
                     bar_color = "#3fb950" if pct >= 60 else "#d29922" if pct >= 40 else "#f85149"
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:22px;font-weight:700;color:{bar_color};margin:4px 0;">{score:.0f}<span style="font-size:13px;color:#6e7681;">/{mx}</span></div>
@@ -2225,12 +2695,15 @@ The RSI(14) reads {rsi_desc}.
     <div style="background:{bar_color};width:{pct:.0f}%;height:5px;border-radius:4px;"></div>
   </div>
   <div style="font-size:11px;color:#6e7681;">{sub if sub else f'{pct:.0f}%'}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 3. PRICE + VOLUME CHART ───────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Price Action & Volume (1 Year)")
-                st.markdown("""
+                st.markdown(
+                    """
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 <strong>How to read this chart:</strong> The price line (blue) represents daily closing prices over the past 12 months. 
 The <span style="color:#f0883e"><strong>SMA 50</strong></span> (50-day Simple Moving Average) captures intermediate trend direction — 
@@ -2240,104 +2713,207 @@ bullish signal, while a "Death Cross" (SMA 50 crossing below SMA 200) flags long
 <span style="color:#3fb950"><strong>Support</strong></span> and <span style="color:#f85149"><strong>Resistance</strong></span> 
 levels mark price zones where supply/demand historically interacted. Volume bars at the bottom confirm price moves — 
 high volume on up-days signals conviction buying; high volume on down-days signals distribution.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 _chart_col1, _chart_col2 = st.columns([3, 1])
                 with _chart_col1:
-                    _chart_type = st.radio("Chart type", ["Line", "Candlestick"], horizontal=True, key="chart_type_toggle")
+                    _chart_type = st.radio(
+                        "Chart type", ["Line", "Candlestick"], horizontal=True, key="chart_type_toggle"
+                    )
                 with _chart_col2:
                     _show_bb = st.checkbox("Bollinger Bands", value=False, key="show_bb_toggle")
 
                 if _chart_type == "Candlestick":
                     import plotly.graph_objects as go
-                    _hist_plot = data['hist_1y'].reset_index()
-                    _hist_plot['Date'] = pd.to_datetime(_hist_plot['Date']).dt.tz_convert(None)
-                    _fig_candle = go.Figure(data=[
-                        go.Candlestick(
-                            x=_hist_plot['Date'],
-                            open=_hist_plot['Open'],
-                            high=_hist_plot['High'],
-                            low=_hist_plot['Low'],
-                            close=_hist_plot['Close'],
-                            name=data['ticker'],
-                            increasing_line_color='#3fb950',
-                            decreasing_line_color='#f85149',
+
+                    _hist_plot = data["hist_1y"].reset_index()
+                    _hist_plot["Date"] = pd.to_datetime(_hist_plot["Date"]).dt.tz_convert(None)
+                    _fig_candle = go.Figure(
+                        data=[
+                            go.Candlestick(
+                                x=_hist_plot["Date"],
+                                open=_hist_plot["Open"],
+                                high=_hist_plot["High"],
+                                low=_hist_plot["Low"],
+                                close=_hist_plot["Close"],
+                                name=data["ticker"],
+                                increasing_line_color="#3fb950",
+                                decreasing_line_color="#f85149",
+                            )
+                        ]
+                    )
+                    _fig_candle.add_trace(
+                        go.Scatter(
+                            x=chart_data["Date"],
+                            y=chart_data["SMA_50"].values,
+                            mode="lines",
+                            name="SMA50",
+                            line=dict(color="#d29922", width=1.5, dash="dot"),
                         )
-                    ])
-                    _fig_candle.add_trace(go.Scatter(x=chart_data['Date'], y=chart_data['SMA_50'].values,
-                        mode='lines', name='SMA50', line=dict(color='#d29922', width=1.5, dash='dot')))
-                    _fig_candle.add_trace(go.Scatter(x=chart_data['Date'], y=chart_data['SMA_200'].values,
-                        mode='lines', name='SMA200', line=dict(color='#f85149', width=1.5, dash='dot')))
+                    )
+                    _fig_candle.add_trace(
+                        go.Scatter(
+                            x=chart_data["Date"],
+                            y=chart_data["SMA_200"].values,
+                            mode="lines",
+                            name="SMA200",
+                            line=dict(color="#f85149", width=1.5, dash="dot"),
+                        )
+                    )
                     _fig_candle.update_layout(
-                        paper_bgcolor='#0d1117', plot_bgcolor='#0d1117',
-                        font=dict(color='#c9d1d9'), height=380,
-                        xaxis=dict(gridcolor='#21262d', rangeslider_visible=False),
-                        yaxis=dict(gridcolor='#21262d'),
-                        legend=dict(bgcolor='rgba(0,0,0,0)'),
+                        paper_bgcolor="#0d1117",
+                        plot_bgcolor="#0d1117",
+                        font=dict(color="#c9d1d9"),
+                        height=380,
+                        xaxis=dict(gridcolor="#21262d", rangeslider_visible=False),
+                        yaxis=dict(gridcolor="#21262d"),
+                        legend=dict(bgcolor="rgba(0,0,0,0)"),
                         margin=dict(l=0, r=0, t=20, b=0),
                     )
                     st.plotly_chart(_fig_candle, use_container_width=True)
                     st.caption("Green = bullish candle  Red = bearish candle  Yellow = SMA50  Red dashed = SMA200")
                 else:
-                    price_layer = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
-                        x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
-                        y=alt.Y('Close:Q', title='Price (USD)', scale=alt.Scale(zero=False),
-                                axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', format='$.0f')),
-                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Close:Q', format='$.2f', title='Close')]
+                    price_layer = (
+                        alt.Chart(chart_data)
+                        .mark_line(color="#58a6ff", strokeWidth=2)
+                        .encode(
+                            x=alt.X(
+                                "Date:T",
+                                title=None,
+                                axis=alt.Axis(format="%b %y", labelColor="#8b949e", gridColor="#21262d"),
+                            ),
+                            y=alt.Y(
+                                "Close:Q",
+                                title="Price (USD)",
+                                scale=alt.Scale(zero=False),
+                                axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d", format="$.0f"),
+                            ),
+                            tooltip=[
+                                alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                                alt.Tooltip("Close:Q", format="$.2f", title="Close"),
+                            ],
+                        )
                     )
-                    ma50_layer  = alt.Chart(chart_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[4,4]).encode(
-                        x='Date:T', y=alt.Y('SMA_50:Q', title=''),
-                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_50:Q', format='$.2f', title='SMA 50')]
+                    ma50_layer = (
+                        alt.Chart(chart_data)
+                        .mark_line(color="#f0883e", strokeWidth=1.5, strokeDash=[4, 4])
+                        .encode(
+                            x="Date:T",
+                            y=alt.Y("SMA_50:Q", title=""),
+                            tooltip=[
+                                alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                                alt.Tooltip("SMA_50:Q", format="$.2f", title="SMA 50"),
+                            ],
+                        )
                     )
-                    ma200_layer = alt.Chart(chart_data).mark_line(color='#a371f7', strokeWidth=1.5, strokeDash=[4,4]).encode(
-                        x='Date:T', y=alt.Y('SMA_200:Q', title=''),
-                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('SMA_200:Q', format='$.2f', title='SMA 200')]
+                    ma200_layer = (
+                        alt.Chart(chart_data)
+                        .mark_line(color="#a371f7", strokeWidth=1.5, strokeDash=[4, 4])
+                        .encode(
+                            x="Date:T",
+                            y=alt.Y("SMA_200:Q", title=""),
+                            tooltip=[
+                                alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                                alt.Tooltip("SMA_200:Q", format="$.2f", title="SMA 200"),
+                            ],
+                        )
                     )
                     price_combined = price_layer + ma50_layer + ma200_layer
-                    if _show_bb and 'BB_Upper' in chart_data.columns and 'BB_Lower' in chart_data.columns:
-                        bb_area = alt.Chart(chart_data).mark_area(opacity=0.07, color='#58a6ff').encode(
-                            x='Date:T', y=alt.Y('BB_Upper:Q', title=''), y2=alt.Y2('BB_Lower:Q'),
+                    if _show_bb and "BB_Upper" in chart_data.columns and "BB_Lower" in chart_data.columns:
+                        bb_area = (
+                            alt.Chart(chart_data)
+                            .mark_area(opacity=0.07, color="#58a6ff")
+                            .encode(
+                                x="Date:T",
+                                y=alt.Y("BB_Upper:Q", title=""),
+                                y2=alt.Y2("BB_Lower:Q"),
+                            )
                         )
-                        bb_upper_l = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=1, strokeDash=[3, 4], opacity=0.5).encode(
-                            x='Date:T', y='BB_Upper:Q',
-                            tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('BB_Upper:Q', format='$.2f', title='BB Upper')]
+                        bb_upper_l = (
+                            alt.Chart(chart_data)
+                            .mark_line(color="#58a6ff", strokeWidth=1, strokeDash=[3, 4], opacity=0.5)
+                            .encode(
+                                x="Date:T",
+                                y="BB_Upper:Q",
+                                tooltip=[
+                                    alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                                    alt.Tooltip("BB_Upper:Q", format="$.2f", title="BB Upper"),
+                                ],
+                            )
                         )
-                        bb_lower_l = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=1, strokeDash=[3, 4], opacity=0.5).encode(
-                            x='Date:T', y='BB_Lower:Q',
-                            tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('BB_Lower:Q', format='$.2f', title='BB Lower')]
+                        bb_lower_l = (
+                            alt.Chart(chart_data)
+                            .mark_line(color="#58a6ff", strokeWidth=1, strokeDash=[3, 4], opacity=0.5)
+                            .encode(
+                                x="Date:T",
+                                y="BB_Lower:Q",
+                                tooltip=[
+                                    alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                                    alt.Tooltip("BB_Lower:Q", format="$.2f", title="BB Lower"),
+                                ],
+                            )
                         )
                         price_combined = bb_area + bb_upper_l + bb_lower_l + price_combined
                     if supports:
-                        sup_df = pd.DataFrame({'y': [supports[-1]]})
-                        price_combined = price_combined + alt.Chart(sup_df).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
+                        sup_df = pd.DataFrame({"y": [supports[-1]]})
+                        price_combined = price_combined + alt.Chart(sup_df).mark_rule(
+                            color="#3fb950", strokeWidth=1.5, strokeDash=[3, 3]
+                        ).encode(y="y:Q")
                     if resistances:
-                        res_df = pd.DataFrame({'y': [resistances[-1]]})
-                        price_combined = price_combined + alt.Chart(res_df).mark_rule(color='#f85149', strokeWidth=1.5, strokeDash=[3,3]).encode(y='y:Q')
+                        res_df = pd.DataFrame({"y": [resistances[-1]]})
+                        price_combined = price_combined + alt.Chart(res_df).mark_rule(
+                            color="#f85149", strokeWidth=1.5, strokeDash=[3, 3]
+                        ).encode(y="y:Q")
 
-                    vol_layer = alt.Chart(chart_data).mark_bar(opacity=0.6).encode(
-                        x=alt.X('Date:T', title=None),
-                        y=alt.Y('Volume:Q', title='Volume', axis=alt.Axis(labelColor='#8b949e', format='~s', gridColor='#21262d')),
-                        color=alt.condition(
-                            alt.datum.Close >= alt.datum.Open if 'Open' in chart_data.columns else alt.value('#3fb950'),
-                            alt.value('#3fb950'), alt.value('#f85149')
-                        ),
-                        tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('Volume:Q', format=',', title='Volume')]
+                    vol_layer = (
+                        alt.Chart(chart_data)
+                        .mark_bar(opacity=0.6)
+                        .encode(
+                            x=alt.X("Date:T", title=None),
+                            y=alt.Y(
+                                "Volume:Q",
+                                title="Volume",
+                                axis=alt.Axis(labelColor="#8b949e", format="~s", gridColor="#21262d"),
+                            ),
+                            color=alt.condition(
+                                (
+                                    alt.datum.Close >= alt.datum.Open
+                                    if "Open" in chart_data.columns
+                                    else alt.value("#3fb950")
+                                ),
+                                alt.value("#3fb950"),
+                                alt.value("#f85149"),
+                            ),
+                            tooltip=[
+                                alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                                alt.Tooltip("Volume:Q", format=",", title="Volume"),
+                            ],
+                        )
                     )
 
-                    combined_chart = alt.vconcat(
-                        price_combined.properties(height=280, title=''),
-                        vol_layer.properties(height=80, title=''),
-                    ).resolve_scale(x='shared').configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(
-                        labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d'
+                    combined_chart = (
+                        alt.vconcat(
+                            price_combined.properties(height=280, title=""),
+                            vol_layer.properties(height=80, title=""),
+                        )
+                        .resolve_scale(x="shared")
+                        .configure_view(strokeWidth=0)
+                        .configure(background="#0d1117")
+                        .configure_axis(labelFontSize=11, titleFontSize=11, titleColor="#8b949e", domainColor="#30363d")
                     )
                     st.altair_chart(combined_chart, use_container_width=True)
                     _bb_caption = "  |  🔷 Bollinger Bands (20,2)" if _show_bb else ""
-                    st.caption(f"🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume{_bb_caption}")
+                    st.caption(
+                        f"🔵 Price  |  🟠 SMA 50  |  🟣 SMA 200  |  🟢 Support  |  🔴 Resistance  |  Bars: Volume{_bb_caption}"
+                    )
 
                 # ── 4. RSI SECTION ────────────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Momentum Oscillator: RSI (14-Period)")
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 The <strong>Relative Strength Index (RSI)</strong>, developed by J. Welles Wilder, is a momentum oscillator ranging 0–100 
 that measures the speed and magnitude of recent price changes. It compares average gains to average losses over a 14-period 
@@ -2346,37 +2922,80 @@ consolidation or reversal. <strong style="color:#3fb950;">RSI &lt; 30</strong> s
 mean-reversion opportunity. The 50 midline acts as a trend filter: sustained readings above 50 confirm bullish momentum, 
 below 50 confirm bearish momentum. Currently, {data['ticker']}'s RSI(14) is 
 <strong style="color={'#f85149' if rsi_val > 70 else '#3fb950' if rsi_val < 30 else '#d29922'};">{rsi_val:.1f}</strong> — {rsi_desc}.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 rsi_data = chart_data.tail(120).copy()
-                rsi_line = alt.Chart(rsi_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
-                    x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
-                    y=alt.Y('RSI:Q', scale=alt.Scale(domain=[0, 100]), title='RSI',
-                            axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', values=[20,30,50,70,80])),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('RSI:Q', format='.1f', title='RSI')]
+                rsi_line = (
+                    alt.Chart(rsi_data)
+                    .mark_line(color="#58a6ff", strokeWidth=2)
+                    .encode(
+                        x=alt.X(
+                            "Date:T",
+                            title=None,
+                            axis=alt.Axis(format="%b %y", labelColor="#8b949e", gridColor="#21262d"),
+                        ),
+                        y=alt.Y(
+                            "RSI:Q",
+                            scale=alt.Scale(domain=[0, 100]),
+                            title="RSI",
+                            axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d", values=[20, 30, 50, 70, 80]),
+                        ),
+                        tooltip=[
+                            alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                            alt.Tooltip("RSI:Q", format=".1f", title="RSI"),
+                        ],
+                    )
                 )
-                ob_rule = alt.Chart(pd.DataFrame({'y': [70]})).mark_rule(color='#f85149', strokeWidth=1.5, strokeDash=[4,4]).encode(y='y:Q')
-                os_rule = alt.Chart(pd.DataFrame({'y': [30]})).mark_rule(color='#3fb950', strokeWidth=1.5, strokeDash=[4,4]).encode(y='y:Q')
-                mid_rule = alt.Chart(pd.DataFrame({'y': [50]})).mark_rule(color='#6e7681', strokeWidth=1, strokeDash=[2,4]).encode(y='y:Q')
-                rsi_chart = (rsi_line + ob_rule + os_rule + mid_rule).properties(height=200).configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d')
+                ob_rule = (
+                    alt.Chart(pd.DataFrame({"y": [70]}))
+                    .mark_rule(color="#f85149", strokeWidth=1.5, strokeDash=[4, 4])
+                    .encode(y="y:Q")
+                )
+                os_rule = (
+                    alt.Chart(pd.DataFrame({"y": [30]}))
+                    .mark_rule(color="#3fb950", strokeWidth=1.5, strokeDash=[4, 4])
+                    .encode(y="y:Q")
+                )
+                mid_rule = (
+                    alt.Chart(pd.DataFrame({"y": [50]}))
+                    .mark_rule(color="#6e7681", strokeWidth=1, strokeDash=[2, 4])
+                    .encode(y="y:Q")
+                )
+                rsi_chart = (
+                    (rsi_line + ob_rule + os_rule + mid_rule)
+                    .properties(height=200)
+                    .configure_view(strokeWidth=0)
+                    .configure(background="#0d1117")
+                    .configure_axis(labelFontSize=11, titleFontSize=11, titleColor="#8b949e", domainColor="#30363d")
+                )
                 st.altair_chart(rsi_chart, use_container_width=True)
                 rsi_box_color = "#f85149" if rsi_val > 70 else "#3fb950" if rsi_val < 30 else "#d29922"
-                st.markdown(f"<div style='background:{rsi_box_color}22;border:1px solid {rsi_box_color};border-radius:6px;padding:8px 14px;font-size:13px;color:#c9d1d9;'>RSI(14): <strong style='color:{rsi_box_color};'>{rsi_val:.1f}</strong> — {'🔴 Overbought — consider tightening stops or reducing exposure' if rsi_val > 70 else '🟢 Oversold — watch for reversal confirmation before entering' if rsi_val < 30 else '🟡 Neutral — momentum provides no strong directional edge'}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='background:{rsi_box_color}22;border:1px solid {rsi_box_color};border-radius:6px;padding:8px 14px;font-size:13px;color:#c9d1d9;'>RSI(14): <strong style='color:{rsi_box_color};'>{rsi_val:.1f}</strong> — {'🔴 Overbought — consider tightening stops or reducing exposure' if rsi_val > 70 else '🟢 Oversold — watch for reversal confirmation before entering' if rsi_val < 30 else '🟡 Neutral — momentum provides no strong directional edge'}</div>",
+                    unsafe_allow_html=True,
+                )
 
                 # ── 5. MACD SECTION ───────────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Trend Momentum: MACD (12, 26, 9)")
-                macd_diff   = macd_val - macd_sig
-                macd_trend  = "expanding" if abs(chart_data['MACD_Hist'].iloc[-1]) > abs(chart_data['MACD_Hist'].iloc[-5]) else "contracting"
-                if macd_diff > 0 and macd_trend == 'expanding':
+                macd_diff = macd_val - macd_sig
+                macd_trend = (
+                    "expanding"
+                    if abs(chart_data["MACD_Hist"].iloc[-1]) > abs(chart_data["MACD_Hist"].iloc[-5])
+                    else "contracting"
+                )
+                if macd_diff > 0 and macd_trend == "expanding":
                     _macd_momentum_desc = "building bullish momentum"
-                elif macd_diff > 0 and macd_trend == 'contracting':
+                elif macd_diff > 0 and macd_trend == "contracting":
                     _macd_momentum_desc = "fading bullish momentum — upward pressure is easing"
-                elif macd_diff < 0 and macd_trend == 'expanding':
+                elif macd_diff < 0 and macd_trend == "expanding":
                     _macd_momentum_desc = "intensifying bearish pressure"
                 else:
                     _macd_momentum_desc = "easing bearish pressure — downward momentum is waning"
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 The <strong>MACD (Moving Average Convergence Divergence)</strong> indicator, created by Gerald Appel, measures
 the relationship between two exponential moving averages — the 12-period EMA minus the 26-period EMA — to identify
@@ -2387,47 +3006,89 @@ when the MACD line crosses above it, a bullish signal is generated; a cross belo
 Currently, MACD is <strong style="color={'#58a6ff'};">{macd_val:.3f}</strong> vs Signal <strong>{macd_sig:.3f}</strong>
 (spread: <strong style="color={'#3fb950' if macd_diff >= 0 else '#f85149'};">{macd_diff:+.3f}</strong>),
 with the histogram <strong>{macd_trend}</strong> — suggesting <strong>{_macd_momentum_desc}</strong>.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
-                macd_data  = chart_data.tail(120).copy()
-                macd_line  = alt.Chart(macd_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
-                    x=alt.X('Date:T', title=None, axis=alt.Axis(format='%b %y', labelColor='#8b949e', gridColor='#21262d')),
-                    y=alt.Y('MACD:Q', title='MACD', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d')),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('MACD:Q', format='.3f', title='MACD')]
+                macd_data = chart_data.tail(120).copy()
+                macd_line = (
+                    alt.Chart(macd_data)
+                    .mark_line(color="#58a6ff", strokeWidth=2)
+                    .encode(
+                        x=alt.X(
+                            "Date:T",
+                            title=None,
+                            axis=alt.Axis(format="%b %y", labelColor="#8b949e", gridColor="#21262d"),
+                        ),
+                        y=alt.Y("MACD:Q", title="MACD", axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d")),
+                        tooltip=[
+                            alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                            alt.Tooltip("MACD:Q", format=".3f", title="MACD"),
+                        ],
+                    )
                 )
-                sig_line   = alt.Chart(macd_data).mark_line(color='#f0883e', strokeWidth=1.5, strokeDash=[4,4]).encode(
-                    x='Date:T', y=alt.Y('MACD_Signal:Q', title=''),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('MACD_Signal:Q', format='.3f', title='Signal')]
+                sig_line = (
+                    alt.Chart(macd_data)
+                    .mark_line(color="#f0883e", strokeWidth=1.5, strokeDash=[4, 4])
+                    .encode(
+                        x="Date:T",
+                        y=alt.Y("MACD_Signal:Q", title=""),
+                        tooltip=[
+                            alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                            alt.Tooltip("MACD_Signal:Q", format=".3f", title="Signal"),
+                        ],
+                    )
                 )
-                hist_bars  = alt.Chart(macd_data).mark_bar(opacity=0.65).encode(
-                    x='Date:T',
-                    y=alt.Y('MACD_Hist:Q', title=''),
-                    color=alt.condition(alt.datum.MACD_Hist >= 0, alt.value('#3fb950'), alt.value('#f85149')),
-                    tooltip=[alt.Tooltip('Date:T', format='%Y-%m-%d'), alt.Tooltip('MACD_Hist:Q', format='.3f', title='Histogram')]
+                hist_bars = (
+                    alt.Chart(macd_data)
+                    .mark_bar(opacity=0.65)
+                    .encode(
+                        x="Date:T",
+                        y=alt.Y("MACD_Hist:Q", title=""),
+                        color=alt.condition(alt.datum.MACD_Hist >= 0, alt.value("#3fb950"), alt.value("#f85149")),
+                        tooltip=[
+                            alt.Tooltip("Date:T", format="%Y-%m-%d"),
+                            alt.Tooltip("MACD_Hist:Q", format=".3f", title="Histogram"),
+                        ],
+                    )
                 )
-                zero_rule  = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule(color='#6e7681', strokeWidth=1).encode(y='y:Q')
-                macd_chart = (hist_bars + macd_line + sig_line + zero_rule).properties(height=220).configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d')
+                zero_rule = (
+                    alt.Chart(pd.DataFrame({"y": [0]})).mark_rule(color="#6e7681", strokeWidth=1).encode(y="y:Q")
+                )
+                macd_chart = (
+                    (hist_bars + macd_line + sig_line + zero_rule)
+                    .properties(height=220)
+                    .configure_view(strokeWidth=0)
+                    .configure(background="#0d1117")
+                    .configure_axis(labelFontSize=11, titleFontSize=11, titleColor="#8b949e", domainColor="#30363d")
+                )
                 st.altair_chart(macd_chart, use_container_width=True)
                 st.caption("🔵 MACD Line  |  🟠 Signal Line  |  🟢/🔴 Histogram (momentum bars)")
 
                 # ── 6. SIGNAL DETAIL TABLE ────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Full Signal Detail")
-                tech_signals_df = pd.DataFrame(tech_analysis['signals'])
+                tech_signals_df = pd.DataFrame(tech_analysis["signals"])
                 if not tech_signals_df.empty:
                     _rows = ""
                     for _, _r in tech_signals_df.iterrows():
-                        _s = str(_r.get('signal', '')).upper()
-                        _fg = "#3fb950" if any(x in _s for x in ['BULLISH','BUY','STRONG','ABOVE']) else "#f85149" if any(x in _s for x in ['BEARISH','SELL','WEAK','BELOW']) else "#d29922"
+                        _s = str(_r.get("signal", "")).upper()
+                        _fg = (
+                            "#3fb950"
+                            if any(x in _s for x in ["BULLISH", "BUY", "STRONG", "ABOVE"])
+                            else "#f85149" if any(x in _s for x in ["BEARISH", "SELL", "WEAK", "BELOW"]) else "#d29922"
+                        )
                         _bg = _fg + "18"
-                        _rows += (f"<tr style='border-bottom:1px solid #21262d;'>"
+                        _rows += (
+                            f"<tr style='border-bottom:1px solid #21262d;'>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#8b949e;text-transform:uppercase;white-space:nowrap;'>{_r.get('category','')}</td>"
                             f"<td style='padding:8px 10px;font-size:13px;color:#e6edf3;font-weight:500;'>{_r.get('indicator','')}</td>"
                             f"<td style='padding:8px 10px;'><span style='background:#0d1117;border:1px solid {_fg};color:{_fg} !important;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>{_r.get('signal','')}</span></td>"
                             f"<td style='padding:8px 10px;font-size:14px;color:{_fg};font-weight:700;text-align:center;'>{_r.get('score','')}</td>"
                             f"<td style='padding:8px 10px;font-size:12px;color:#8b949e;'>{_r.get('detail','')}</td>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#6e7681;text-align:center;'>{_r.get('threshold','')}</td>"
-                            f"</tr>")
+                            f"</tr>"
+                        )
                     st.markdown(
                         "<div style='background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;'>"
                         "<table style='width:100%;border-collapse:collapse;'>"
@@ -2439,8 +3100,11 @@ with the histogram <strong>{macd_trend}</strong> — suggesting <strong>{_macd_m
                         "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Detail</th>"
                         "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Threshold</th>"
                         f"</tr></thead><tbody>{_rows}</tbody></table></div>",
-                        unsafe_allow_html=True)
-                st.caption("Price data: Yahoo Finance (15\u201320 min delayed). Technical scores are proprietary CFA-style composite ratings.")
+                        unsafe_allow_html=True,
+                    )
+                st.caption(
+                    "Price data: Yahoo Finance (15\u201320 min delayed). Technical scores are proprietary CFA-style composite ratings."
+                )
 
         # ── FUNDAMENTAL TAB ────────────────────────────────────────────────────
         with tab_fund:
@@ -2448,43 +3112,54 @@ with the histogram <strong>{macd_trend}</strong> — suggesting <strong>{_macd_m
                 st.info("Run an analysis to see fundamental data.")
             else:
                 # ── 1. PROFESSIONAL OVERVIEW ─────────────────────────────────
-                fund_score = fund_analysis.get('display_score', max(0.0, min(100.0, 50.0 + fund_analysis['score_pct'] * 0.5)))
-                pe    = data.get('pe_ratio')
-                fpe   = data.get('forward_pe')
+                fund_score = fund_analysis.get(
+                    "display_score", max(0.0, min(100.0, 50.0 + fund_analysis["score_pct"] * 0.5))
+                )
+                pe = data.get("pe_ratio")
+                fpe = data.get("forward_pe")
                 # PEG: use yfinance value with fallback calculation (single source)
-                peg   = data.get('peg_ratio')
+                peg = data.get("peg_ratio")
                 if not peg:
-                    _pe_raw = data.get('pe_ratio')
-                    _eg_raw = data.get('earnings_growth', 0) or 0
+                    _pe_raw = data.get("pe_ratio")
+                    _eg_raw = data.get("earnings_growth", 0) or 0
                     if _pe_raw and _eg_raw > 0:
                         peg = _pe_raw / (_eg_raw * 100)
-                roe   = data.get('roe', 0) or 0
-                npm   = data.get('profit_margin', 0) or 0
-                opm   = data.get('operating_margin', 0) or 0
-                rev_g = data.get('revenue_growth', 0) or 0
-                eps_g = data.get('earnings_growth', 0) or 0
-                de    = data.get('debt_to_equity', 0) or 0
-                cr    = data.get('current_ratio', 0) or 0
-                fcf   = data.get('free_cash_flow', 0) or 0
+                roe = data.get("roe", 0) or 0
+                npm = data.get("profit_margin", 0) or 0
+                opm = data.get("operating_margin", 0) or 0
+                rev_g = data.get("revenue_growth", 0) or 0
+                eps_g = data.get("earnings_growth", 0) or 0
+                de = data.get("debt_to_equity", 0) or 0
+                cr = data.get("current_ratio", 0) or 0
+                fcf = data.get("free_cash_flow", 0) or 0
 
                 if fund_score >= 70:
-                    f_stance = "**fundamentally strong**"; f_color = "#3fb950"
+                    f_stance = "**fundamentally strong**"
+                    f_color = "#3fb950"
                     f_outlook = "The business demonstrates durable competitive advantages with solid earnings quality, manageable leverage, and a growth trajectory that justifies current valuation."
                 elif fund_score >= 55:
-                    f_stance = "**fundamentally sound**"; f_color = "#3fb950"
+                    f_stance = "**fundamentally sound**"
+                    f_color = "#3fb950"
                     f_outlook = "Core financials are solid with most metrics in acceptable ranges. The business generates adequate returns on capital, though some areas warrant monitoring."
                 elif fund_score >= 40:
-                    f_stance = "**fundamentally mixed**"; f_color = "#d29922"
+                    f_stance = "**fundamentally mixed**"
+                    f_color = "#d29922"
                     f_outlook = "Strengths and weaknesses coexist. Some financial dimensions are adequate while others lag benchmarks — monitor for improving or deteriorating trends."
                 else:
-                    f_stance = "**fundamentally challenged**"; f_color = "#f85149"
+                    f_stance = "**fundamentally challenged**"
+                    f_color = "#f85149"
                     f_outlook = "Financial metrics lag sector benchmarks across multiple dimensions. Thorough due diligence is essential before establishing a position."
 
-                val_comment = (f"trading at {pe:.1f}x trailing earnings" if pe else "P/E not available")
-                roe_comment = (f"return on equity of {roe*100:.1f}%" if roe else "ROE not available")
-                fcf_comment = (f"free cash flow of ${fcf/1e9:.1f}B — a direct measure of capital generation capacity" if fcf else "FCF not disclosed")
+                val_comment = f"trading at {pe:.1f}x trailing earnings" if pe else "P/E not available"
+                roe_comment = f"return on equity of {roe*100:.1f}%" if roe else "ROE not available"
+                fcf_comment = (
+                    f"free cash flow of ${fcf/1e9:.1f}B — a direct measure of capital generation capacity"
+                    if fcf
+                    else "FCF not disclosed"
+                )
 
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px 22px;margin-bottom:6px;">
 <p style="color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">Fundamental Analysis Overview</p>
 <p style="color:#c9d1d9;line-height:1.8;margin:0;font-size:14px;">
@@ -2495,18 +3170,20 @@ across valuation, profitability, growth, and financial health dimensions.
 The stock is currently {val_comment},
 posting a {roe_comment}, and generating {fcf_comment}.
 {f_outlook}
-</p></div>""", unsafe_allow_html=True)
+</p></div>""",
+                    unsafe_allow_html=True,
+                )
 
                 # ── 2. DIMENSION SCORE CARDS ─────────────────────────────────
                 st.markdown("##### Dimensional Breakdown")
-                bd = fund_analysis['breakdown']
+                bd = fund_analysis["breakdown"]
                 dim_cols = st.columns(5)
                 dims = [
-                    ("Overall",       fund_score,                      100, fund_analysis['rating']),
-                    ("Valuation",     bd['valuation']['score'],         bd['valuation']['max'],     ""),
-                    ("Profitability", bd['profitability']['score'],     bd['profitability']['max'], ""),
-                    ("Growth",        bd['growth']['score'],            bd['growth']['max'],        ""),
-                    ("Health",        bd['health']['score'],            bd['health']['max'],        ""),
+                    ("Overall", fund_score, 100, fund_analysis["rating"]),
+                    ("Valuation", bd["valuation"]["score"], bd["valuation"]["max"], ""),
+                    ("Profitability", bd["profitability"]["score"], bd["profitability"]["max"], ""),
+                    ("Growth", bd["growth"]["score"], bd["growth"]["max"], ""),
+                    ("Health", bd["health"]["score"], bd["health"]["max"], ""),
                 ]
                 for idx, (col, (label, score, mx, sub)) in enumerate(zip(dim_cols, dims)):
                     if idx == 0:
@@ -2515,7 +3192,8 @@ posting a {roe_comment}, and generating {fcf_comment}.
                         pct = max(0, min(100, (score / mx + 1) / 2 * 100)) if mx else 50
                     bar_color = "#3fb950" if pct >= 60 else "#d29922" if pct >= 40 else "#f85149"
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:22px;font-weight:700;color:{bar_color};margin:4px 0;">{score:.0f}<span style="font-size:13px;color:#6e7681;">/{mx}</span></div>
@@ -2523,12 +3201,15 @@ posting a {roe_comment}, and generating {fcf_comment}.
     <div style="background:{bar_color};width:{pct:.0f}%;height:5px;border-radius:4px;"></div>
   </div>
   <div style="font-size:11px;color:#6e7681;">{sub if sub else f'{pct:.0f}%'}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 3. VALUATION ──────────────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Valuation Multiples")
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 <strong>Valuation multiples</strong> benchmark a stock's market price against its fundamental earnings and cash flow 
 metrics to assess whether it trades at a premium or discount. The <strong>Price-to-Earnings (P/E)</strong> ratio divides 
@@ -2538,34 +3219,46 @@ consensus EPS estimates, reflecting market expectations for earnings growth. The
 suggest undervaluation relative to growth. <strong>EV/EBITDA</strong> is an enterprise-level metric preferred by 
 credit analysts and M&A practitioners for cross-capital-structure comparisons — sub-10x typically indicates 
 relative value.{f" Currently, {data['ticker']} trades at {pe:.1f}x trailing P/E and {fpe:.1f}x forward P/E, implying {'earnings growth expectations are priced in' if fpe and pe and fpe < pe else 'the market anticipates margin compression or earnings decline' if fpe and pe and fpe > pe else ''}." if pe else ""}
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 v_col1, v_col2, v_col3, v_col4 = st.columns(4)
                 metrics_val = [
                     ("P/E Ratio", f"{pe:.1f}x" if pe else "N/A", "Trailing TTM", 18, pe),
                     ("Forward P/E", f"{fpe:.1f}x" if fpe else "N/A", "Next 12M est.", 16, fpe),
                     ("PEG Ratio", f"{peg:.2f}" if peg else "N/A", "<1.0 = value", 1, peg),
-                    ("EV/EBITDA", f"{data.get('ev_ebitda',0):.1f}x" if data.get('ev_ebitda') else "N/A", "Enterprise value", 12, data.get('ev_ebitda')),
+                    (
+                        "EV/EBITDA",
+                        f"{data.get('ev_ebitda',0):.1f}x" if data.get("ev_ebitda") else "N/A",
+                        "Enterprise value",
+                        12,
+                        data.get("ev_ebitda"),
+                    ),
                 ]
-                for col, (label, val, sub, bench, raw) in zip([v_col1,v_col2,v_col3,v_col4], metrics_val):
+                for col, (label, val, sub, bench, raw) in zip([v_col1, v_col2, v_col3, v_col4], metrics_val):
                     if raw:
                         is_high = (raw > bench * 1.5) if label != "PEG Ratio" else (raw > 1.5)
-                        is_ok   = (raw > bench * 0.8) if label != "PEG Ratio" else (raw > 0.8)
-                        dot_c   = "#f85149" if is_high else "#3fb950" if not is_ok else "#d29922"
+                        is_ok = (raw > bench * 0.8) if label != "PEG Ratio" else (raw > 0.8)
+                        dot_c = "#f85149" if is_high else "#3fb950" if not is_ok else "#d29922"
                     else:
                         dot_c = "#6e7681"
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:20px;font-weight:700;color:{dot_c};margin:6px 0;">{val}</div>
   <div style="font-size:11px;color:#6e7681;">{sub}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 4. PROFITABILITY ──────────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Profitability & Returns")
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 <strong>Profitability metrics</strong> quantify management's efficiency in converting revenue into earnings and the 
 quality of returns generated on invested capital. <strong>Operating Margin</strong> measures core business profitability 
@@ -2576,29 +3269,35 @@ is consistently above 15%. <strong>Return on Assets (ROA)</strong> measures asse
 particularly relevant for capital-intensive industries. {data['ticker']} posts an operating margin of 
 <strong>{opm*100:.1f}%</strong>, net margin of <strong>{npm*100:.1f}%</strong>, and ROE of 
 <strong>{roe*100:.1f}%</strong>.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 p_col1, p_col2, p_col3, p_col4 = st.columns(4)
                 prof_metrics = [
-                    ("Op. Margin",  f"{opm*100:.1f}%",  "≥15% strong",  opm*100,  15),
-                    ("Net Margin",  f"{npm*100:.1f}%",  "≥10% strong",  npm*100,  10),
-                    ("ROE",         f"{roe*100:.1f}%",  "≥15% Buffett", roe*100,  15),
-                    ("ROA",         f"{(data.get('roa',0) or 0)*100:.1f}%", "≥5% solid", (data.get('roa',0) or 0)*100, 5),
+                    ("Op. Margin", f"{opm*100:.1f}%", "≥15% strong", opm * 100, 15),
+                    ("Net Margin", f"{npm*100:.1f}%", "≥10% strong", npm * 100, 10),
+                    ("ROE", f"{roe*100:.1f}%", "≥15% Buffett", roe * 100, 15),
+                    ("ROA", f"{(data.get('roa',0) or 0)*100:.1f}%", "≥5% solid", (data.get("roa", 0) or 0) * 100, 5),
                 ]
-                for col, (label, val, sub, raw_pct, bench) in zip([p_col1,p_col2,p_col3,p_col4], prof_metrics):
+                for col, (label, val, sub, raw_pct, bench) in zip([p_col1, p_col2, p_col3, p_col4], prof_metrics):
                     c = "#3fb950" if raw_pct >= bench else "#d29922" if raw_pct >= bench * 0.5 else "#f85149"
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
   <div style="font-size:11px;color:#6e7681;">{sub}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 5. GROWTH ─────────────────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Growth Trajectory")
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 <strong>Growth metrics</strong> are the primary drivers of intrinsic value in DCF models and determine whether a 
 premium valuation multiple is justified. <strong>Revenue Growth</strong> reflects market share gains and pricing power; 
@@ -2607,35 +3306,43 @@ earnings power expansion — companies growing EPS faster than revenue are expan
 aggressively. Forward EPS estimates reveal consensus expectations, acting as the anchor for price target models. 
 {data['ticker']} is growing revenue at <strong>{rev_g*100:.1f}%</strong> YoY with EPS growth of 
 <strong>{eps_g*100:.1f}%</strong>, implying {'earnings growing faster than revenues — margin expansion or buybacks at work' if eps_g > rev_g else 'margin dilution or elevated opex outpacing revenue growth'}.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 g_col1, g_col2, g_col3, g_col4 = st.columns(4)
-                eps_val = data.get('eps', 0) or 0
-                feps_val = data.get('forward_eps', 0) or 0
+                eps_val = data.get("eps", 0) or 0
+                feps_val = data.get("forward_eps", 0) or 0
                 growth_metrics = [
-                    ("Revenue Growth", f"{rev_g*100:.1f}%", "YoY",        rev_g*100,  10),
-                    ("EPS Growth",     f"{eps_g*100:.1f}%", "YoY",        eps_g*100,  10),
-                    ("EPS (TTM)",      f"${eps_val:.2f}",   "Trailing",   eps_val,    0),
-                    ("Fwd EPS",        f"${feps_val:.2f}",  "Consensus",  feps_val,   0),
+                    ("Revenue Growth", f"{rev_g*100:.1f}%", "YoY", rev_g * 100, 10),
+                    ("EPS Growth", f"{eps_g*100:.1f}%", "YoY", eps_g * 100, 10),
+                    ("EPS (TTM)", f"${eps_val:.2f}", "Trailing", eps_val, 0),
+                    ("Fwd EPS", f"${feps_val:.2f}", "Consensus", feps_val, 0),
                 ]
-                for col, (label, val, sub, raw, bench) in zip([g_col1,g_col2,g_col3,g_col4], growth_metrics):
+                for col, (label, val, sub, raw, bench) in zip([g_col1, g_col2, g_col3, g_col4], growth_metrics):
                     c = "#3fb950" if raw > bench else "#d29922" if raw > 0 else "#f85149"
                     if label in ("EPS (TTM)", "Fwd EPS"):
                         c = "#3fb950" if raw > 0 else "#f85149"
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
   <div style="font-size:11px;color:#6e7681;">{sub}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 5b. QUARTERLY REVENUE & EARNINGS TREND ────────────────────
                 try:
-                    _qi = data.get('quarterly_income')
+                    _qi = data.get("quarterly_income")
                     if _qi is not None and not _qi.empty:
-                        _rev_row = next((_qi.loc[k] for k in ['Total Revenue', 'Revenue'] if k in _qi.index), None)
-                        _ni_row = next((_qi.loc[k] for k in ['Net Income', 'Net Income Common Stockholders'] if k in _qi.index), None)
+                        _rev_row = next((_qi.loc[k] for k in ["Total Revenue", "Revenue"] if k in _qi.index), None)
+                        _ni_row = next(
+                            (_qi.loc[k] for k in ["Net Income", "Net Income Common Stockholders"] if k in _qi.index),
+                            None,
+                        )
                         if _rev_row is not None or _ni_row is not None:
                             st.markdown("---")
                             st.markdown("##### Quarterly Revenue & Earnings Trend")
@@ -2649,35 +3356,103 @@ aggressively. Forward EPS estimates reveal consensus expectations, acting as the
                             _qchart_col1, _qchart_col2 = st.columns(2)
                             with _qchart_col1:
                                 if _rev_row is not None:
-                                    _rev_vals = [_rev_row[_c] / 1e9 if pd.notna(_rev_row[_c]) else None for _c in _q_cols]
-                                    _rev_qdf = pd.DataFrame({'Quarter': _q_labels, 'Revenue ($B)': _rev_vals}).dropna()
+                                    _rev_vals = [
+                                        _rev_row[_c] / 1e9 if pd.notna(_rev_row[_c]) else None for _c in _q_cols
+                                    ]
+                                    _rev_qdf = pd.DataFrame({"Quarter": _q_labels, "Revenue ($B)": _rev_vals}).dropna()
                                     if not _rev_qdf.empty:
-                                        _prev_r = _rev_qdf['Revenue ($B)'].shift(1).bfill()
-                                        _rev_qdf['_up'] = _rev_qdf['Revenue ($B)'] >= _prev_r
-                                        _rc = alt.Chart(_rev_qdf).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-                                            x=alt.X('Quarter:N', sort=None, title=None, axis=alt.Axis(labelColor='#8b949e', labelAngle=-30, labelFontSize=10)),
-                                            y=alt.Y('Revenue ($B):Q', title='Revenue ($B)', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d')),
-                                            color=alt.condition(alt.datum['_up'], alt.value('#3fb950'), alt.value('#f85149')),
-                                            tooltip=[alt.Tooltip('Quarter:N'), alt.Tooltip('Revenue ($B):Q', format='.2f', title='Revenue ($B)')]
-                                        ).properties(height=200, background='#0d1117',
-                                                     title=alt.TitleParams('Revenue (Quarterly)', color='#8b949e', fontSize=11)
-                                                     ).configure_view(strokeWidth=0).configure_axis(labelFontSize=10, titleFontSize=10, titleColor='#8b949e', domainColor='#30363d')
+                                        _prev_r = _rev_qdf["Revenue ($B)"].shift(1).bfill()
+                                        _rev_qdf["_up"] = _rev_qdf["Revenue ($B)"] >= _prev_r
+                                        _rc = (
+                                            alt.Chart(_rev_qdf)
+                                            .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+                                            .encode(
+                                                x=alt.X(
+                                                    "Quarter:N",
+                                                    sort=None,
+                                                    title=None,
+                                                    axis=alt.Axis(
+                                                        labelColor="#8b949e", labelAngle=-30, labelFontSize=10
+                                                    ),
+                                                ),
+                                                y=alt.Y(
+                                                    "Revenue ($B):Q",
+                                                    title="Revenue ($B)",
+                                                    axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d"),
+                                                ),
+                                                color=alt.condition(
+                                                    alt.datum["_up"], alt.value("#3fb950"), alt.value("#f85149")
+                                                ),
+                                                tooltip=[
+                                                    alt.Tooltip("Quarter:N"),
+                                                    alt.Tooltip("Revenue ($B):Q", format=".2f", title="Revenue ($B)"),
+                                                ],
+                                            )
+                                            .properties(
+                                                height=200,
+                                                background="#0d1117",
+                                                title=alt.TitleParams(
+                                                    "Revenue (Quarterly)", color="#8b949e", fontSize=11
+                                                ),
+                                            )
+                                            .configure_view(strokeWidth=0)
+                                            .configure_axis(
+                                                labelFontSize=10,
+                                                titleFontSize=10,
+                                                titleColor="#8b949e",
+                                                domainColor="#30363d",
+                                            )
+                                        )
                                         st.altair_chart(_rc, use_container_width=True)
                             with _qchart_col2:
                                 if _ni_row is not None:
                                     _ni_vals = [_ni_row[_c] / 1e9 if pd.notna(_ni_row[_c]) else None for _c in _q_cols]
-                                    _ni_qdf = pd.DataFrame({'Quarter': _q_labels, 'Net Income ($B)': _ni_vals}).dropna()
+                                    _ni_qdf = pd.DataFrame({"Quarter": _q_labels, "Net Income ($B)": _ni_vals}).dropna()
                                     if not _ni_qdf.empty:
-                                        _prev_n = _ni_qdf['Net Income ($B)'].shift(1).bfill()
-                                        _ni_qdf['_up'] = _ni_qdf['Net Income ($B)'] >= _prev_n
-                                        _nc = alt.Chart(_ni_qdf).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-                                            x=alt.X('Quarter:N', sort=None, title=None, axis=alt.Axis(labelColor='#8b949e', labelAngle=-30, labelFontSize=10)),
-                                            y=alt.Y('Net Income ($B):Q', title='Net Income ($B)', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d')),
-                                            color=alt.condition(alt.datum['_up'], alt.value('#3fb950'), alt.value('#f85149')),
-                                            tooltip=[alt.Tooltip('Quarter:N'), alt.Tooltip('Net Income ($B):Q', format='.2f', title='Net Income ($B)')]
-                                        ).properties(height=200, background='#0d1117',
-                                                     title=alt.TitleParams('Net Income (Quarterly)', color='#8b949e', fontSize=11)
-                                                     ).configure_view(strokeWidth=0).configure_axis(labelFontSize=10, titleFontSize=10, titleColor='#8b949e', domainColor='#30363d')
+                                        _prev_n = _ni_qdf["Net Income ($B)"].shift(1).bfill()
+                                        _ni_qdf["_up"] = _ni_qdf["Net Income ($B)"] >= _prev_n
+                                        _nc = (
+                                            alt.Chart(_ni_qdf)
+                                            .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+                                            .encode(
+                                                x=alt.X(
+                                                    "Quarter:N",
+                                                    sort=None,
+                                                    title=None,
+                                                    axis=alt.Axis(
+                                                        labelColor="#8b949e", labelAngle=-30, labelFontSize=10
+                                                    ),
+                                                ),
+                                                y=alt.Y(
+                                                    "Net Income ($B):Q",
+                                                    title="Net Income ($B)",
+                                                    axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d"),
+                                                ),
+                                                color=alt.condition(
+                                                    alt.datum["_up"], alt.value("#3fb950"), alt.value("#f85149")
+                                                ),
+                                                tooltip=[
+                                                    alt.Tooltip("Quarter:N"),
+                                                    alt.Tooltip(
+                                                        "Net Income ($B):Q", format=".2f", title="Net Income ($B)"
+                                                    ),
+                                                ],
+                                            )
+                                            .properties(
+                                                height=200,
+                                                background="#0d1117",
+                                                title=alt.TitleParams(
+                                                    "Net Income (Quarterly)", color="#8b949e", fontSize=11
+                                                ),
+                                            )
+                                            .configure_view(strokeWidth=0)
+                                            .configure_axis(
+                                                labelFontSize=10,
+                                                titleFontSize=10,
+                                                titleColor="#8b949e",
+                                                domainColor="#30363d",
+                                            )
+                                        )
                                         st.altair_chart(_nc, use_container_width=True)
                             st.caption("🟢 QoQ growth  |  🔴 QoQ decline  |  Last 8 reported quarters")
                 except Exception:
@@ -2686,8 +3461,9 @@ aggressively. Forward EPS estimates reveal consensus expectations, acting as the
                 # ── 6. FINANCIAL HEALTH ───────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Balance Sheet & Financial Health")
-                cash_val = data.get('total_cash', 0) or 0
-                st.markdown(f"""
+                cash_val = data.get("total_cash", 0) or 0
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 <strong>Financial health metrics</strong> assess balance sheet resilience, liquidity, and capital structure risk. 
 <strong>Debt/Equity (D/E)</strong> measures financial leverage — ratios above 2.0x raise solvency concerns in 
@@ -2698,33 +3474,53 @@ values above 1.5x indicate a comfortable buffer, below 1.0x signals potential ne
 intrinsic earnings quality; FCF-generative businesses can self-fund growth, pay dividends, and execute buybacks 
 without diluting shareholders. {data['ticker']} carries a D/E of <strong>{de:.2f}x</strong>, 
 current ratio of <strong>{cr:.2f}x</strong>, and generates <strong>{'${:,.1f}B'.format(fcf/1e9) if fcf else 'N/A'}</strong> in FCF.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 h_col1, h_col2, h_col3, h_col4 = st.columns(4)
                 health_metrics = [
-                    ("Debt / Equity",   f"{de:.2f}x",              "≤2.0 safe",    de,       2.0,  True),
-                    ("Current Ratio",   f"{cr:.2f}x",              "≥1.5 liquid",  cr,       1.5,  False),
-                    ("Free Cash Flow",  f"${fcf/1e9:.1f}B" if fcf else "N/A", "Cash generation", fcf/1e9 if fcf else 0, 0, False),
-                    ("Total Cash",      f"${cash_val/1e9:.1f}B" if cash_val else "N/A", "Liquidity buffer", cash_val/1e9 if cash_val else 0, 0, False),
+                    ("Debt / Equity", f"{de:.2f}x", "≤2.0 safe", de, 2.0, True),
+                    ("Current Ratio", f"{cr:.2f}x", "≥1.5 liquid", cr, 1.5, False),
+                    (
+                        "Free Cash Flow",
+                        f"${fcf/1e9:.1f}B" if fcf else "N/A",
+                        "Cash generation",
+                        fcf / 1e9 if fcf else 0,
+                        0,
+                        False,
+                    ),
+                    (
+                        "Total Cash",
+                        f"${cash_val/1e9:.1f}B" if cash_val else "N/A",
+                        "Liquidity buffer",
+                        cash_val / 1e9 if cash_val else 0,
+                        0,
+                        False,
+                    ),
                 ]
-                for col, (label, val, sub, raw, bench, invert) in zip([h_col1,h_col2,h_col3,h_col4], health_metrics):
+                for col, (label, val, sub, raw, bench, invert) in zip([h_col1, h_col2, h_col3, h_col4], health_metrics):
                     if invert:
                         c = "#f85149" if raw > bench * 1.5 else "#d29922" if raw > bench else "#3fb950"
                     else:
                         c = "#3fb950" if raw >= bench else "#d29922" if raw > 0 else "#f85149"
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 10px;text-align:center;">
   <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:20px;font-weight:700;color:{c};margin:6px 0;">{val}</div>
   <div style="font-size:11px;color:#6e7681;">{sub}</div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 7. VALUATION MODEL COMPARISON CHART ──────────────────────
                 if valuation:
                     st.markdown("---")
                     st.markdown("##### Valuation Model Price Targets")
-                    st.markdown("""
+                    st.markdown(
+                        """
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 The chart below plots bear / base / bull price targets from four independent valuation models alongside the 
 current market price. <strong>P/E Based</strong> uses historical earnings multiples applied to trailing EPS. 
@@ -2732,63 +3528,121 @@ current market price. <strong>P/E Based</strong> uses historical earnings multip
 aggregates price targets from major sell-side brokerages. <strong>DCF</strong> (Discounted Cash Flow) models 
 intrinsic value based on projected free cash flows discounted at WACC — the most theoretically rigorous but 
 also most assumption-dependent approach. A convergence of models above the current price signals a margin of safety.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                        unsafe_allow_html=True,
+                    )
 
                     val_rows = []
-                    current_price = data['price']
+                    current_price = data["price"]
                     model_map = [
-                        ('pe_valuation',      'P/E Based'),
-                        ('forward_pe_valuation','Forward P/E'),
-                        ('analyst_target',    'Analyst Consensus'),
-                        ('dcf_valuation',     'DCF Model'),
+                        ("pe_valuation", "P/E Based"),
+                        ("forward_pe_valuation", "Forward P/E"),
+                        ("analyst_target", "Analyst Consensus"),
+                        ("dcf_valuation", "DCF Model"),
                     ]
                     for key, model_name in model_map:
                         if key in valuation:
                             v = valuation[key]
-                            low  = v.get('low')  or v.get('bear')
-                            mid  = v.get('mid')  or v.get('base')
-                            high = v.get('high') or v.get('bull')
-                            if low  is not None: val_rows.append({'Model': model_name, 'Scenario': 'Bear', 'Price': low})
-                            if mid  is not None: val_rows.append({'Model': model_name, 'Scenario': 'Base', 'Price': mid})
-                            if high is not None: val_rows.append({'Model': model_name, 'Scenario': 'Bull', 'Price': high})
+                            low = v.get("low") or v.get("bear")
+                            mid = v.get("mid") or v.get("base")
+                            high = v.get("high") or v.get("bull")
+                            if low is not None:
+                                val_rows.append({"Model": model_name, "Scenario": "Bear", "Price": low})
+                            if mid is not None:
+                                val_rows.append({"Model": model_name, "Scenario": "Base", "Price": mid})
+                            if high is not None:
+                                val_rows.append({"Model": model_name, "Scenario": "Bull", "Price": high})
 
                     if val_rows:
                         val_df = pd.DataFrame(val_rows)
-                        color_scale = alt.Scale(domain=['Bear','Base','Bull'], range=['#f85149','#d29922','#3fb950'])
-                        bars = alt.Chart(val_df).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-                            x=alt.X('Model:N', title=None, axis=alt.Axis(labelColor='#8b949e', labelAngle=0)),
-                            y=alt.Y('Price:Q', title='Price (USD)', scale=alt.Scale(zero=False),
-                                    axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', format='$.0f')),
-                            color=alt.Color('Scenario:N', scale=color_scale, legend=alt.Legend(orient='top', labelColor='#c9d1d9', titleColor='#8b949e')),
-                            xOffset='Scenario:N',
-                            tooltip=[alt.Tooltip('Model:N'), alt.Tooltip('Scenario:N'), alt.Tooltip('Price:Q', format='$.2f')]
+                        color_scale = alt.Scale(
+                            domain=["Bear", "Base", "Bull"], range=["#f85149", "#d29922", "#3fb950"]
                         )
-                        price_line = alt.Chart(pd.DataFrame({'y': [current_price]})).mark_rule(color='#58a6ff', strokeWidth=2, strokeDash=[5,4]).encode(y='y:Q')
-                        val_chart = (bars + price_line).properties(height=260).configure_view(strokeWidth=0).configure(background='#0d1117').configure_axis(labelFontSize=11, titleFontSize=11, titleColor='#8b949e', domainColor='#30363d')
+                        bars = (
+                            alt.Chart(val_df)
+                            .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+                            .encode(
+                                x=alt.X("Model:N", title=None, axis=alt.Axis(labelColor="#8b949e", labelAngle=0)),
+                                y=alt.Y(
+                                    "Price:Q",
+                                    title="Price (USD)",
+                                    scale=alt.Scale(zero=False),
+                                    axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d", format="$.0f"),
+                                ),
+                                color=alt.Color(
+                                    "Scenario:N",
+                                    scale=color_scale,
+                                    legend=alt.Legend(orient="top", labelColor="#c9d1d9", titleColor="#8b949e"),
+                                ),
+                                xOffset="Scenario:N",
+                                tooltip=[
+                                    alt.Tooltip("Model:N"),
+                                    alt.Tooltip("Scenario:N"),
+                                    alt.Tooltip("Price:Q", format="$.2f"),
+                                ],
+                            )
+                        )
+                        price_line = (
+                            alt.Chart(pd.DataFrame({"y": [current_price]}))
+                            .mark_rule(color="#58a6ff", strokeWidth=2, strokeDash=[5, 4])
+                            .encode(y="y:Q")
+                        )
+                        val_chart = (
+                            (bars + price_line)
+                            .properties(height=260)
+                            .configure_view(strokeWidth=0)
+                            .configure(background="#0d1117")
+                            .configure_axis(
+                                labelFontSize=11, titleFontSize=11, titleColor="#8b949e", domainColor="#30363d"
+                            )
+                        )
                         st.altair_chart(val_chart, use_container_width=True)
-                        st.caption(f"🔵 Dashed line = current price (${current_price:.2f})  |  🔴 Bear  |  🟡 Base  |  🟢 Bull")
+                        st.caption(
+                            f"🔵 Dashed line = current price (${current_price:.2f})  |  🔴 Bear  |  🟡 Base  |  🟢 Bull"
+                        )
 
-                    if 'composite' in valuation:
+                    if "composite" in valuation:
                         st.divider()
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Composite Bear", f"${valuation['composite']['target_low']:.2f}", f"{valuation['composite']['upside_low']:+.1f}%")
+                            st.metric(
+                                "Composite Bear",
+                                f"${valuation['composite']['target_low']:.2f}",
+                                f"{valuation['composite']['upside_low']:+.1f}%",
+                            )
                         with col2:
-                            st.metric("Composite Base", f"${valuation['composite']['target_mid']:.2f}", f"{valuation['composite']['upside_mid']:+.1f}%")
+                            st.metric(
+                                "Composite Base",
+                                f"${valuation['composite']['target_mid']:.2f}",
+                                f"{valuation['composite']['upside_mid']:+.1f}%",
+                            )
                         with col3:
-                            st.metric("Composite Bull", f"${valuation['composite']['target_high']:.2f}", f"{valuation['composite']['upside_high']:+.1f}%")
+                            st.metric(
+                                "Composite Bull",
+                                f"${valuation['composite']['target_high']:.2f}",
+                                f"{valuation['composite']['upside_high']:+.1f}%",
+                            )
 
                 # ── 8. SIGNAL DETAIL TABLE ────────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Full Signal Detail")
-                fund_signals_df = pd.DataFrame(fund_analysis['signals'])
+                fund_signals_df = pd.DataFrame(fund_analysis["signals"])
                 if not fund_signals_df.empty:
                     _rows = ""
                     for _, _r in fund_signals_df.iterrows():
-                        _s = str(_r.get('signal', '')).upper()
-                        _fg = "#3fb950" if any(x in _s for x in ['BULLISH','BUY','STRONG','POSITIVE','HEALTHY','GOOD','HIGH']) else "#f85149" if any(x in _s for x in ['BEARISH','SELL','WEAK','NEGATIVE','POOR','RISKY']) else "#d29922"
+                        _s = str(_r.get("signal", "")).upper()
+                        _fg = (
+                            "#3fb950"
+                            if any(x in _s for x in ["BULLISH", "BUY", "STRONG", "POSITIVE", "HEALTHY", "GOOD", "HIGH"])
+                            else (
+                                "#f85149"
+                                if any(x in _s for x in ["BEARISH", "SELL", "WEAK", "NEGATIVE", "POOR", "RISKY"])
+                                else "#d29922"
+                            )
+                        )
                         _bg = _fg + "18"
-                        _rows += (f"<tr style='border-bottom:1px solid #21262d;'>"
+                        _rows += (
+                            f"<tr style='border-bottom:1px solid #21262d;'>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#8b949e;text-transform:uppercase;white-space:nowrap;'>{_r.get('category','')}</td>"
                             f"<td style='padding:8px 10px;font-size:13px;color:#e6edf3;font-weight:500;'>{_r.get('metric','')}</td>"
                             f"<td style='padding:8px 10px;font-size:13px;color:#58a6ff;font-weight:600;text-align:right;white-space:nowrap;'>{_r.get('value','')}</td>"
@@ -2796,7 +3650,8 @@ also most assumption-dependent approach. A convergence of models above the curre
                             f"<td style='padding:8px 10px;font-size:14px;color:{_fg};font-weight:700;text-align:center;'>{_r.get('score','')}</td>"
                             f"<td style='padding:8px 10px;font-size:12px;color:#8b949e;'>{_r.get('detail','')}</td>"
                             f"<td style='padding:8px 10px;font-size:11px;color:#6e7681;text-align:center;white-space:nowrap;'>{_r.get('benchmark','')}</td>"
-                            f"</tr>")
+                            f"</tr>"
+                        )
                     st.markdown(
                         "<div style='background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;'>"
                         "<table style='width:100%;border-collapse:collapse;'>"
@@ -2809,22 +3664,28 @@ also most assumption-dependent approach. A convergence of models above the curre
                         "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:left;text-transform:uppercase;'>Detail</th>"
                         "<th style='padding:10px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Benchmark</th>"
                         f"</tr></thead><tbody>{_rows}</tbody></table></div>",
-                        unsafe_allow_html=True)
-                st.caption("Sources: Yahoo Finance \u00b7 SEC EDGAR 10-K/10-Q (where available) \u00b7 Analyst estimates from sell-side brokerages.")
+                        unsafe_allow_html=True,
+                    )
+                st.caption(
+                    "Sources: Yahoo Finance \u00b7 SEC EDGAR 10-K/10-Q (where available) \u00b7 Analyst estimates from sell-side brokerages."
+                )
 
                 st.markdown("---")
                 st.markdown("**Peer Comparison**")
                 st.caption("Key metrics vs sector peers (Yahoo Finance data)")
                 with st.spinner("Loading peers..."):
-                    _peer_df = fetch_peer_comparison(data['ticker'], data.get('sector', ''))
+                    _peer_df = fetch_peer_comparison(data["ticker"], data.get("sector", ""))
                 if not _peer_df.empty:
+
                     def _style_peers(row):
-                        if _peer_df.loc[row.name, '_is_subject']:
-                            return ['background-color: rgba(29,78,216,0.15); font-weight:bold'] * len(row)
-                        return [''] * len(row)
-                    _display_df = _peer_df.drop(columns=['_is_subject'])
-                    st.dataframe(_display_df.style.apply(_style_peers, axis=1),
-                                 use_container_width=True, hide_index=True)
+                        if _peer_df.loc[row.name, "_is_subject"]:
+                            return ["background-color: rgba(29,78,216,0.15); font-weight:bold"] * len(row)
+                        return [""] * len(row)
+
+                    _display_df = _peer_df.drop(columns=["_is_subject"])
+                    st.dataframe(
+                        _display_df.style.apply(_style_peers, axis=1), use_container_width=True, hide_index=True
+                    )
 
         # ── INSIDER TAB ────────────────────────────────────────────────────────
         # ── VALUATION TAB ──────────────────────────────────────────────────────
@@ -2889,11 +3750,19 @@ also most assumption-dependent approach. A convergence of models above the curre
                     st.markdown("#### P/E-Based Price Targets")
                     _pt_rows = []
                     if _pe_val and all(_pe_val.get(k) is not None for k in ("low", "mid", "high")):
-                        _pt_rows.append(("P/E (TTM) — Bear / Base / Bull",
-                                         f"${_pe_val['low']:.2f} / ${_pe_val['mid']:.2f} / ${_pe_val['high']:.2f}"))
+                        _pt_rows.append(
+                            (
+                                "P/E (TTM) — Bear / Base / Bull",
+                                f"${_pe_val['low']:.2f} / ${_pe_val['mid']:.2f} / ${_pe_val['high']:.2f}",
+                            )
+                        )
                     if _fpe_val and all(_fpe_val.get(k) is not None for k in ("low", "mid", "high")):
-                        _pt_rows.append(("Forward P/E — Bear / Base / Bull",
-                                         f"${_fpe_val['low']:.2f} / ${_fpe_val['mid']:.2f} / ${_fpe_val['high']:.2f}"))
+                        _pt_rows.append(
+                            (
+                                "Forward P/E — Bear / Base / Bull",
+                                f"${_fpe_val['low']:.2f} / ${_fpe_val['mid']:.2f} / ${_fpe_val['high']:.2f}",
+                            )
+                        )
                     for _lbl, _val_str in _pt_rows:
                         st.markdown(f"**{_lbl}:** {_val_str}")
 
@@ -2905,8 +3774,8 @@ also most assumption-dependent approach. A convergence of models above the curre
                 from sa_peers import build_peer_table, _fallback_peers, fetch_peer_data as _fetch_peer_data
 
                 _main_ticker = data["ticker"]
-                _pd_key = f"_pdata_{_main_ticker}"   # dict: ticker -> data
-                _pm_key = f"_pmsel_{_main_ticker}"   # multiselect widget state key
+                _pd_key = f"_pdata_{_main_ticker}"  # dict: ticker -> data
+                _pm_key = f"_pmsel_{_main_ticker}"  # multiselect widget state key
 
                 # ── Auto-initialize on first visit for this ticker ─────────────
                 if _pd_key not in st.session_state:
@@ -2938,10 +3807,16 @@ also most assumption-dependent approach. A convergence of models above the curre
                         label_visibility="collapsed",
                     )
                 with _ctrl_r:
-                    _new_t = st.text_input(
-                        "Add peer", placeholder="e.g. TSLA",
-                        key="peer_add_input", label_visibility="collapsed",
-                    ).strip().upper()
+                    _new_t = (
+                        st.text_input(
+                            "Add peer",
+                            placeholder="e.g. TSLA",
+                            key="peer_add_input",
+                            label_visibility="collapsed",
+                        )
+                        .strip()
+                        .upper()
+                    )
                     if st.button("+ Add Peer", key="peer_add_btn", use_container_width=True) and _new_t:
                         if _new_t == _main_ticker:
                             st.warning(f"{_new_t} is the subject company.")
@@ -2952,6 +3827,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                         else:
                             with st.spinner(f"Fetching {_new_t}..."):
                                 from sa_research_agent import _yfinance_fetch as _yf
+
                                 _fd = _yf(_new_t)
                             if not _fd.get("valid"):
                                 st.error(f"{_new_t} not found on Yahoo Finance.")
@@ -3004,8 +3880,16 @@ also most assumption-dependent approach. A convergence of models above the curre
 
                 # ── Bar chart comparison ───────────────────────────────────────
                 if len(_peer_df) > 1:
-                    _chart_cols = ["P/E (TTM)", "Forward P/E", "EV/EBITDA",
-                                   "Rev Growth %", "Profit Margin %", "EPS", "Debt/Equity", "Market Cap ($B)"]
+                    _chart_cols = [
+                        "P/E (TTM)",
+                        "Forward P/E",
+                        "EV/EBITDA",
+                        "Rev Growth %",
+                        "Profit Margin %",
+                        "EPS",
+                        "Debt/Equity",
+                        "Market Cap ($B)",
+                    ]
                     _sel_metric = st.selectbox(
                         "📊 Compare metric across peers",
                         _chart_cols,
@@ -3022,11 +3906,12 @@ also most assumption-dependent approach. A convergence of models above the curre
                             alt.Chart(_cdf)
                             .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
                             .encode(
-                                x=alt.X(f"{_sel_metric}:Q", title=_sel_metric,
-                                        axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e",
-                                                      gridColor="#21262d")),
-                                y=alt.Y("Ticker:N", sort=None, title=None,
-                                        axis=alt.Axis(labelColor="#c9d1d9")),
+                                x=alt.X(
+                                    f"{_sel_metric}:Q",
+                                    title=_sel_metric,
+                                    axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e", gridColor="#21262d"),
+                                ),
+                                y=alt.Y("Ticker:N", sort=None, title=None, axis=alt.Axis(labelColor="#c9d1d9")),
                                 color=alt.condition(
                                     alt.datum["_is_main"],
                                     alt.value("#58a6ff"),
@@ -3068,6 +3953,7 @@ also most assumption-dependent approach. A convergence of models above the curre
                     if _selected_months != _current_months:
                         with st.spinner(f"Re-fetching insider data ({_selected_label})..."):
                             from sa_research_agent import fetch_insider_trades, analyze_insider_signal, _get_cik
+
                             _cik = _it.get("cik") or _get_cik(data["ticker"])
                             if _cik:
                                 _new_it = fetch_insider_trades(_cik, months=_selected_months)
@@ -3114,10 +4000,14 @@ also most assumption-dependent approach. A convergence of models above the curre
                         _df["Value ($)"] = _df["value"].apply(lambda v: f"${v/1e6:.2f}M" if v >= 1e6 else f"${v:,.0f}")
                         _df["Shares"] = _df["shares"].apply(lambda s: f"{s:,}")
                         _df["Price"] = _df["price"].apply(lambda p: f"${p:.2f}" if p > 0 else "—")
-                        _display_df = _df.rename(columns={
-                            "date": "Date", "insider": "Insider",
-                            "title": "Title", "type": "Type",
-                        })[["Date", "Insider", "Title", "Type", "Shares", "Price", "Value ($)"]]
+                        _display_df = _df.rename(
+                            columns={
+                                "date": "Date",
+                                "insider": "Insider",
+                                "title": "Title",
+                                "type": "Type",
+                            }
+                        )[["Date", "Insider", "Title", "Type", "Shares", "Price", "Value ($)"]]
 
                         def _color_type(val):
                             if val == "BUY":
@@ -3150,24 +4040,25 @@ also most assumption-dependent approach. A convergence of models above the curre
             if not has_data:
                 st.info("Run an analysis to see the conclusion and forecast.")
             else:
-                ac = recommendation['action_color']
-                upside_low  = (recommendation['target_low']  - data['price']) / data['price'] * 100
-                upside_high = (recommendation['target_high'] - data['price']) / data['price'] * 100
+                ac = recommendation["action_color"]
+                upside_low = (recommendation["target_low"] - data["price"]) / data["price"] * 100
+                upside_high = (recommendation["target_high"] - data["price"]) / data["price"] * 100
 
                 # Sanity check 1: never show negative "upside"
-                _up = recommendation['upside']
-                _upside_label = (
-                    f"{abs(_up):.1f}% potential downside"
-                    if _up < 0
-                    else f"{_up:.1f}% potential upside"
-                )
+                _up = recommendation["upside"]
+                _upside_label = f"{abs(_up):.1f}% potential downside" if _up < 0 else f"{_up:.1f}% potential upside"
 
                 # Sanity check 2: rename Bull → Best when bull target ≤ current price
-                _bull_label = "Bull Case" if recommendation['target_high'] > data['price'] else "Best Case"
-                _bull_note  = "" if recommendation['target_high'] > data['price'] else "<div style='font-size:10px;color:#8b949e;margin-top:4px;'>best case is still downside</div>"
+                _bull_label = "Bull Case" if recommendation["target_high"] > data["price"] else "Best Case"
+                _bull_note = (
+                    ""
+                    if recommendation["target_high"] > data["price"]
+                    else "<div style='font-size:10px;color:#8b949e;margin-top:4px;'>best case is still downside</div>"
+                )
 
                 # ── 1. HEADLINE RECOMMENDATION CARD ──────────────────────────
-                st.markdown(f"""
+                st.markdown(
+                    f"""
 <div style="background:#0d1117;border:2px solid {ac};border-radius:14px;padding:28px 30px;margin-bottom:18px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
     <div>
@@ -3187,49 +4078,74 @@ also most assumption-dependent approach. A convergence of models above the curre
       <div style="font-size:12px;color:#6e7681;margin-top:8px;">Current price: ${data['price']:.2f}</div>
     </div>
   </div>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 # ── SCORE RADAR CHART ───────────────────────────────────────
                 try:
                     import plotly.graph_objects as go
-                    _bd_r = fund_analysis['breakdown']
+
+                    _bd_r = fund_analysis["breakdown"]
+
                     def _norm(score, mx):
                         return max(0, min(100, (score / mx + 1) / 2 * 100)) if mx else 50
-                    _radar_cats = ['Technical', 'Valuation', 'Profitability', 'Growth', 'Health']
+
+                    _radar_cats = ["Technical", "Valuation", "Profitability", "Growth", "Health"]
                     _radar_vals = [
-                        (tech_analysis['score_pct'] + 100) / 2,
-                        _norm(_bd_r['valuation']['score'], _bd_r['valuation']['max']),
-                        _norm(_bd_r['profitability']['score'], _bd_r['profitability']['max']),
-                        _norm(_bd_r['growth']['score'], _bd_r['growth']['max']),
-                        _norm(_bd_r['health']['score'], _bd_r['health']['max']),
+                        (tech_analysis["score_pct"] + 100) / 2,
+                        _norm(_bd_r["valuation"]["score"], _bd_r["valuation"]["max"]),
+                        _norm(_bd_r["profitability"]["score"], _bd_r["profitability"]["max"]),
+                        _norm(_bd_r["growth"]["score"], _bd_r["growth"]["max"]),
+                        _norm(_bd_r["health"]["score"], _bd_r["health"]["max"]),
                     ]
                     _radar_fig = go.Figure()
-                    _radar_fig.add_trace(go.Scatterpolar(
-                        r=_radar_vals + [_radar_vals[0]],
-                        theta=_radar_cats + [_radar_cats[0]],
-                        fill='toself', fillcolor='rgba(88,166,255,0.12)',
-                        line=dict(color='#58a6ff', width=2), name='Score',
-                        hovertemplate='%{theta}: %{r:.0f}/100<extra></extra>',
-                    ))
-                    _radar_fig.add_trace(go.Scatterpolar(
-                        r=[50] * 5 + [50], theta=_radar_cats + [_radar_cats[0]],
-                        line=dict(color='#6e7681', width=1, dash='dot'), showlegend=False,
-                        hoverinfo='skip',
-                    ))
+                    _radar_fig.add_trace(
+                        go.Scatterpolar(
+                            r=_radar_vals + [_radar_vals[0]],
+                            theta=_radar_cats + [_radar_cats[0]],
+                            fill="toself",
+                            fillcolor="rgba(88,166,255,0.12)",
+                            line=dict(color="#58a6ff", width=2),
+                            name="Score",
+                            hovertemplate="%{theta}: %{r:.0f}/100<extra></extra>",
+                        )
+                    )
+                    _radar_fig.add_trace(
+                        go.Scatterpolar(
+                            r=[50] * 5 + [50],
+                            theta=_radar_cats + [_radar_cats[0]],
+                            line=dict(color="#6e7681", width=1, dash="dot"),
+                            showlegend=False,
+                            hoverinfo="skip",
+                        )
+                    )
                     _radar_fig.update_layout(
                         polar=dict(
-                            radialaxis=dict(visible=True, range=[0, 100], tickvals=[25, 50, 75, 100],
-                                           gridcolor='#30363d', linecolor='#30363d', tickfont=dict(color='#6e7681', size=9)),
-                            angularaxis=dict(tickfont=dict(color='#c9d1d9', size=11), linecolor='#30363d', gridcolor='#30363d'),
-                            bgcolor='#0d1117',
+                            radialaxis=dict(
+                                visible=True,
+                                range=[0, 100],
+                                tickvals=[25, 50, 75, 100],
+                                gridcolor="#30363d",
+                                linecolor="#30363d",
+                                tickfont=dict(color="#6e7681", size=9),
+                            ),
+                            angularaxis=dict(
+                                tickfont=dict(color="#c9d1d9", size=11), linecolor="#30363d", gridcolor="#30363d"
+                            ),
+                            bgcolor="#0d1117",
                         ),
-                        paper_bgcolor='#0d1117', showlegend=False,
-                        margin=dict(l=60, r=60, t=30, b=30), height=270,
+                        paper_bgcolor="#0d1117",
+                        showlegend=False,
+                        margin=dict(l=60, r=60, t=30, b=30),
+                        height=270,
                     )
                     _radar_col1, _radar_col2, _radar_col3 = st.columns([1, 2, 1])
                     with _radar_col2:
                         st.plotly_chart(_radar_fig, use_container_width=True)
-                    st.caption("Score radar: 50 = neutral midpoint (dotted) · outer ring = stronger signal · 5 analytical dimensions")
+                    st.caption(
+                        "Score radar: 50 = neutral midpoint (dotted) · outer ring = stronger signal · 5 analytical dimensions"
+                    )
                 except Exception:
                     pass
 
@@ -3237,19 +4153,18 @@ also most assumption-dependent approach. A convergence of models above the curre
                 _it_badge = data.get("_insider_trades") or {}
                 if _it_badge.get("available"):
                     _sig_badge = _it_badge.get("summary", {}).get("signal", "MIXED / NEUTRAL")
-                    _sig_color = (
-                        "#3fb950" if "BUY" in _sig_badge
-                        else "#f85149" if "SELL" in _sig_badge
-                        else "#d29922"
-                    )
+                    _sig_color = "#3fb950" if "BUY" in _sig_badge else "#f85149" if "SELL" in _sig_badge else "#d29922"
                     _w_badge = st.session_state.get("insider_weight", 15)
-                    st.markdown(f"""
+                    st.markdown(
+                        f"""
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 16px;
             background:#0d1117;border:1px solid #30363d;border-radius:8px;">
   <span style="font-size:13px;color:#8b949e;font-weight:600;">Insider Signal:</span>
   <span style="font-size:13px;color:{_sig_color};font-weight:700;">{_sig_badge}</span>
   <span style="font-size:12px;color:#6e7681;margin-left:auto;">Weight: {_w_badge}%</span>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                        unsafe_allow_html=True,
+                    )
 
                 # ── ORCHESTRATOR THESIS ────────────────────────────────────────
                 _thesis = data.get("_orchestrator_thesis", "")
@@ -3275,25 +4190,36 @@ also most assumption-dependent approach. A convergence of models above the curre
                 for col, (label, icon, price, upside, color, note) in zip(
                     [pt_col1, pt_col2, pt_col3],
                     [
-                        ("Bear Case",  "\U0001f43b", recommendation['target_low'],   upside_low,   "#f85149", ""),
-                        ("Base Case",  "\u2696\ufe0f",  recommendation['target_price'], recommendation['upside'], "#d29922", ""),
-                        (_bull_label,  "\U0001f402", recommendation['target_high'],  upside_high,  "#3fb950", _bull_note),
-                    ]
+                        ("Bear Case", "\U0001f43b", recommendation["target_low"], upside_low, "#f85149", ""),
+                        (
+                            "Base Case",
+                            "\u2696\ufe0f",
+                            recommendation["target_price"],
+                            recommendation["upside"],
+                            "#d29922",
+                            "",
+                        ),
+                        (_bull_label, "\U0001f402", recommendation["target_high"], upside_high, "#3fb950", _bull_note),
+                    ],
                 ):
                     with col:
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
 <div style="background:#0d1117;border:1px solid {color};border-radius:10px;padding:18px 14px;text-align:center;">
   <div style="font-size:22px;margin-bottom:4px;">{icon}</div>
   <div style="font-size:12px;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">{label}</div>
   <div style="font-size:26px;font-weight:700;color:{color};">${price:.2f}</div>
   <div style="font-size:14px;color:{color};font-weight:600;margin-top:2px;">{upside:+.1f}%</div>
   {note}
-</div>""", unsafe_allow_html=True)
+</div>""",
+                            unsafe_allow_html=True,
+                        )
 
                 # ── 3. EXPECTED RETURNS TABLE ─────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Expected Returns by Time Horizon")
-                st.markdown("""
+                st.markdown(
+                    """
 <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px;font-size:13px;color:#c9d1d9;line-height:1.7;">
 Forecasted returns are synthesized from <strong>four analytical reference lenses</strong>: technical momentum
 (trend & RSI signals), fundamental valuation gap (intrinsic value vs market price), historical mean-reversion
@@ -3302,14 +4228,16 @@ as fully independent signals. <strong>Point Estimate</strong> is the probability
 <strong>80% Range</strong> is the confidence interval. <strong>Confidence</strong> reflects convergence
 across lenses — short-horizon estimates are more technically driven while long-horizon estimates weight
 intrinsic fundamental value more heavily.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
                 _ret_rows = ""
                 for _period, _fc in forecasts.items():
-                    _ret  = _fc['point_estimate']
-                    _rc   = "#3fb950" if _ret > 5 else "#d29922" if _ret > 0 else "#f85149"
-                    _conf = _fc['confidence']
-                    _cc   = "#3fb950" if _conf == "High" else "#d29922" if _conf == "Medium" else "#f85149"
+                    _ret = _fc["point_estimate"]
+                    _rc = "#3fb950" if _ret > 5 else "#d29922" if _ret > 0 else "#f85149"
+                    _conf = _fc["confidence"]
+                    _cc = "#3fb950" if _conf == "High" else "#d29922" if _conf == "Medium" else "#f85149"
                     _ret_rows += (
                         f"<tr style='border-bottom:1px solid #21262d;'>"
                         f"<td style='padding:10px 12px;font-size:13px;color:#e6edf3;font-weight:600;'>{_period}</td>"
@@ -3331,43 +4259,50 @@ intrinsic fundamental value more heavily.
                     "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Confidence</th>"
                     "<th style='padding:10px 12px;font-size:11px;color:#8b949e;text-align:center;text-transform:uppercase;'>Probability</th>"
                     f"</tr></thead><tbody>{_ret_rows}</tbody></table></div>",
-                    unsafe_allow_html=True)
+                    unsafe_allow_html=True,
+                )
 
                 # ── 4. INVESTMENT RATIONALE ───────────────────────────────────
                 st.markdown("---")
                 st.markdown("##### Investment Rationale")
-                st.markdown(recommendation['rationale'])
+                st.markdown(recommendation["rationale"])
 
                 # ── 5. CATALYSTS & RISKS ──────────────────────────────────────
                 st.markdown("---")
                 b_col1, b_col2 = st.columns(2)
                 with b_col1:
                     st.markdown("##### \U0001f7e2 Bullish Catalysts")
-                    if recommendation.get('bullish_drivers'):
+                    if recommendation.get("bullish_drivers"):
                         _items = "".join(
                             f"<div style='padding:7px 0;border-bottom:1px solid #21262d;font-size:13px;color:#c9d1d9;'>"
                             f"<span style='color:#3fb950;margin-right:6px;'>\u2713</span>{d}</div>"
-                            for d in recommendation['bullish_drivers']
+                            for d in recommendation["bullish_drivers"]
                         )
-                        st.markdown(f"<div style='background:#0d1117;border:1px solid #3fb95099;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div style='background:#0d1117;border:1px solid #3fb95099;border-radius:8px;padding:10px 14px;'>{_items}</div>",
+                            unsafe_allow_html=True,
+                        )
                     else:
                         st.info("No significant bullish factors identified.")
                 with b_col2:
                     st.markdown("##### \U0001f534 Key Risks")
-                    if recommendation.get('bearish_risks'):
+                    if recommendation.get("bearish_risks"):
                         _items = "".join(
                             f"<div style='padding:7px 0;border-bottom:1px solid #21262d;font-size:13px;color:#c9d1d9;'>"
                             f"<span style='color:#f85149;margin-right:6px;'>\u26a0</span>{r}</div>"
-                            for r in recommendation['bearish_risks']
+                            for r in recommendation["bearish_risks"]
                         )
-                        st.markdown(f"<div style='background:#0d1117;border:1px solid #f8514999;border-radius:8px;padding:10px 14px;'>{_items}</div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div style='background:#0d1117;border:1px solid #f8514999;border-radius:8px;padding:10px 14px;'>{_items}</div>",
+                            unsafe_allow_html=True,
+                        )
                     else:
                         st.info("No significant risk factors identified.")
 
                 # ── 6. TRADE INVALIDATION ─────────────────────────────────────
                 st.markdown("---")
                 st.markdown("**⚠️ Trade Invalidation Criteria**")
-                st.warning(recommendation['invalidation'].replace("\\$", "$"))
+                st.warning(recommendation["invalidation"].replace("\\$", "$"))
 
                 # \u2500\u2500 7. FACT CHECK \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
                 _fc_context = build_analysis_context(
@@ -3398,11 +4333,14 @@ intrinsic fundamental value more heavily.
                                 f"({_issue['diff_pct']:.1f}% difference)"
                             )
 
-                st.markdown("""
+                st.markdown(
+                    """
 <div style="font-size:11px;color:#6e7681;text-align:center;padding:18px 0 4px 0;border-top:1px solid #21262d;margin-top:18px;">
   <strong>Disclaimer:</strong> Educational purposes only. Not financial or investment advice.
   Data sourced from Yahoo Finance (15\u201320 min delayed), SEC EDGAR, and public web search.
-</div>""", unsafe_allow_html=True)
+</div>""",
+                    unsafe_allow_html=True,
+                )
 
         # \u2500\u2500 RESEARCH LOG TAB \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
         with tab_research:
@@ -3441,7 +4379,9 @@ intrinsic fundamental value more heavily.
                         _agent = _step.get("agent", "")
                         _agent_icon = _agent_icons.get(_agent, "")
                         _agent_label = f" [{_agent_icon} {_agent}]" if _agent else ""
-                        _label = f"{_tool_icon} Step {_step['step']} \u2014 {_step.get('tool', 'unknown')}{_agent_label}"
+                        _label = (
+                            f"{_tool_icon} Step {_step['step']} \u2014 {_step.get('tool', 'unknown')}{_agent_label}"
+                        )
                         with st.expander(_label, expanded=(_step["step"] == 0)):
                             if _step.get("args"):
                                 st.caption(f"Arguments: `{json.dumps(_step['args'])}`")
@@ -3471,4 +4411,3 @@ intrinsic fundamental value more heavily.
                         st.markdown("---")
                         with st.expander("🌐 Web Search Results", expanded=False):
                             st.text(_web_ctx[:3000])
-

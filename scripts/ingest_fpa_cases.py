@@ -24,23 +24,67 @@ import argparse, json, os, pathlib, sys
 # ── Paths ─────────────────────────────────────────────────────────────────────
 REPO = pathlib.Path(__file__).parent.parent
 STREAMLIT = REPO / "streamlit_app"
-RAW_EXT   = STREAMLIT / "data" / "cases" / "raw_external"
+RAW_EXT = STREAMLIT / "data" / "cases" / "raw_external"
 STRUCT_DIR = STREAMLIT / "data" / "cases" / "structured"
 INDEX_PATH = STREAMLIT / "data" / "cases" / "index" / "case_index.json"
 
 # ── PDF catalogue (must match download_fpa_cases.py) ─────────────────────────
 PDF_CATALOGUE = [
-    ("FPA_FPC_2025.pdf", 2025, "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC25%20Case%20Study.pdf"),
-    ("FPA_FPC_2024.pdf", 2024, "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC24%20Case%20Study%20Final%20Copy.pdf"),
-    ("FPA_FPC_2023.pdf", 2023, "https://www.financialplanningassociation.org/sites/default/files/2023-02/FPC23%20Case%20Study%20-%20The%20Rogers%20Retire_FINAL.pdf"),
-    ("FPA_FPC_2022.pdf", 2022, "https://www.financialplanningassociation.org/sites/default/files/2022-02/2022%20FPC%20Case%20Study%20Final.pdf"),
-    ("FPA_FPC_2021.pdf", 2021, "https://www.financialplanningassociation.org/sites/default/files/2021-02/FPC21%20Case%20Study%20Final.pdf"),
-    ("FPA_FPC_2020.pdf", 2020, "https://www.financialplanningassociation.org/sites/default/files/2020-05/FPC20%20Case%20Study.pdf"),
-    ("FPA_FPC_2019.pdf", 2019, "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202019%20Case%20Study.pdf"),
-    ("FPA_FPC_2018.pdf", 2018, "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202018%20Case%20Study.pdf"),
-    ("FPA_FPC_2016.pdf", 2016, "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202016%20Case%20Study.pdf"),
-    ("FPA_FPC_2015.pdf", 2015, "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC15%20Case%20Study.pdf"),
-    ("FPA_FPC_2014.pdf", 2014, "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202014%20Case%20Study.pdf"),
+    (
+        "FPA_FPC_2025.pdf",
+        2025,
+        "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC25%20Case%20Study.pdf",
+    ),
+    (
+        "FPA_FPC_2024.pdf",
+        2024,
+        "https://www.financialplanningassociation.org/sites/default/files/2025-02/FPC24%20Case%20Study%20Final%20Copy.pdf",
+    ),
+    (
+        "FPA_FPC_2023.pdf",
+        2023,
+        "https://www.financialplanningassociation.org/sites/default/files/2023-02/FPC23%20Case%20Study%20-%20The%20Rogers%20Retire_FINAL.pdf",
+    ),
+    (
+        "FPA_FPC_2022.pdf",
+        2022,
+        "https://www.financialplanningassociation.org/sites/default/files/2022-02/2022%20FPC%20Case%20Study%20Final.pdf",
+    ),
+    (
+        "FPA_FPC_2021.pdf",
+        2021,
+        "https://www.financialplanningassociation.org/sites/default/files/2021-02/FPC21%20Case%20Study%20Final.pdf",
+    ),
+    (
+        "FPA_FPC_2020.pdf",
+        2020,
+        "https://www.financialplanningassociation.org/sites/default/files/2020-05/FPC20%20Case%20Study.pdf",
+    ),
+    (
+        "FPA_FPC_2019.pdf",
+        2019,
+        "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202019%20Case%20Study.pdf",
+    ),
+    (
+        "FPA_FPC_2018.pdf",
+        2018,
+        "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202018%20Case%20Study.pdf",
+    ),
+    (
+        "FPA_FPC_2016.pdf",
+        2016,
+        "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202016%20Case%20Study.pdf",
+    ),
+    (
+        "FPA_FPC_2015.pdf",
+        2015,
+        "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC15%20Case%20Study.pdf",
+    ),
+    (
+        "FPA_FPC_2014.pdf",
+        2014,
+        "https://www.financialplanningassociation.org/sites/default/files/2021-07/FPC%202014%20Case%20Study.pdf",
+    ),
 ]
 
 
@@ -48,6 +92,7 @@ PDF_CATALOGUE = [
 def _get_openai():
     try:
         from dotenv import load_dotenv
+
         load_dotenv(REPO / ".env")
     except ImportError:
         pass
@@ -55,6 +100,7 @@ def _get_openai():
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY not set. Add it to .env or export it.")
     from openai import OpenAI
+
     return OpenAI(api_key=api_key)
 
 
@@ -130,7 +176,7 @@ def extract_structured(client, full_text: str, year: int, filename: str) -> dict
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _EXTRACT_SYSTEM},
-            {"role": "user",   "content": user_msg},
+            {"role": "user", "content": user_msg},
         ],
         temperature=0.1,
         response_format={"type": "json_object"},
@@ -148,41 +194,41 @@ def build_summary_json(
     pages_used: list[int],
 ) -> dict:
     case_id = f"fpa_fpc_{year}"
-    title   = extracted.get("title") or f"FPA Financial Planning Competition {year}"
+    title = extracted.get("title") or f"FPA Financial Planning Competition {year}"
     age_min = extracted.get("age_min")
     age_max = extracted.get("age_max")
     inc_min = extracted.get("income_min")
     inc_max = extracted.get("income_max")
 
     return {
-        "case_id":      case_id,
-        "title":        title,
-        "year":         year,
-        "source_type":  "external_fpa_pdf",
-        "source":       "FPA Financial Planning Competition",
-        "source_file":  filename,
-        "source_url":   url,
+        "case_id": case_id,
+        "title": title,
+        "year": year,
+        "source_type": "external_fpa_pdf",
+        "source": "FPA Financial Planning Competition",
+        "source_file": filename,
+        "source_url": url,
         "source_pages": pages_used[:10],
         "client_profile": {
-            "name":         extracted.get("client_names", ""),
+            "name": extracted.get("client_names", ""),
             "household_type": extracted.get("household_type", ""),
-            "life_stage":   extracted.get("life_stage", ""),
+            "life_stage": extracted.get("life_stage", ""),
         },
         "financial_snapshot": {
-            "gross_income":     inc_min,
+            "gross_income": inc_min,
             "income_range_max": inc_max,
         },
-        "age_range":    [age_min, age_max] if (age_min and age_max) else [],
+        "age_range": [age_min, age_max] if (age_min and age_max) else [],
         "income_range": [inc_min, inc_max] if (inc_min and inc_max) else [],
         "household_type": extracted.get("household_type", ""),
-        "life_stage":   extracted.get("life_stage", ""),
+        "life_stage": extracted.get("life_stage", ""),
         "major_topics": extracted.get("major_topics", []),
-        "key_issues":   extracted.get("key_issues", []),
-        "planning_issues":      extracted.get("planning_issues", []),
-        "key_recommendations":  extracted.get("key_recommendations", []),
+        "key_issues": extracted.get("key_issues", []),
+        "planning_issues": extracted.get("planning_issues", []),
+        "key_recommendations": extracted.get("key_recommendations", []),
         "candidate_recommendations": extracted.get("key_recommendations", []),
         "outcome_summary": extracted.get("outcome_summary", ""),
-        "key_lesson":      extracted.get("key_lesson", ""),
+        "key_lesson": extracted.get("key_lesson", ""),
         "raw_text_excerpt": (extracted.get("raw_text_excerpt") or "")[:3000],
     }
 
@@ -197,21 +243,21 @@ def upsert_index(summary: dict) -> None:
 
     cid = summary["case_id"]
     entry = {
-        "case_id":       cid,
-        "title":         summary["title"],
-        "year":          summary["year"],
-        "source":        summary["source"],
-        "source_type":   summary["source_type"],
-        "source_file":   summary["source_file"],
-        "source_url":    summary.get("source_url", ""),
-        "source_pages":  summary.get("source_pages", []),
+        "case_id": cid,
+        "title": summary["title"],
+        "year": summary["year"],
+        "source": summary["source"],
+        "source_type": summary["source_type"],
+        "source_file": summary["source_file"],
+        "source_url": summary.get("source_url", ""),
+        "source_pages": summary.get("source_pages", []),
         "household_type": summary.get("household_type", ""),
-        "life_stage":    summary.get("life_stage", ""),
-        "age_range":     summary.get("age_range", []),
-        "income_range":  summary.get("income_range", []),
-        "major_topics":  summary.get("major_topics", []),
-        "key_issues":    summary.get("key_issues", []),
-        "outcome":       (summary.get("outcome_summary") or "")[:200],
+        "life_stage": summary.get("life_stage", ""),
+        "age_range": summary.get("age_range", []),
+        "income_range": summary.get("income_range", []),
+        "major_topics": summary.get("major_topics", []),
+        "key_issues": summary.get("key_issues", []),
+        "outcome": (summary.get("outcome_summary") or "")[:200],
     }
 
     # Replace existing or append

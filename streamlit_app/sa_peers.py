@@ -10,109 +10,109 @@ _TICKER_PEERS: Dict[str, List[str]] = {
     "AAPL": ["MSFT", "GOOGL", "META", "AMZN", "NVDA"],
     "MSFT": ["AAPL", "GOOGL", "AMZN", "META", "ORCL"],
     "GOOGL": ["META", "MSFT", "AAPL", "AMZN", "SNAP"],
-    "GOOG":  ["META", "MSFT", "AAPL", "AMZN", "SNAP"],
-    "META":  ["GOOGL", "SNAP", "PINS", "MSFT", "NFLX"],
-    "AMZN":  ["MSFT", "GOOGL", "WMT", "SHOP", "EBAY"],
+    "GOOG": ["META", "MSFT", "AAPL", "AMZN", "SNAP"],
+    "META": ["GOOGL", "SNAP", "PINS", "MSFT", "NFLX"],
+    "AMZN": ["MSFT", "GOOGL", "WMT", "SHOP", "EBAY"],
     # Semiconductors
-    "NVDA":  ["AMD", "INTC", "QCOM", "AVGO", "MRVL"],
-    "AMD":   ["NVDA", "INTC", "QCOM", "AVGO", "MRVL"],
-    "INTC":  ["AMD", "NVDA", "QCOM", "AVGO", "TXN"],
-    "QCOM":  ["AVGO", "MRVL", "INTC", "AMD", "TXN"],
-    "AVGO":  ["QCOM", "MRVL", "INTC", "AMD", "TXN"],
-    "MRVL":  ["AVGO", "QCOM", "NVDA", "AMD", "INTC"],
-    "TSM":   ["INTC", "SSNLF", "UMC", "ASML", "AMAT"],
-    "ASML":  ["AMAT", "LRCX", "KLAC", "TSM", "INTC"],
+    "NVDA": ["AMD", "INTC", "QCOM", "AVGO", "MRVL"],
+    "AMD": ["NVDA", "INTC", "QCOM", "AVGO", "MRVL"],
+    "INTC": ["AMD", "NVDA", "QCOM", "AVGO", "TXN"],
+    "QCOM": ["AVGO", "MRVL", "INTC", "AMD", "TXN"],
+    "AVGO": ["QCOM", "MRVL", "INTC", "AMD", "TXN"],
+    "MRVL": ["AVGO", "QCOM", "NVDA", "AMD", "INTC"],
+    "TSM": ["INTC", "SSNLF", "UMC", "ASML", "AMAT"],
+    "ASML": ["AMAT", "LRCX", "KLAC", "TSM", "INTC"],
     # Software / SaaS
-    "CRM":   ["NOW", "ADBE", "ORCL", "SAP", "WDAY"],
-    "ADBE":  ["CRM", "NOW", "ORCL", "MSFT", "WDAY"],
-    "NOW":   ["CRM", "ADBE", "WDAY", "ORCL", "MSFT"],
-    "WDAY":  ["NOW", "CRM", "ADBE", "ORCL", "SAP"],
-    "ORCL":  ["MSFT", "CRM", "SAP", "NOW", "WDAY"],
-    "SNOW":  ["DBRX", "MDB", "PLTR", "MSFT", "GOOGL"],
-    "PLTR":  ["SNOW", "MDB", "CRM", "MSFT", "NOW"],
-    "MDB":   ["SNOW", "DBRX", "ORCL", "MSFT", "PLTR"],
+    "CRM": ["NOW", "ADBE", "ORCL", "SAP", "WDAY"],
+    "ADBE": ["CRM", "NOW", "ORCL", "MSFT", "WDAY"],
+    "NOW": ["CRM", "ADBE", "WDAY", "ORCL", "MSFT"],
+    "WDAY": ["NOW", "CRM", "ADBE", "ORCL", "SAP"],
+    "ORCL": ["MSFT", "CRM", "SAP", "NOW", "WDAY"],
+    "SNOW": ["DBRX", "MDB", "PLTR", "MSFT", "GOOGL"],
+    "PLTR": ["SNOW", "MDB", "CRM", "MSFT", "NOW"],
+    "MDB": ["SNOW", "DBRX", "ORCL", "MSFT", "PLTR"],
     # Internet / streaming
-    "NFLX":  ["DIS", "WBD", "PARA", "AMZN", "AAPL"],
-    "DIS":   ["NFLX", "WBD", "PARA", "CMCSA", "FOXA"],
-    "SPOT":  ["AAPL", "GOOGL", "AMZN", "TMUS", "SIRIUS"],
+    "NFLX": ["DIS", "WBD", "PARA", "AMZN", "AAPL"],
+    "DIS": ["NFLX", "WBD", "PARA", "CMCSA", "FOXA"],
+    "SPOT": ["AAPL", "GOOGL", "AMZN", "TMUS", "SIRIUS"],
     # E-commerce / retail
-    "SHOP":  ["AMZN", "EBAY", "BIGC", "WIX", "ETSY"],
-    "EBAY":  ["AMZN", "SHOP", "ETSY", "WMT", "TGT"],
-    "ETSY":  ["EBAY", "AMZN", "SHOP", "TGT", "WMT"],
-    "WMT":   ["TGT", "COST", "AMZN", "KR", "DG"],
-    "TGT":   ["WMT", "COST", "AMZN", "KR", "DG"],
-    "COST":  ["WMT", "TGT", "BJ", "AMZN", "KR"],
+    "SHOP": ["AMZN", "EBAY", "BIGC", "WIX", "ETSY"],
+    "EBAY": ["AMZN", "SHOP", "ETSY", "WMT", "TGT"],
+    "ETSY": ["EBAY", "AMZN", "SHOP", "TGT", "WMT"],
+    "WMT": ["TGT", "COST", "AMZN", "KR", "DG"],
+    "TGT": ["WMT", "COST", "AMZN", "KR", "DG"],
+    "COST": ["WMT", "TGT", "BJ", "AMZN", "KR"],
     # EV / auto
-    "TSLA":  ["GM", "F", "RIVN", "NIO", "STLA"],
-    "RIVN":  ["TSLA", "LCID", "NIO", "GM", "F"],
-    "NIO":   ["TSLA", "XPEV", "LI", "RIVN", "GM"],
-    "GM":    ["F", "STLA", "TSLA", "TM", "HMC"],
-    "F":     ["GM", "STLA", "TSLA", "TM", "HMC"],
+    "TSLA": ["GM", "F", "RIVN", "NIO", "STLA"],
+    "RIVN": ["TSLA", "LCID", "NIO", "GM", "F"],
+    "NIO": ["TSLA", "XPEV", "LI", "RIVN", "GM"],
+    "GM": ["F", "STLA", "TSLA", "TM", "HMC"],
+    "F": ["GM", "STLA", "TSLA", "TM", "HMC"],
     # Finance
-    "JPM":   ["BAC", "WFC", "GS", "MS", "C"],
-    "BAC":   ["JPM", "WFC", "GS", "MS", "C"],
-    "WFC":   ["JPM", "BAC", "GS", "MS", "USB"],
-    "GS":    ["MS", "JPM", "BAC", "WFC", "BX"],
-    "MS":    ["GS", "JPM", "BAC", "WFC", "BX"],
-    "BX":    ["KKR", "CG", "APO", "GS", "MS"],
-    "V":     ["MA", "AXP", "PYPL", "FIS", "FI"],
-    "MA":    ["V", "AXP", "PYPL", "FIS", "FI"],
-    "PYPL":  ["V", "MA", "SQ", "AFRM", "SOFI"],
-    "SQ":    ["PYPL", "MA", "V", "AFRM", "SOFI"],
+    "JPM": ["BAC", "WFC", "GS", "MS", "C"],
+    "BAC": ["JPM", "WFC", "GS", "MS", "C"],
+    "WFC": ["JPM", "BAC", "GS", "MS", "USB"],
+    "GS": ["MS", "JPM", "BAC", "WFC", "BX"],
+    "MS": ["GS", "JPM", "BAC", "WFC", "BX"],
+    "BX": ["KKR", "CG", "APO", "GS", "MS"],
+    "V": ["MA", "AXP", "PYPL", "FIS", "FI"],
+    "MA": ["V", "AXP", "PYPL", "FIS", "FI"],
+    "PYPL": ["V", "MA", "SQ", "AFRM", "SOFI"],
+    "SQ": ["PYPL", "MA", "V", "AFRM", "SOFI"],
     # Healthcare / pharma
-    "JNJ":   ["PFE", "MRK", "ABBV", "UNH", "ABT"],
-    "PFE":   ["JNJ", "MRK", "ABBV", "BMY", "LLY"],
-    "MRK":   ["PFE", "JNJ", "ABBV", "BMY", "LLY"],
-    "ABBV":  ["MRK", "PFE", "JNJ", "BMY", "LLY"],
-    "LLY":   ["NVO", "ABBV", "PFE", "MRK", "BMY"],
-    "NVO":   ["LLY", "ABBV", "PFE", "MRK", "AZN"],
-    "UNH":   ["CVS", "CI", "HUM", "CNC", "MOH"],
-    "CVS":   ["WBA", "UNH", "MCK", "CI", "HUM"],
+    "JNJ": ["PFE", "MRK", "ABBV", "UNH", "ABT"],
+    "PFE": ["JNJ", "MRK", "ABBV", "BMY", "LLY"],
+    "MRK": ["PFE", "JNJ", "ABBV", "BMY", "LLY"],
+    "ABBV": ["MRK", "PFE", "JNJ", "BMY", "LLY"],
+    "LLY": ["NVO", "ABBV", "PFE", "MRK", "BMY"],
+    "NVO": ["LLY", "ABBV", "PFE", "MRK", "AZN"],
+    "UNH": ["CVS", "CI", "HUM", "CNC", "MOH"],
+    "CVS": ["WBA", "UNH", "MCK", "CI", "HUM"],
     # Energy
-    "XOM":   ["CVX", "COP", "EOG", "SLB", "BP"],
-    "CVX":   ["XOM", "COP", "EOG", "PXD", "SLB"],
-    "COP":   ["XOM", "CVX", "EOG", "PXD", "DVN"],
+    "XOM": ["CVX", "COP", "EOG", "SLB", "BP"],
+    "CVX": ["XOM", "COP", "EOG", "PXD", "SLB"],
+    "COP": ["XOM", "CVX", "EOG", "PXD", "DVN"],
     # Consumer
-    "MCD":   ["QSR", "YUM", "CMG", "DPZ", "WEN"],
-    "SBUX":  ["MCD", "CMG", "QSR", "DPZ", "DNUT"],
-    "CMG":   ["MCD", "SBUX", "QSR", "YUM", "DPZ"],
-    "KO":    ["PEP", "MNST", "CELH", "CCEP", "KDP"],
-    "PEP":   ["KO", "MNST", "CELH", "CCEP", "KDP"],
-    "NKE":   ["ADDYY", "UAA", "SKX", "PVH", "VFC"],
-    "PG":    ["CL", "KMB", "CHD", "CLX", "EL"],
+    "MCD": ["QSR", "YUM", "CMG", "DPZ", "WEN"],
+    "SBUX": ["MCD", "CMG", "QSR", "DPZ", "DNUT"],
+    "CMG": ["MCD", "SBUX", "QSR", "YUM", "DPZ"],
+    "KO": ["PEP", "MNST", "CELH", "CCEP", "KDP"],
+    "PEP": ["KO", "MNST", "CELH", "CCEP", "KDP"],
+    "NKE": ["ADDYY", "UAA", "SKX", "PVH", "VFC"],
+    "PG": ["CL", "KMB", "CHD", "CLX", "EL"],
     # Ride-share / travel
-    "UBER":  ["LYFT", "DASH", "GRAB", "BKNG", "EXPE"],
-    "LYFT":  ["UBER", "DASH", "GRAB", "BKNG", "EXPE"],
-    "BKNG":  ["EXPE", "ABNB", "TRIP", "UBER", "HLT"],
-    "ABNB":  ["BKNG", "EXPE", "TRIP", "MAR", "HLT"],
+    "UBER": ["LYFT", "DASH", "GRAB", "BKNG", "EXPE"],
+    "LYFT": ["UBER", "DASH", "GRAB", "BKNG", "EXPE"],
+    "BKNG": ["EXPE", "ABNB", "TRIP", "UBER", "HLT"],
+    "ABNB": ["BKNG", "EXPE", "TRIP", "MAR", "HLT"],
     # Airlines
-    "DAL":   ["UAL", "AAL", "LUV", "ALK", "JBLU"],
-    "UAL":   ["DAL", "AAL", "LUV", "ALK", "JBLU"],
-    "AAL":   ["DAL", "UAL", "LUV", "ALK", "JBLU"],
+    "DAL": ["UAL", "AAL", "LUV", "ALK", "JBLU"],
+    "UAL": ["DAL", "AAL", "LUV", "ALK", "JBLU"],
+    "AAL": ["DAL", "UAL", "LUV", "ALK", "JBLU"],
     # Telecom
-    "T":     ["VZ", "TMUS", "CMCSA", "CHTR", "DISH"],
-    "VZ":    ["T", "TMUS", "CMCSA", "CHTR", "DISH"],
-    "TMUS":  ["T", "VZ", "CMCSA", "CHTR", "DISH"],
+    "T": ["VZ", "TMUS", "CMCSA", "CHTR", "DISH"],
+    "VZ": ["T", "TMUS", "CMCSA", "CHTR", "DISH"],
+    "TMUS": ["T", "VZ", "CMCSA", "CHTR", "DISH"],
     # Real estate / REITs
-    "AMT":   ["CCI", "SBAC", "EQIX", "DLR", "PLD"],
-    "EQIX":  ["DLR", "AMT", "CCI", "CONE", "QTS"],
+    "AMT": ["CCI", "SBAC", "EQIX", "DLR", "PLD"],
+    "EQIX": ["DLR", "AMT", "CCI", "CONE", "QTS"],
     # Crypto / fintech
-    "COIN":  ["MSTR", "HOOD", "SQ", "PYPL", "MARA"],
+    "COIN": ["MSTR", "HOOD", "SQ", "PYPL", "MARA"],
 }
 
 _SECTOR_PEERS: Dict[str, List[str]] = {
-    "Technology":              ["AAPL", "MSFT", "GOOGL", "META", "AMZN"],
-    "Communication Services":  ["META", "GOOGL", "NFLX", "DIS", "CMCSA"],
-    "Consumer Cyclical":       ["AMZN", "TSLA", "MCD", "NKE", "BKNG"],
-    "Consumer Defensive":      ["WMT", "PG", "KO", "PEP", "COST"],
-    "Financials":              ["JPM", "BAC", "WFC", "GS", "MS"],
-    "Financial Services":      ["JPM", "BAC", "V", "MA", "GS"],
-    "Healthcare":              ["JNJ", "UNH", "PFE", "MRK", "ABBV"],
-    "Industrials":             ["CAT", "HON", "GE", "RTX", "UPS"],
-    "Energy":                  ["XOM", "CVX", "COP", "SLB", "EOG"],
-    "Basic Materials":         ["LIN", "APD", "ECL", "DD", "NEM"],
-    "Real Estate":             ["AMT", "PLD", "EQIX", "SPG", "CCI"],
-    "Utilities":               ["NEE", "DUK", "SO", "D", "AEP"],
+    "Technology": ["AAPL", "MSFT", "GOOGL", "META", "AMZN"],
+    "Communication Services": ["META", "GOOGL", "NFLX", "DIS", "CMCSA"],
+    "Consumer Cyclical": ["AMZN", "TSLA", "MCD", "NKE", "BKNG"],
+    "Consumer Defensive": ["WMT", "PG", "KO", "PEP", "COST"],
+    "Financials": ["JPM", "BAC", "WFC", "GS", "MS"],
+    "Financial Services": ["JPM", "BAC", "V", "MA", "GS"],
+    "Healthcare": ["JNJ", "UNH", "PFE", "MRK", "ABBV"],
+    "Industrials": ["CAT", "HON", "GE", "RTX", "UPS"],
+    "Energy": ["XOM", "CVX", "COP", "SLB", "EOG"],
+    "Basic Materials": ["LIN", "APD", "ECL", "DD", "NEM"],
+    "Real Estate": ["AMT", "PLD", "EQIX", "SPG", "CCI"],
+    "Utilities": ["NEE", "DUK", "SO", "D", "AEP"],
 }
 
 
@@ -150,6 +150,7 @@ def get_peer_tickers(ticker: str, sector: str, company_name: str, api_key: str) 
         )
         try:
             from openai import OpenAI
+
             client = OpenAI(api_key=api_key)
             response = client.chat.completions.create(
                 model="gpt-4o",
@@ -199,6 +200,7 @@ def build_peer_table(main_ticker: str, main_data: Dict, peer_data_list: List[Dic
     Builds a comparison DataFrame with 9 columns.
     Main ticker is always the first row. Raw numeric values (None for missing).
     """
+
     def _ev_ebitda(d: Dict) -> Optional[float]:
         info = d.get("info") or {}
         ebitda = info.get("ebitda")
@@ -228,6 +230,6 @@ def build_peer_table(main_ticker: str, main_data: Dict, peer_data_list: List[Dic
 
     rows = [_row(main_data)] + [_row(d) for d in peer_data_list]
     df = pd.DataFrame(rows)
-    df = df.astype('object')
+    df = df.astype("object")
     df = df.where(pd.notna(df), None)
     return df

@@ -118,6 +118,7 @@ def download_all(overwrite: bool = False) -> list[str]:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Download FPA FPC case study PDFs")
     parser.add_argument("--overwrite", action="store_true", help="Re-download existing files")
     args = parser.parse_args()

@@ -4,26 +4,26 @@ from typing import Dict, Optional
 from fpdf import FPDF
 
 _UNICODE_MAP = {
-    "—": "-",   # em dash
-    "–": "-",   # en dash
-    "‘": "'",   # left single quote
-    "’": "'",   # right single quote
-    "“": '"',   # left double quote
-    "”": '"',   # right double quote
-    "•": "*",   # bullet
-    "…": "...", # ellipsis
-    " ": " ",   # non-breaking space
-    "·": "*",   # middle dot
-    "‐": "-",   # hyphen
-    "‑": "-",   # non-breaking hyphen
-    "−": "-",   # minus sign
+    "—": "-",  # em dash
+    "–": "-",  # en dash
+    "‘": "'",  # left single quote
+    "’": "'",  # right single quote
+    "“": '"',  # left double quote
+    "”": '"',  # right double quote
+    "•": "*",  # bullet
+    "…": "...",  # ellipsis
+    " ": " ",  # non-breaking space
+    "·": "*",  # middle dot
+    "‐": "-",  # hyphen
+    "‑": "-",  # non-breaking hyphen
+    "−": "-",  # minus sign
     "≥": ">=",  # ≥
     "≤": "<=",  # ≤
-    "×": "x",   # ×
-    "°": " deg", # °
-    "®": "(R)", # ®
-    "™": "(TM)", # ™
-    "\\$": "$",      # escaped dollar (from Streamlit LaTeX prevention)
+    "×": "x",  # ×
+    "°": " deg",  # °
+    "®": "(R)",  # ®
+    "™": "(TM)",  # ™
+    "\\$": "$",  # escaped dollar (from Streamlit LaTeX prevention)
 }
 
 
@@ -66,7 +66,8 @@ class _PDF(FPDF):
         self.set_font("Helvetica", "I", 8)
         self.set_text_color(140, 140, 140)
         self.cell(
-            0, 5,
+            0,
+            5,
             f"AI Financial Advisor  |  {self._ticker}  |  {self._date_str}  |  Page {self.page_no()}/{{nb}}  |  Educational use only",
             align="C",
         )
@@ -157,12 +158,10 @@ def generate_pdf(
     pdf.set_font("Helvetica", "B", 20)
     pdf.cell(half_w, 11, _s(ticker), fill=True)
     pdf.set_font("Helvetica", "", 9)
-    pdf.cell(half_w, 11, "AI Financial Analysis Report", fill=True, align="R",
-             new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(half_w, 11, "AI Financial Analysis Report", fill=True, align="R", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
     pdf.cell(half_w, 7, _s(name), fill=True)
-    pdf.cell(half_w, 7, date_str, fill=True, align="R",
-             new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(half_w, 7, date_str, fill=True, align="R", new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
 
@@ -174,9 +173,13 @@ def generate_pdf(
     beta = _fmt(data.get("beta"), "{:.2f}")
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(80, 80, 80)
-    pdf.cell(0, 5,
-             f"Price: {price}   |   Market Cap: {mcap}   |   Sector: {sector}   |   P/E: {pe}   |   Beta: {beta}",
-             new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(
+        0,
+        5,
+        f"Price: {price}   |   Market Cap: {mcap}   |   Sector: {sector}   |   P/E: {pe}   |   Beta: {beta}",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
     pdf.set_text_color(0, 0, 0)
     pdf.ln(1)
 
@@ -188,8 +191,7 @@ def generate_pdf(
         target = recommendation.get("target_price")
         upside = recommendation.get("upside", 0)
         cur_price = data.get("price")
-        upside_label = (f"{abs(upside):.1f}% potential downside" if upside < 0
-                        else f"{upside:.1f}% potential upside")
+        upside_label = f"{abs(upside):.1f}% potential downside" if upside < 0 else f"{upside:.1f}% potential upside"
 
         # Rating box
         pdf.set_fill_color(245, 247, 250)
@@ -206,8 +208,7 @@ def generate_pdf(
         pdf.set_text_color(100, 100, 100)
         pdf.cell(third, 5, "INVESTMENT RATING")
         pdf.cell(third, 5, "12-MONTH PRICE TARGET", align="C")
-        pdf.cell(third, 5, "COMPOSITE SCORE (50=NEUTRAL)", align="R",
-                 new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(third, 5, "COMPOSITE SCORE (50=NEUTRAL)", align="R", new_x="LMARGIN", new_y="NEXT")
 
         pdf.set_font("Helvetica", "B", 22)
         pdf.set_text_color(*rc)
@@ -239,25 +240,31 @@ def generate_pdf(
 
     # ── Fundamental Metrics ────────────────────────────────────────────────
     _section_heading(pdf, "Fundamental Metrics")
-    _two_col_table(pdf, [
-        ("Current Price",    _fmt(data.get("price"), "{:.2f}", prefix="$")),
-        ("Market Cap",       _market_cap_str(data.get("market_cap"))),
-        ("52-Week Range",    f"{_fmt(data.get('low_52w'), '{:.2f}', prefix='$')} - {_fmt(data.get('high_52w'), '{:.2f}', prefix='$')}"),
-        ("P/E (TTM)",        _fmt(data.get("pe_ratio"), "{:.1f}", suffix="x")),
-        ("Forward P/E",      _fmt(data.get("forward_pe"), "{:.1f}", suffix="x")),
-        ("EPS (TTM)",        _fmt(data.get("eps"), "{:.2f}", prefix="$")),
-        ("Revenue (TTM)",    _fmt(data.get("revenue"), "{:.1f}", prefix="$", suffix="B", scale=1e-9)),
-        ("Revenue Growth",   _fmt(data.get("revenue_growth"), "{:+.1f}", suffix="%", scale=100)),
-        ("Gross Margin",     _fmt(data.get("gross_margin"), "{:.1f}", suffix="%", scale=100)),
-        ("Operating Margin", _fmt(data.get("op_margin"), "{:.1f}", suffix="%", scale=100)),
-        ("Profit Margin",    _fmt(data.get("profit_margin"), "{:.1f}", suffix="%", scale=100)),
-        ("FCF (TTM)",        _fmt(data.get("free_cash_flow"), "{:.1f}", prefix="$", suffix="B", scale=1e-9)),
-        ("ROE",              _fmt(data.get("roe"), "{:.1f}", suffix="%", scale=100)),
-        ("Debt / Equity",    _fmt(data.get("debt_to_equity"), "{:.2f}", suffix="x")),
-        ("Current Ratio",    _fmt(data.get("current_ratio"), "{:.2f}")),
-        ("Beta (5Y)",        _fmt(data.get("beta"), "{:.2f}")),
-        ("Dividend Yield",   _fmt(data.get("dividend_yield"), "{:.2f}", suffix="%", scale=100)),
-    ])
+    _two_col_table(
+        pdf,
+        [
+            ("Current Price", _fmt(data.get("price"), "{:.2f}", prefix="$")),
+            ("Market Cap", _market_cap_str(data.get("market_cap"))),
+            (
+                "52-Week Range",
+                f"{_fmt(data.get('low_52w'), '{:.2f}', prefix='$')} - {_fmt(data.get('high_52w'), '{:.2f}', prefix='$')}",
+            ),
+            ("P/E (TTM)", _fmt(data.get("pe_ratio"), "{:.1f}", suffix="x")),
+            ("Forward P/E", _fmt(data.get("forward_pe"), "{:.1f}", suffix="x")),
+            ("EPS (TTM)", _fmt(data.get("eps"), "{:.2f}", prefix="$")),
+            ("Revenue (TTM)", _fmt(data.get("revenue"), "{:.1f}", prefix="$", suffix="B", scale=1e-9)),
+            ("Revenue Growth", _fmt(data.get("revenue_growth"), "{:+.1f}", suffix="%", scale=100)),
+            ("Gross Margin", _fmt(data.get("gross_margin"), "{:.1f}", suffix="%", scale=100)),
+            ("Operating Margin", _fmt(data.get("op_margin"), "{:.1f}", suffix="%", scale=100)),
+            ("Profit Margin", _fmt(data.get("profit_margin"), "{:.1f}", suffix="%", scale=100)),
+            ("FCF (TTM)", _fmt(data.get("free_cash_flow"), "{:.1f}", prefix="$", suffix="B", scale=1e-9)),
+            ("ROE", _fmt(data.get("roe"), "{:.1f}", suffix="%", scale=100)),
+            ("Debt / Equity", _fmt(data.get("debt_to_equity"), "{:.2f}", suffix="x")),
+            ("Current Ratio", _fmt(data.get("current_ratio"), "{:.2f}")),
+            ("Beta (5Y)", _fmt(data.get("beta"), "{:.2f}")),
+            ("Dividend Yield", _fmt(data.get("dividend_yield"), "{:.2f}", suffix="%", scale=100)),
+        ],
+    )
 
     # ══════════════════════════════════════════════════════════════════════
     # PAGE 2 — TECHNICAL ANALYSIS & VALUATION
@@ -269,9 +276,13 @@ def generate_pdf(
     if tech_analysis:
         score_pct = tech_analysis.get("score_pct", 0)
         trend_label = "Bullish" if score_pct > 20 else "Bearish" if score_pct < -20 else "Neutral"
-        _two_col_table(pdf, [
-            ("Overall Technical Signal", f"{trend_label}  ({score_pct:+.0f} / 100)"),
-        ], label_w=70)
+        _two_col_table(
+            pdf,
+            [
+                ("Overall Technical Signal", f"{trend_label}  ({score_pct:+.0f} / 100)"),
+            ],
+            label_w=70,
+        )
         pdf.ln(2)
 
         signals = tech_analysis.get("signals", [])
@@ -292,9 +303,12 @@ def generate_pdf(
                 s_signal = _s(sig.get("signal", ""))
                 s_detail = _s(sig.get("detail", ""))
                 sig_color_map = {
-                    "BULLISH": (63, 185, 80), "STRONG": (63, 185, 80),
-                    "BEARISH": (248, 81, 73), "WEAK": (248, 81, 73),
-                    "NEUTRAL": (140, 140, 140), "OVERBOUGHT": (210, 153, 34),
+                    "BULLISH": (63, 185, 80),
+                    "STRONG": (63, 185, 80),
+                    "BEARISH": (248, 81, 73),
+                    "WEAK": (248, 81, 73),
+                    "NEUTRAL": (140, 140, 140),
+                    "OVERBOUGHT": (210, 153, 34),
                     "OVERSOLD": (210, 153, 34),
                 }
                 sc = sig_color_map.get(s_signal.upper(), (80, 80, 80))
@@ -347,8 +361,8 @@ def generate_pdf(
     if intrinsic:
         dcf_rows += [
             ("DCF Intrinsic Value", _fmt(intrinsic, "{:.2f}", prefix="$") + " / share"),
-            ("Current Price",       _fmt(cur_price, "{:.2f}", prefix="$")),
-            ("Margin of Safety",    margin_str),
+            ("Current Price", _fmt(cur_price, "{:.2f}", prefix="$")),
+            ("Margin of Safety", margin_str),
         ]
     if ev_ebitda_v:
         dcf_rows.append(("EV / EBITDA", _fmt(ev_ebitda_v, "{:.1f}", suffix="x")))
@@ -388,16 +402,16 @@ def generate_pdf(
     # ── Price Target Scenarios ─────────────────────────────────────────────
     _section_heading(pdf, "Price Target Scenarios")
     if recommendation:
-        t_low  = recommendation.get("target_low",   cur_price)
-        t_mid  = recommendation.get("target_price", cur_price)
-        t_high = recommendation.get("target_high",  cur_price)
-        u_low  = (t_low  - cur_price) / cur_price * 100 if cur_price else 0
-        u_mid  = recommendation.get("upside", 0)
+        t_low = recommendation.get("target_low", cur_price)
+        t_mid = recommendation.get("target_price", cur_price)
+        t_high = recommendation.get("target_high", cur_price)
+        u_low = (t_low - cur_price) / cur_price * 100 if cur_price else 0
+        u_mid = recommendation.get("upside", 0)
         u_high = (t_high - cur_price) / cur_price * 100 if cur_price else 0
         scen_rows = [
-            ("Bear Case (12-month)",  f"${t_low:.2f}  ({u_low:+.1f}%)"),
-            ("Base Case (12-month)",  f"${t_mid:.2f}  ({u_mid:+.1f}%)"),
-            ("Bull Case (12-month)",  f"${t_high:.2f}  ({u_high:+.1f}%)"),
+            ("Bear Case (12-month)", f"${t_low:.2f}  ({u_low:+.1f}%)"),
+            ("Base Case (12-month)", f"${t_mid:.2f}  ({u_mid:+.1f}%)"),
+            ("Bull Case (12-month)", f"${t_high:.2f}  ({u_high:+.1f}%)"),
         ]
         _two_col_table(pdf, scen_rows)
     else:
@@ -413,8 +427,14 @@ def generate_pdf(
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_fill_color(26, 58, 92)
         pdf.set_text_color(255, 255, 255)
-        fc_cols = [("Period", 28), ("Exp. Return", 28), ("80% Range", 42),
-                   ("Price Target", 30), ("Confidence", 28), ("Probability", 28)]
+        fc_cols = [
+            ("Period", 28),
+            ("Exp. Return", 28),
+            ("80% Range", 42),
+            ("Price Target", 30),
+            ("Confidence", 28),
+            ("Probability", 28),
+        ]
         for hdr, w in fc_cols:
             pdf.cell(w, 5, hdr, fill=True)
         pdf.ln()
@@ -428,7 +448,7 @@ def generate_pdf(
             ret_c = (63, 185, 80) if ret > 5 else (210, 153, 34) if ret > 0 else (248, 81, 73)
             rlo = fc.get("range_low", 0)
             rhi = fc.get("range_high", 0)
-            pt  = fc.get("price_target", 0)
+            pt = fc.get("price_target", 0)
             conf = fc.get("confidence", "")
             prob = fc.get("probability", "")
 
@@ -455,7 +475,7 @@ def generate_pdf(
 
     if recommendation:
         drivers = recommendation.get("bullish_drivers") or []
-        risks   = recommendation.get("bearish_risks") or []
+        risks = recommendation.get("bearish_risks") or []
 
         # Sub-headers
         sub_y = pdf.get_y()
@@ -473,7 +493,7 @@ def generate_pdf(
             pdf.set_fill_color(*fill)
             pdf.set_font("Helvetica", "", 8)
             d_text = _s("+ " + drivers[idx]) if idx < len(drivers) else ""
-            r_text = _s("- " + risks[idx])   if idx < len(risks)   else ""
+            r_text = _s("- " + risks[idx]) if idx < len(risks) else ""
             # Use multi_cell trick: set position manually
             row_y = pdf.get_y()
             pdf.set_xy(pdf.l_margin, row_y)
@@ -492,9 +512,7 @@ def generate_pdf(
     # ── Investment Rationale ───────────────────────────────────────────────
     if recommendation and recommendation.get("rationale"):
         _section_heading(pdf, "Investment Rationale")
-        rationale_clean = (recommendation["rationale"]
-                           .replace("\\$", "$")
-                           .replace("- ", "  * "))
+        rationale_clean = recommendation["rationale"].replace("\\$", "$").replace("- ", "  * ")
         _body_text(pdf, rationale_clean, size=8)
 
     # ══════════════════════════════════════════════════════════════════════
@@ -507,10 +525,10 @@ def generate_pdf(
     peer_list = data.get("_peer_data") or []
     if not peer_list:
         pdf.set_font("Helvetica", "I", 9)
-        pdf.cell(0, 5, "No peer data. Run analysis to populate peers.",
-                 new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, "No peer data. Run analysis to populate peers.", new_x="LMARGIN", new_y="NEXT")
     else:
         from sa_peers import build_peer_table
+
         peer_df = build_peer_table(ticker, data, peer_list)
 
         pdf.set_font("Helvetica", "", 7)

@@ -5,11 +5,13 @@ All functions are pure (no side effects, no LLM calls).
 Inputs come from ClientProfile; outputs are plain numbers or dicts.
 Formulas reference standard planning assumptions; sources noted inline.
 """
+
 from __future__ import annotations
 from typing import Dict, Any
 
 
 # ── Emergency fund ────────────────────────────────────────────────────────────
+
 
 def calc_emergency_fund_months(liquid_assets: float, monthly_expenses: float) -> float:
     """How many months of expenses are covered by liquid assets."""
@@ -19,6 +21,7 @@ def calc_emergency_fund_months(liquid_assets: float, monthly_expenses: float) ->
 
 
 # ── Debt ratios ───────────────────────────────────────────────────────────────
+
 
 def calc_dti(total_monthly_debt_payments: float, gross_monthly_income: float) -> float:
     """Total Debt-to-Income ratio (CFPB / mortgage underwriting standard)."""
@@ -43,6 +46,7 @@ def calc_consumer_debt_burden(consumer_debt_total: float, gross_annual_income: f
 
 # ── Cash flow ─────────────────────────────────────────────────────────────────
 
+
 def calc_monthly_cash_flow(
     gross_monthly_income: float,
     monthly_expenses_total: float,
@@ -59,6 +63,7 @@ def calc_monthly_cash_flow(
 
 # ── Savings rate ──────────────────────────────────────────────────────────────
 
+
 def calc_savings_rate(
     annual_retirement_contributions: float,
     annual_other_savings: float,
@@ -72,6 +77,7 @@ def calc_savings_rate(
 
 # ── Insurance ────────────────────────────────────────────────────────────────
 
+
 def calc_life_insurance_coverage_ratio(coverage: float, gross_annual_income: float) -> float:
     """Life insurance face amount as multiple of gross annual income."""
     if gross_annual_income <= 0:
@@ -81,13 +87,13 @@ def calc_life_insurance_coverage_ratio(coverage: float, gross_annual_income: flo
 
 # ── Net worth ────────────────────────────────────────────────────────────────
 
-_NW_BENCHMARK_FALLBACK = {30: 0.5, 35: 1.0, 40: 2.0, 45: 3.0,
-                           50: 5.0, 55: 8.0, 60: 12.0, 65: 15.0}
+_NW_BENCHMARK_FALLBACK = {30: 0.5, 35: 1.0, 40: 2.0, 45: 3.0, 50: 5.0, 55: 8.0, 60: 12.0, 65: 15.0}
 
 
 def _load_nw_benchmarks() -> Dict[int, float]:
     """Load Stanley-Danko benchmarks from planning_rules.json; fall back to hardcoded values."""
     import os, json
+
     rules_path = os.path.join(os.path.dirname(__file__), "data", "rule_configs", "planning_rules.json")
     try:
         with open(rules_path, encoding="utf-8") as f:
@@ -123,12 +129,13 @@ def calc_net_worth_target(age: int, gross_annual_income: float) -> float:
 
 # ── Retirement projection ─────────────────────────────────────────────────────
 
+
 def calc_retirement_projection(
-    current_balance:      float,
-    annual_contribution:  float,
-    years_to_retirement:  int,
-    annual_return:        float,   # nominal, e.g. 0.07
-    inflation:            float = 0.03,
+    current_balance: float,
+    annual_contribution: float,
+    years_to_retirement: int,
+    annual_return: float,  # nominal, e.g. 0.07
+    inflation: float = 0.03,
 ) -> Dict[str, float]:
     """
     Project retirement corpus using FV formula.
@@ -139,9 +146,11 @@ def calc_retirement_projection(
     Returns corpus (nominal), corpus_real (inflation-adjusted), and annual_income (4% SWR).
     """
     if years_to_retirement <= 0:
-        return {"corpus_nominal": current_balance,
-                "corpus_real": current_balance,
-                "annual_income_4pct": current_balance * 0.04}
+        return {
+            "corpus_nominal": current_balance,
+            "corpus_real": current_balance,
+            "annual_income_4pct": current_balance * 0.04,
+        }
 
     r = annual_return
     n = years_to_retirement
@@ -154,20 +163,20 @@ def calc_retirement_projection(
 
     corpus_nominal = round(fv_balance + fv_contributions, 2)
     # Deflate by inflation to get today's purchasing power
-    corpus_real    = round(corpus_nominal / ((1 + inflation) ** n), 2)
-    annual_income  = round(corpus_nominal * 0.04, 2)   # 4% safe withdrawal rate
+    corpus_real = round(corpus_nominal / ((1 + inflation) ** n), 2)
+    annual_income = round(corpus_nominal * 0.04, 2)  # 4% safe withdrawal rate
 
     return {
-        "corpus_nominal":    corpus_nominal,
-        "corpus_real":       corpus_real,
+        "corpus_nominal": corpus_nominal,
+        "corpus_real": corpus_real,
         "annual_income_4pct": annual_income,
-        "fv_balance":        round(fv_balance, 2),
-        "fv_contributions":  round(fv_contributions, 2),
+        "fv_balance": round(fv_balance, 2),
+        "fv_contributions": round(fv_contributions, 2),
     }
 
 
 def calc_retirement_corpus_needed(
-    target_annual_income: float,   # amount needed per year in retirement
+    target_annual_income: float,  # amount needed per year in retirement
     safe_withdrawal_rate: float = 0.04,
 ) -> float:
     """
@@ -186,19 +195,21 @@ def calc_annual_contribution(profile_obj) -> float:  # type: ignore[annotation-u
     Assumes contributions come from primary income only.
     """
     from fp_schemas import ClientProfile
+
     p: ClientProfile = profile_obj
     employee_contrib = p.gross_annual_income * (p.retirement.contribution_rate_pct / 100)
-    employer_match   = p.gross_annual_income * (p.retirement.employer_match_pct / 100)
+    employer_match = p.gross_annual_income * (p.retirement.employer_match_pct / 100)
     return round(employee_contrib + employer_match, 2)
 
 
 # ── Goal funding gap ──────────────────────────────────────────────────────────
 
+
 def calc_goal_monthly_savings_needed(
-    target_amount:   float,
+    target_amount: float,
     current_savings: float,
-    months:          int,
-    annual_return:   float = 0.05,
+    months: int,
+    annual_return: float = 0.05,
 ) -> float:
     """
     Monthly savings needed to reach a goal, given current savings and investment return.
@@ -222,6 +233,7 @@ def calc_goal_monthly_savings_needed(
 
 
 # ── Social Security estimate ──────────────────────────────────────────────────
+
 
 def estimate_social_security_benefit(
     age: int,
@@ -258,8 +270,7 @@ def estimate_social_security_benefit(
     annual_benefit = min(income * rate, 52_000.0)
 
     # Claiming age adjustment relative to FRA (67)
-    _age_adj = {62: -0.300, 63: -0.250, 64: -0.167, 65: -0.133, 66: -0.067,
-                67:  0.000, 68:  0.080, 69:  0.160, 70:  0.240}
+    _age_adj = {62: -0.300, 63: -0.250, 64: -0.167, 65: -0.133, 66: -0.067, 67: 0.000, 68: 0.080, 69: 0.160, 70: 0.240}
     adj = _age_adj.get(max(62, min(70, claiming_age)), 0.0)
     return round(annual_benefit * (1 + adj), 2)
 
@@ -276,15 +287,15 @@ def check_401k_limit(annual_employee_contrib: float, age: int) -> Dict[str, Any]
     limit = 30_500.0 if catch_up else 23_000.0
     excess = max(0.0, annual_employee_contrib - limit)
     return {
-        "over_limit":        excess > 0,
-        "limit":             limit,
-        "excess":            round(excess, 2),
+        "over_limit": excess > 0,
+        "limit": limit,
+        "excess": round(excess, 2),
         "catch_up_eligible": catch_up,
     }
 
 
 def calc_avalanche_payoff(
-    debts: list,          # list of {"name": str, "balance": float, "rate": float, "min_payment": float}
+    debts: list,  # list of {"name": str, "balance": float, "rate": float, "min_payment": float}
     extra_monthly: float = 0.0,
 ) -> Dict[str, Any]:
     """
@@ -293,6 +304,7 @@ def calc_avalanche_payoff(
     Capped at 360 months (30 years).
     """
     import copy
+
     d = [x for x in copy.deepcopy(debts) if x.get("balance", 0) > 0]
     if not d:
         return {"months": 0, "total_interest": 0.0}
@@ -335,6 +347,7 @@ def calc_snowball_payoff(
     Capped at 360 months.
     """
     import copy
+
     d = [x for x in copy.deepcopy(debts) if x.get("balance", 0) > 0]
     if not d:
         return {"months": 0, "total_interest": 0.0}
@@ -368,6 +381,7 @@ def calc_snowball_payoff(
 
 # ── Tax estimates (rough) ─────────────────────────────────────────────────────
 
+
 def estimate_effective_tax_rate(gross_annual_income: float, filing_status: str = "single") -> float:
     """
     Very rough effective federal income tax rate estimate for a given income level.
@@ -377,19 +391,29 @@ def estimate_effective_tax_rate(gross_annual_income: float, filing_status: str =
     income = gross_annual_income
     if filing_status in ("married", "widowed"):
         # Rough brackets for MFJ
-        if income <= 30000:    return 0.08
-        if income <= 80000:    return 0.12
-        if income <= 160000:   return 0.17
-        if income <= 250000:   return 0.21
-        if income <= 400000:   return 0.24
+        if income <= 30000:
+            return 0.08
+        if income <= 80000:
+            return 0.12
+        if income <= 160000:
+            return 0.17
+        if income <= 250000:
+            return 0.21
+        if income <= 400000:
+            return 0.24
         return 0.29
     else:
         # Single / divorced
-        if income <= 15000:    return 0.08
-        if income <= 45000:    return 0.12
-        if income <= 90000:    return 0.18
-        if income <= 150000:   return 0.22
-        if income <= 250000:   return 0.26
+        if income <= 15000:
+            return 0.08
+        if income <= 45000:
+            return 0.12
+        if income <= 90000:
+            return 0.18
+        if income <= 150000:
+            return 0.22
+        if income <= 250000:
+            return 0.26
         return 0.32
 
 

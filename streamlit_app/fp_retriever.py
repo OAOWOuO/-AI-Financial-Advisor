@@ -7,6 +7,7 @@ Each chunk carries rich metadata: source_type, topic, reliability_level, date.
 
 Supports: PDF, Markdown, TXT, HTML (text portion), Word (.docx).
 """
+
 from __future__ import annotations
 import io, hashlib
 from typing import List, Dict, Any, Tuple, Optional
@@ -17,24 +18,21 @@ import numpy as np
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-EMBED_MODEL  = "text-embedding-3-small"
-CHUNK_SIZE   = 400    # words per chunk
+EMBED_MODEL = "text-embedding-3-small"
+CHUNK_SIZE = 400  # words per chunk
 CHUNK_OVERLAP = 50
 
-TOPIC_TAGS  = ["retirement", "tax", "debt", "insurance", "cash_flow",
-               "estate", "investing", "goals", "general"]
-SOURCE_TYPES = ["official_guidance", "case_study", "worksheet", "article",
-                "class_material", "reference"]
-RELIABILITY  = ["official", "educational", "secondary"]
+TOPIC_TAGS = ["retirement", "tax", "debt", "insurance", "cash_flow", "estate", "investing", "goals", "general"]
+SOURCE_TYPES = ["official_guidance", "case_study", "worksheet", "article", "class_material", "reference"]
+RELIABILITY = ["official", "educational", "secondary"]
 
 
 # ── Session-level in-memory store ────────────────────────────────────────────
 
+
 def _get_store() -> Dict[str, list]:
     if "fp_doc_store" not in st.session_state:
-        st.session_state.fp_doc_store = {
-            "ids": [], "documents": [], "embeddings": [], "metadatas": []
-        }
+        st.session_state.fp_doc_store = {"ids": [], "documents": [], "embeddings": [], "metadatas": []}
     return st.session_state.fp_doc_store
 
 
@@ -49,12 +47,12 @@ def list_sources() -> List[Dict[str, Any]]:
         src = m.get("source", "?")
         if src not in seen:
             seen[src] = {
-                "source":       src,
-                "topic":        m.get("topic", "general"),
-                "source_type":  m.get("source_type", "reference"),
-                "reliability":  m.get("reliability_level", "educational"),
-                "date":         m.get("date", ""),
-                "chunks":       0,
+                "source": src,
+                "topic": m.get("topic", "general"),
+                "source_type": m.get("source_type", "reference"),
+                "reliability": m.get("reliability_level", "educational"),
+                "date": m.get("date", ""),
+                "chunks": 0,
             }
         seen[src]["chunks"] += 1
     return list(seen.values())
@@ -67,19 +65,21 @@ def clear_store() -> None:
 
 # ── Chunking ──────────────────────────────────────────────────────────────────
 
-def _chunk_text(text: str, source: str, page: int,
-                metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+def _chunk_text(text: str, source: str, page: int, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
     words = text.split()
     chunks: List[Dict[str, Any]] = []
     i = 0
     while i < len(words):
-        window = words[i: i + CHUNK_SIZE]
+        window = words[i : i + CHUNK_SIZE]
         chunk_id = hashlib.md5(f"{source}|{page}|{i}".encode()).hexdigest()[:16]
-        chunks.append({
-            "text":     " ".join(window),
-            "chunk_id": chunk_id,
-            "metadata": {**metadata, "source": source, "page": page, "chunk_id": chunk_id},
-        })
+        chunks.append(
+            {
+                "text": " ".join(window),
+                "chunk_id": chunk_id,
+                "metadata": {**metadata, "source": source, "page": page, "chunk_id": chunk_id},
+            }
+        )
         if len(window) < CHUNK_SIZE:
             break
         i += CHUNK_SIZE - CHUNK_OVERLAP
@@ -88,24 +88,25 @@ def _chunk_text(text: str, source: str, page: int,
 
 # ── Ingestion ──────────────────────────────────────────────────────────────────
 
+
 def ingest_bytes(
     file_bytes: bytes,
     filename: str,
     openai_client,
-    topic: str        = "general",
-    source_type: str  = "reference",
-    reliability: str  = "educational",
-    date: str         = "",
+    topic: str = "general",
+    source_type: str = "reference",
+    reliability: str = "educational",
+    date: str = "",
 ) -> Tuple[int, str]:
     """
     Ingest a document from raw bytes.
     Returns (chunks_added, error_message).  error_message is "" on success.
     """
     base_meta = {
-        "topic":            topic,
-        "source_type":      source_type,
+        "topic": topic,
+        "source_type": source_type,
         "reliability_level": reliability,
-        "date":             date,
+        "date": date,
     }
 
     all_chunks: List[Dict[str, Any]] = []
@@ -114,6 +115,7 @@ def ingest_bytes(
     if ext == "pdf":
         try:
             from pypdf import PdfReader
+
             reader = PdfReader(io.BytesIO(file_bytes))
             for page_num, page in enumerate(reader.pages, start=1):
                 text = page.extract_text() or ""
@@ -129,8 +131,9 @@ def ingest_bytes(
     elif ext == "html":
         try:
             import re
+
             text = file_bytes.decode("utf-8", errors="replace")
-            text = re.sub(r"<[^>]+>", " ", text)   # strip HTML tags
+            text = re.sub(r"<[^>]+>", " ", text)  # strip HTML tags
             text = re.sub(r"\s+", " ", text).strip()
             all_chunks.extend(_chunk_text(text, filename, 0, base_meta))
         except Exception as e:
@@ -145,6 +148,7 @@ def ingest_bytes(
     elif ext == "docx":
         try:
             from docx import Document as DocxDocument
+
             doc = DocxDocument(io.BytesIO(file_bytes))
             # Group paragraphs into logical "pages" (~50 paragraphs each for chunking)
             paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
@@ -156,9 +160,9 @@ def ingest_bytes(
                         paragraphs.append(row_text)
             if not paragraphs:
                 return 0, "No text found in this Word document."
-            page_size = 50   # paragraphs per virtual page
+            page_size = 50  # paragraphs per virtual page
             for page_num, start in enumerate(range(0, len(paragraphs), page_size), start=1):
-                page_text = "\n".join(paragraphs[start: start + page_size])
+                page_text = "\n".join(paragraphs[start : start + page_size])
                 all_chunks.extend(_chunk_text(page_text, filename, page_num, base_meta))
         except ImportError:
             return 0, "python-docx is not installed. Run: pip install python-docx"
@@ -180,12 +184,12 @@ def ingest_bytes(
 
     # Embed in batches of 100
     total_added = 0
-    batch_size  = 100
+    batch_size = 100
     for i in range(0, len(new_chunks), batch_size):
-        batch  = new_chunks[i: i + batch_size]
-        texts  = [c["text"] for c in batch]
+        batch = new_chunks[i : i + batch_size]
+        texts = [c["text"] for c in batch]
         try:
-            resp       = openai_client.embeddings.create(model=EMBED_MODEL, input=texts)
+            resp = openai_client.embeddings.create(model=EMBED_MODEL, input=texts)
             embeddings = [r.embedding for r in resp.data]
         except Exception as e:
             return total_added, f"Embedding API error: {e}"
@@ -204,10 +208,11 @@ def ingest_bytes(
 
 # ── Retrieval ─────────────────────────────────────────────────────────────────
 
+
 def retrieve(
     query: str,
     openai_client,
-    top_k: int     = 8,
+    top_k: int = 8,
     topic_filter: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -221,14 +226,13 @@ def retrieve(
 
     # Embed query
     resp = openai_client.embeddings.create(model=EMBED_MODEL, input=query)
-    q    = np.array(resp.data[0].embedding, dtype="float32")
-    q   /= np.linalg.norm(q) + 1e-10
+    q = np.array(resp.data[0].embedding, dtype="float32")
+    q /= np.linalg.norm(q) + 1e-10
 
     # Filter by topic if requested
     indices = range(len(store["embeddings"]))
     if topic_filter and topic_filter != "all":
-        indices = [i for i in indices
-                   if store["metadatas"][i].get("topic", "") == topic_filter]
+        indices = [i for i in indices if store["metadatas"][i].get("topic", "") == topic_filter]
 
     if not indices:
         return []
@@ -244,9 +248,9 @@ def retrieve(
 
     return [
         {
-            "text":     store["documents"][i],
+            "text": store["documents"][i],
             "metadata": store["metadatas"][i],
-            "score":    round(s, 4),
+            "score": round(s, 4),
         }
         for s, i in top
     ]

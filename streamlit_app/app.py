@@ -5,19 +5,16 @@ Combined app with session state navigation
 
 import streamlit as st
 from datetime import datetime
+
 current_year = datetime.now().year
 
-st.set_page_config(
-    page_title="AI Financial Advisor",
-    page_icon="🏦",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="AI Financial Advisor", page_icon="🏦", layout="wide", initial_sidebar_state="collapsed")
 
 if "current_view" not in st.session_state:
     st.session_state.current_view = "home"
 
-st.markdown("""<style>
+st.markdown(
+    """<style>
 .main { background: #0d1117; }
 .stApp { background: #0d1117; }
 #MainMenu, footer, header { visibility: hidden; }
@@ -509,22 +506,28 @@ button[kind="primary"]:focus-visible,
     }
 }
 
-</style>""", unsafe_allow_html=True)
+</style>""",
+    unsafe_allow_html=True,
+)
 
 
 # ============== HOME VIEW ==============
 def show_home():
-    st.markdown("""
+    st.markdown(
+        """
 <div style="text-align: center; padding: 40px 0 30px 0;">
   <h1 style="font-size: 42px;">🏦 AI Financial Advisor</h1>
   <p style="font-size: 18px; color: #8b949e;">Your intelligent assistant for smarter investment decisions</p>
 </div>
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
     col1, col2, col3 = st.columns(3, gap="large")
 
     with col1:
-        st.markdown("""<div class="tool-card tool-card-green">
+        st.markdown(
+            """<div class="tool-card tool-card-green">
 <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
 <div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Portfolio Allocator</div>
 <div style="font-size: 11px; color: #10b981 !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">RISK &amp; ALLOCATION</div>
@@ -537,14 +540,17 @@ def show_home():
 <li>Dividend income tracking</li>
 <li>One-click rebalancing</li>
 </ul>
-</div>""", unsafe_allow_html=True)
+</div>""",
+            unsafe_allow_html=True,
+        )
         st.markdown('<div class="btn-cta-portfolio"></div>', unsafe_allow_html=True)
         if st.button("Enter Portfolio Allocator →", key="btn_portfolio", use_container_width=True):
             st.session_state.current_view = "portfolio"
             st.rerun()
 
     with col2:
-        st.markdown("""<div class="tool-card tool-card-indigo">
+        st.markdown(
+            """<div class="tool-card tool-card-indigo">
 <div style="font-size: 48px; margin-bottom: 15px;">📈</div>
 <div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Stock Analyzer</div>
 <div style="font-size: 11px; color: #818cf8 !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">TECHNICAL &amp; FUNDAMENTAL</div>
@@ -557,14 +563,17 @@ def show_home():
 <li>Support &amp; resistance levels</li>
 <li>BUY / HOLD / SELL recommendation</li>
 </ul>
-</div>""", unsafe_allow_html=True)
+</div>""",
+            unsafe_allow_html=True,
+        )
         st.markdown('<div class="btn-cta-analyzer"></div>', unsafe_allow_html=True)
         if st.button("Enter Stock Analyzer →", key="btn_analyzer", use_container_width=True):
             st.session_state.current_view = "analyzer"
             st.rerun()
 
     with col3:
-        st.markdown("""<div class="tool-card tool-card-purple">
+        st.markdown(
+            """<div class="tool-card tool-card-purple">
 <div style="font-size: 48px; margin-bottom: 15px;">🗂️</div>
 <div style="font-size: 22px; font-weight: 700; color: #e6edf3 !important; margin-bottom: 4px;">Financial Planner</div>
 <div style="font-size: 11px; color: #c084fc !important; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">AI-POWERED PLANNING ASSISTANT</div>
@@ -576,7 +585,9 @@ def show_home():
 <li>Upload PDFs for RAG-grounded advice</li>
 <li>Downloadable report with full source citations</li>
 </ul>
-</div>""", unsafe_allow_html=True)
+</div>""",
+            unsafe_allow_html=True,
+        )
         st.markdown('<div class="btn-cta-caseqa"></div>', unsafe_allow_html=True)
         if st.button("Enter Financial Planner →", key="btn_caseqa", use_container_width=True):
             st.session_state.current_view = "fp"
@@ -588,9 +599,11 @@ if st.session_state.current_view == "home":
     show_home()
 elif st.session_state.current_view == "analyzer":
     from stock_analyzer import show_stock_analyzer
+
     show_stock_analyzer()
 elif st.session_state.current_view == "portfolio":
     import os
+
     col_back, col_title = st.columns([1, 11])
     with col_back:
         st.markdown('<div class="btn-back"></div>', unsafe_allow_html=True)
@@ -598,14 +611,15 @@ elif st.session_state.current_view == "portfolio":
             st.session_state.current_view = "home"
             st.rerun()
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
-        "portfolio",
-        os.path.join(os.path.dirname(__file__), "portfolio_allocator.py")
+        "portfolio", os.path.join(os.path.dirname(__file__), "portfolio_allocator.py")
     )
     portfolio_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(portfolio_module)
 elif st.session_state.current_view == "fp":
     from financial_planner import show_financial_planner
+
     show_financial_planner()
 
 
@@ -613,16 +627,21 @@ elif st.session_state.current_view == "fp":
 ft_col1, ft_col2, ft_col3, ft_col4 = st.columns([2, 1, 1.5, 1.5])
 
 with ft_col1:
-    st.markdown("""
+    st.markdown(
+        """
 <span class="ft-brand-title">🏦 AI FINANCIAL ADVISOR</span>
 <span class="ft-brand-body">
   Institutional-grade analytics for portfolio optimization,
   equity research, and document intelligence.
 </span>
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
 with ft_col2:
-    st.markdown('<span class="footer-col-title">Navigation</span><div class="ft-nav-section"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<span class="footer-col-title">Navigation</span><div class="ft-nav-section"></div>', unsafe_allow_html=True
+    )
     if st.button("Home", key="ft_home"):
         st.session_state.current_view = "home"
         st.rerun()
@@ -637,7 +656,8 @@ with ft_col2:
         st.rerun()
 
 with ft_col3:
-    st.markdown("""
+    st.markdown(
+        """
 <span class="footer-col-title">Data &amp; Legal</span>
 <div class="ft-data-item">• Market data: Yahoo Finance (15–20 min delayed)</div>
 <div class="ft-data-item">• AI analysis: OpenAI API</div>
@@ -650,10 +670,13 @@ Base framework: <a href="https://github.com/virattt/ai-hedge-fund" target="_blan
 style="color:#3b82f6 !important;text-decoration:none;">virattt/ai-hedge-fund</a><br><br>
 Source code: <a href="https://github.com/OAOWOuO/-AI-Financial-Advisor" target="_blank"
 style="color:#3b82f6 !important;text-decoration:none;">github.com/OAOWOuO/-AI-Financial-Advisor</a></span>
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
 with ft_col4:
-    st.markdown("""
+    st.markdown(
+        """
 <span class="footer-col-title">About</span>
 <div class="ft-data-item"><strong style="color:#8b9db5 !important;">Author</strong></div>
 <div class="ft-data-item">YuanTeng Fan</div>
@@ -661,10 +684,13 @@ with ft_col4:
 <div class="ft-data-item" style="margin-top:10px;"><strong style="color:#8b9db5 !important;">Course</strong></div>
 <div class="ft-data-item">MGMT 690 · Mastering AI for Finance</div>
 <a class="ft-about-link" href="https://business.purdue.edu/" target="_blank">Purdue Business School →</a>
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
 # Copyright strip — flush below the columns via negative margin
-st.markdown(f"""
+st.markdown(
+    f"""
 <div class="ft-copy">
   <span>© {current_year} AI Financial Advisor</span>
   <span class="ft-copy-sep">·</span>
@@ -674,4 +700,6 @@ st.markdown(f"""
   <span class="ft-copy-sep">·</span>
   <span>Built for MGMT 690 · Purdue University</span>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)

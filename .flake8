@@ -29,3 +29,4 @@ extend-ignore =
     E261,
     E301,
     E305,
+    E203,

@@ -17,7 +17,8 @@ from typing import Dict, List
 # Page config moved to main app.py
 
 # ============== CSS - COMPREHENSIVE DARK THEME ==============
-st.markdown("""
+st.markdown(
+    """
 <style>
     /* Base dark theme */
     .main { background: #0d1117; }
@@ -225,102 +226,211 @@ st.markdown("""
         border-color: #30363d !important;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ============== ALLOCATION MODES ==============
 ALLOCATION_MODES = {
-    "max_deploy": {"name": "Maximum Deployment", "desc": "Deploy 95%+ of capital. Position caps scale with # of tickers.", "target_pct": 0.95},
-    "equal_weight": {"name": "Equal Weight", "desc": "Split capital equally among actionable tickers.", "target_pct": 0.90},
-    "confidence_weighted": {"name": "Confidence Weighted", "desc": "Size by conviction. May hold cash.", "target_pct": None},
-    "conservative": {"name": "Conservative", "desc": "High-conviction only. 30-50% cash buffer.", "target_pct": 0.50}
+    "max_deploy": {
+        "name": "Maximum Deployment",
+        "desc": "Deploy 95%+ of capital. Position caps scale with # of tickers.",
+        "target_pct": 0.95,
+    },
+    "equal_weight": {
+        "name": "Equal Weight",
+        "desc": "Split capital equally among actionable tickers.",
+        "target_pct": 0.90,
+    },
+    "confidence_weighted": {
+        "name": "Confidence Weighted",
+        "desc": "Size by conviction. May hold cash.",
+        "target_pct": None,
+    },
+    "conservative": {"name": "Conservative", "desc": "High-conviction only. 30-50% cash buffer.", "target_pct": 0.50},
 }
 
 # ============== ANALYST DEFINITIONS ==============
 ANALYST_CATEGORIES = {
     "Value Investors": {
-        "warren_buffett": {"name": "Warren Buffett", "desc": "Moats, quality management, long-term value", "bias": -0.1,
+        "warren_buffett": {
+            "name": "Warren Buffett",
+            "desc": "Moats, quality management, long-term value",
+            "bias": -0.1,
             "thesis": "Seeks companies with durable competitive advantages (moats) trading below intrinsic value",
             "drivers": "Strong brand, pricing power, consistent earnings, quality management",
-            "horizon": "5-10+ years", "risks": "May miss growth opportunities, slow to act"},
-        "charlie_munger": {"name": "Charlie Munger", "desc": "Mental models, business quality", "bias": -0.1,
+            "horizon": "5-10+ years",
+            "risks": "May miss growth opportunities, slow to act",
+        },
+        "charlie_munger": {
+            "name": "Charlie Munger",
+            "desc": "Mental models, business quality",
+            "bias": -0.1,
             "thesis": "Focus on business quality and management integrity over pure value metrics",
             "drivers": "Mental models, avoiding stupidity, quality over price",
-            "horizon": "Long-term", "risks": "Concentration risk, patience required"},
-        "ben_graham": {"name": "Benjamin Graham", "desc": "Margin of safety, net-net value", "bias": -0.15,
+            "horizon": "Long-term",
+            "risks": "Concentration risk, patience required",
+        },
+        "ben_graham": {
+            "name": "Benjamin Graham",
+            "desc": "Margin of safety, net-net value",
+            "bias": -0.15,
             "thesis": "Deep value requiring significant discount to book value",
             "drivers": "Net current asset value, margin of safety, quantitative screens",
-            "horizon": "1-3 years", "risks": "Value traps, declining businesses"},
-        "joel_greenblatt": {"name": "Joel Greenblatt", "desc": "Magic formula: ROIC + earnings yield", "bias": -0.05,
+            "horizon": "1-3 years",
+            "risks": "Value traps, declining businesses",
+        },
+        "joel_greenblatt": {
+            "name": "Joel Greenblatt",
+            "desc": "Magic formula: ROIC + earnings yield",
+            "bias": -0.05,
             "thesis": "Quantitative value screening based on return on capital and earnings yield",
             "drivers": "High ROIC, high earnings yield, systematic approach",
-            "horizon": "1-2 years", "risks": "Sector concentration, mechanical approach"},
-        "seth_klarman": {"name": "Seth Klarman", "desc": "Deep value, distressed assets", "bias": -0.15,
+            "horizon": "1-2 years",
+            "risks": "Sector concentration, mechanical approach",
+        },
+        "seth_klarman": {
+            "name": "Seth Klarman",
+            "desc": "Deep value, distressed assets",
+            "bias": -0.15,
             "thesis": "Contrarian deep value in distressed or out-of-favor situations",
             "drivers": "Extreme pessimism, catalyst identification, risk management",
-            "horizon": "2-5 years", "risks": "Timing uncertainty, permanent capital loss"},
+            "horizon": "2-5 years",
+            "risks": "Timing uncertainty, permanent capital loss",
+        },
     },
     "Growth Investors": {
-        "peter_lynch": {"name": "Peter Lynch", "desc": "PEG ratio, growth at reasonable price", "bias": 0.05,
+        "peter_lynch": {
+            "name": "Peter Lynch",
+            "desc": "PEG ratio, growth at reasonable price",
+            "bias": 0.05,
             "thesis": "Growth at a reasonable price, invest in what you understand",
             "drivers": "PEG ratio, local knowledge, growth sustainability",
-            "horizon": "3-5 years", "risks": "Overpaying for growth, diversification"},
-        "phil_fisher": {"name": "Philip Fisher", "desc": "Scuttlebutt, quality growth", "bias": 0.05,
+            "horizon": "3-5 years",
+            "risks": "Overpaying for growth, diversification",
+        },
+        "phil_fisher": {
+            "name": "Philip Fisher",
+            "desc": "Scuttlebutt, quality growth",
+            "bias": 0.05,
             "thesis": "Long-term growth investing with deep qualitative research",
             "drivers": "Management quality, R&D, competitive position, scuttlebutt",
-            "horizon": "10+ years", "risks": "Concentration, qualitative biases"},
-        "cathie_wood": {"name": "Cathie Wood", "desc": "Disruptive innovation, exponential growth", "bias": 0.2,
+            "horizon": "10+ years",
+            "risks": "Concentration, qualitative biases",
+        },
+        "cathie_wood": {
+            "name": "Cathie Wood",
+            "desc": "Disruptive innovation, exponential growth",
+            "bias": 0.2,
             "thesis": "High-conviction bets on disruptive innovation and exponential growth",
             "drivers": "Disruption potential, TAM expansion, Wright's Law cost curves",
-            "horizon": "5+ years", "risks": "Volatility, valuation, execution risk"},
-        "bill_ackman": {"name": "Bill Ackman", "desc": "Activist catalysts, concentrated bets", "bias": 0.1,
+            "horizon": "5+ years",
+            "risks": "Volatility, valuation, execution risk",
+        },
+        "bill_ackman": {
+            "name": "Bill Ackman",
+            "desc": "Activist catalysts, concentrated bets",
+            "bias": 0.1,
             "thesis": "Concentrated positions with activist catalysts to unlock value",
             "drivers": "Undervalued assets, activist engagement, management change",
-            "horizon": "2-4 years", "risks": "Concentration, activism resistance"},
+            "horizon": "2-4 years",
+            "risks": "Concentration, activism resistance",
+        },
     },
     "Macro Traders": {
-        "stanley_druckenmiller": {"name": "Stanley Druckenmiller", "desc": "Macro trends, asymmetric bets", "bias": 0,
+        "stanley_druckenmiller": {
+            "name": "Stanley Druckenmiller",
+            "desc": "Macro trends, asymmetric bets",
+            "bias": 0,
             "thesis": "Macro trend following with aggressive sizing on high-conviction ideas",
             "drivers": "Liquidity cycles, central bank policy, asymmetric setups",
-            "horizon": "Months to years", "risks": "Timing, leverage"},
-        "george_soros": {"name": "George Soros", "desc": "Reflexivity, regime changes", "bias": 0,
+            "horizon": "Months to years",
+            "risks": "Timing, leverage",
+        },
+        "george_soros": {
+            "name": "George Soros",
+            "desc": "Reflexivity, regime changes",
+            "bias": 0,
             "thesis": "Identifies reflexive feedback loops and regime changes",
             "drivers": "Market psychology, reflexivity, boom-bust cycles",
-            "horizon": "Variable", "risks": "Timing, complexity"},
-        "ray_dalio": {"name": "Ray Dalio", "desc": "Economic machine, risk parity", "bias": -0.05,
+            "horizon": "Variable",
+            "risks": "Timing, complexity",
+        },
+        "ray_dalio": {
+            "name": "Ray Dalio",
+            "desc": "Economic machine, risk parity",
+            "bias": -0.05,
             "thesis": "Systematic macro based on economic machine principles",
             "drivers": "Debt cycles, productivity, diversification",
-            "horizon": "Full cycle", "risks": "Model assumptions, correlation breakdown"},
-        "paul_tudor_jones": {"name": "Paul Tudor Jones", "desc": "Technical macro, trend following", "bias": 0,
+            "horizon": "Full cycle",
+            "risks": "Model assumptions, correlation breakdown",
+        },
+        "paul_tudor_jones": {
+            "name": "Paul Tudor Jones",
+            "desc": "Technical macro, trend following",
+            "bias": 0,
             "thesis": "Technical analysis combined with macro themes",
             "drivers": "Price action, trend, sentiment extremes",
-            "horizon": "Weeks to months", "risks": "Whipsaws, false signals"},
+            "horizon": "Weeks to months",
+            "risks": "Whipsaws, false signals",
+        },
     },
     "Quantitative Agents": {
-        "fundamentals_agent": {"name": "Fundamentals Analyst", "desc": "Financial ratios, earnings quality", "bias": 0,
+        "fundamentals_agent": {
+            "name": "Fundamentals Analyst",
+            "desc": "Financial ratios, earnings quality",
+            "bias": 0,
             "thesis": "Analyzes financial statements, ratios, and earnings quality",
             "drivers": "Revenue growth, margins, ROE, debt levels, cash flow",
-            "horizon": "1-2 years", "risks": "Backward looking, accounting manipulation"},
-        "technical_agent": {"name": "Technical Analyst", "desc": "Price patterns, momentum, RSI, MACD", "bias": 0,
+            "horizon": "1-2 years",
+            "risks": "Backward looking, accounting manipulation",
+        },
+        "technical_agent": {
+            "name": "Technical Analyst",
+            "desc": "Price patterns, momentum, RSI, MACD",
+            "bias": 0,
             "thesis": "Technical indicators and price pattern analysis",
             "drivers": "RSI, MACD, moving averages, support/resistance",
-            "horizon": "Days to weeks", "risks": "False signals, changing regimes"},
-        "sentiment_agent": {"name": "Sentiment Analyst", "desc": "News sentiment, social media", "bias": 0.05,
+            "horizon": "Days to weeks",
+            "risks": "False signals, changing regimes",
+        },
+        "sentiment_agent": {
+            "name": "Sentiment Analyst",
+            "desc": "News sentiment, social media",
+            "bias": 0.05,
             "thesis": "Aggregates news sentiment, social media buzz, analyst ratings",
             "drivers": "News flow, social sentiment, analyst revisions",
-            "horizon": "Days to months", "risks": "Noise, manipulation, lag"},
-        "valuation_agent": {"name": "Valuation Analyst", "desc": "DCF, comparable analysis", "bias": -0.05,
+            "horizon": "Days to months",
+            "risks": "Noise, manipulation, lag",
+        },
+        "valuation_agent": {
+            "name": "Valuation Analyst",
+            "desc": "DCF, comparable analysis",
+            "bias": -0.05,
             "thesis": "DCF models, comparable company analysis, sum-of-parts",
             "drivers": "Intrinsic value, multiples, growth assumptions",
-            "horizon": "1-3 years", "risks": "Model sensitivity, assumptions"},
-        "momentum_agent": {"name": "Momentum Analyst", "desc": "Price and earnings momentum", "bias": 0.1,
+            "horizon": "1-3 years",
+            "risks": "Model sensitivity, assumptions",
+        },
+        "momentum_agent": {
+            "name": "Momentum Analyst",
+            "desc": "Price and earnings momentum",
+            "bias": 0.1,
             "thesis": "Follows price and earnings momentum trends",
             "drivers": "Price momentum, earnings surprises, estimate revisions",
-            "horizon": "3-12 months", "risks": "Reversals, crowding"},
-        "risk_agent": {"name": "Risk Analyst", "desc": "Volatility, drawdown, tail risk", "bias": -0.1,
+            "horizon": "3-12 months",
+            "risks": "Reversals, crowding",
+        },
+        "risk_agent": {
+            "name": "Risk Analyst",
+            "desc": "Volatility, drawdown, tail risk",
+            "bias": -0.1,
             "thesis": "Focuses on risk metrics and downside protection",
             "drivers": "Volatility, drawdown, VaR, correlation, tail risk",
-            "horizon": "Ongoing", "risks": "Over-conservatism, missed upside"},
+            "horizon": "Ongoing",
+            "risks": "Over-conservatism, missed upside",
+        },
     },
 }
 
@@ -332,6 +442,7 @@ def get_all_analysts():
             result[key] = {**info, "category": cat}
     return result
 
+
 ALL_ANALYSTS = get_all_analysts()
 ALL_ANALYST_KEYS = list(ALL_ANALYSTS.keys())
 
@@ -339,7 +450,11 @@ ALL_ANALYST_KEYS = list(ALL_ANALYSTS.keys())
 # ============== RISK PARAMETERS ==============
 def get_risk_params(risk_level: float, custom: dict = None) -> dict:
     params = {
-        "max_position_pct": {"value": round(10 + risk_level * 25, 1), "unit": "%", "desc": "Max allocation per position"},
+        "max_position_pct": {
+            "value": round(10 + risk_level * 25, 1),
+            "unit": "%",
+            "desc": "Max allocation per position",
+        },
         "stop_loss_pct": {"value": round(20 - risk_level * 15, 1), "unit": "%", "desc": "Stop loss distance"},
         "take_profit_pct": {"value": round(15 + risk_level * 45, 1), "unit": "%", "desc": "Take profit target"},
         "min_confidence": {"value": round(65 - risk_level * 35, 0), "unit": "%", "desc": "Min confidence to trade"},
@@ -359,30 +474,47 @@ def fetch_stock(ticker: str) -> dict:
     ts = datetime.now()
     try:
         import yfinance as yf
+
         stock = yf.Ticker(ticker)
         hist = stock.history(period="5d")
         info = stock.info
         if len(hist) >= 1:
-            price = float(hist['Close'].iloc[-1])
-            prev = float(hist['Close'].iloc[-2]) if len(hist) >= 2 else price
+            price = float(hist["Close"].iloc[-1])
+            prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else price
             return {
-                "valid": True, "ticker": ticker, "price": price,
-                "change": price - prev, "change_pct": ((price - prev) / prev * 100) if prev else 0,
-                "name": info.get("shortName", ticker), "sector": info.get("sector", "Unknown"),
-                "market_cap": info.get("marketCap", 0), "pe_ratio": info.get("trailingPE") or 0,
-                "beta": info.get("beta") or 1.0, "high_52w": info.get("fiftyTwoWeekHigh") or 0,
-                "low_52w": info.get("fiftyTwoWeekLow") or 0, "timestamp": ts
+                "valid": True,
+                "ticker": ticker,
+                "price": price,
+                "change": price - prev,
+                "change_pct": ((price - prev) / prev * 100) if prev else 0,
+                "name": info.get("shortName", ticker),
+                "sector": info.get("sector", "Unknown"),
+                "market_cap": info.get("marketCap", 0),
+                "pe_ratio": info.get("trailingPE") or 0,
+                "beta": info.get("beta") or 1.0,
+                "high_52w": info.get("fiftyTwoWeekHigh") or 0,
+                "low_52w": info.get("fiftyTwoWeekLow") or 0,
+                "timestamp": ts,
             }
     except Exception:
         pass
-    return {"valid": False, "ticker": ticker, "price": 0, "change": 0, "change_pct": 0,
-            "name": ticker, "sector": "Unknown", "timestamp": ts}
+    return {
+        "valid": False,
+        "ticker": ticker,
+        "price": 0,
+        "change": 0,
+        "change_pct": 0,
+        "name": ticker,
+        "sector": "Unknown",
+        "timestamp": ts,
+    }
 
 
 @st.cache_data(ttl=300)
 def fetch_history(ticker: str, period: str = "1y") -> pd.DataFrame:
     try:
         import yfinance as yf
+
         return yf.Ticker(ticker).history(period=period)
     except Exception:
         return pd.DataFrame()
@@ -393,6 +525,7 @@ def fetch_events_income(ticker: str) -> dict:
     """Fetch dividend, earnings, and 52-week range data for a ticker."""
     try:
         import yfinance as yf
+
         stock = yf.Ticker(ticker)
         info = stock.info
 
@@ -417,7 +550,7 @@ def fetch_events_income(ticker: str) -> dict:
                     return d.replace(tzinfo=None) if d.tzinfo else d
                 elif isinstance(d, pd.Timestamp):
                     return d.to_pydatetime().replace(tzinfo=None)
-                elif hasattr(d, 'year'):  # datetime.date
+                elif hasattr(d, "year"):  # datetime.date
                     return datetime(d.year, d.month, d.day)
                 elif isinstance(d, (int, float)):
                     return datetime.fromtimestamp(d)
@@ -487,13 +620,19 @@ def fetch_events_income(ticker: str) -> dict:
             "high_52w": high_52w,
             "low_52w": low_52w,
             "current_price": current_price,
-            "range_position": range_position
+            "range_position": range_position,
         }
     except Exception as e:
         return {
-            "ticker": ticker, "dividend_yield": 0, "dividend_rate": 0,
-            "ex_dividend_date": None, "earnings_dates": [], "high_52w": 0,
-            "low_52w": 0, "current_price": 0, "range_position": 0
+            "ticker": ticker,
+            "dividend_yield": 0,
+            "dividend_rate": 0,
+            "ex_dividend_date": None,
+            "earnings_dates": [],
+            "high_52w": 0,
+            "low_52w": 0,
+            "current_price": 0,
+            "range_position": 0,
         }
 
 
@@ -502,6 +641,7 @@ def fetch_news(ticker: str) -> List[dict]:
     """Fetch recent news for a ticker using yfinance."""
     try:
         import yfinance as yf
+
         stock = yf.Ticker(ticker)
 
         # Get news - yfinance 0.2.40+ uses .news property
@@ -530,19 +670,21 @@ def fetch_news(ticker: str) -> List[dict]:
                         if isinstance(pub_time, (int, float)):
                             ts = datetime.fromtimestamp(pub_time)
                         elif isinstance(pub_time, str):
-                            ts = datetime.fromisoformat(pub_time.replace('Z', '+00:00'))
+                            ts = datetime.fromisoformat(pub_time.replace("Z", "+00:00"))
                     except Exception:
                         pass
 
                 # Get link - different field names
                 link = item.get("link") or item.get("url", "")
 
-                results.append({
-                    "title": title,
-                    "publisher": item.get("publisher") or item.get("source", "Unknown"),
-                    "link": link,
-                    "timestamp": ts
-                })
+                results.append(
+                    {
+                        "title": title,
+                        "publisher": item.get("publisher") or item.get("source", "Unknown"),
+                        "link": link,
+                        "timestamp": ts,
+                    }
+                )
             except Exception:
                 continue
         return results
@@ -574,6 +716,7 @@ def fetch_benchmark_history(period: str = "1y") -> pd.DataFrame:
     """Fetch S&P 500 (SPY) history for benchmark comparison."""
     try:
         import yfinance as yf
+
         spy = yf.Ticker("SPY")
         hist = spy.history(period=period)
         return hist
@@ -601,7 +744,7 @@ def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capi
                 stock = yf.Ticker(ticker)
                 hist = stock.history(period="1y")
                 if len(hist) > 20:
-                    hist_data[ticker] = hist['Close']
+                    hist_data[ticker] = hist["Close"]
             except Exception:
                 continue
 
@@ -642,7 +785,9 @@ def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capi
 
         # 3. Sharpe Ratio
         excess_returns = portfolio_returns - risk_free_rate
-        sharpe_ratio = (excess_returns.mean() / portfolio_returns.std()) * np.sqrt(252) if portfolio_returns.std() > 0 else 0
+        sharpe_ratio = (
+            (excess_returns.mean() / portfolio_returns.std()) * np.sqrt(252) if portfolio_returns.std() > 0 else 0
+        )
 
         # 4. Sortino Ratio (downside deviation)
         negative_returns = portfolio_returns[portfolio_returns < 0]
@@ -663,7 +808,7 @@ def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capi
         try:
             spy = yf.Ticker("SPY")
             spy_hist = spy.history(period="1y")
-            spy_returns = spy_hist['Close'].pct_change().dropna()
+            spy_returns = spy_hist["Close"].pct_change().dropna()
 
             # Align dates
             common_dates = portfolio_returns.index.intersection(spy_returns.index)
@@ -700,7 +845,7 @@ def calculate_portfolio_risk_metrics(positions: Dict, ticker_results: Dict, capi
             "alpha": alpha,
             "correlation_matrix": correlation_matrix,
             "daily_returns": portfolio_returns,
-            "returns_df": returns_df
+            "returns_df": returns_df,
         }
     except Exception as e:
         return {"error": str(e)}
@@ -729,9 +874,16 @@ def get_sector_allocation(positions: Dict, ticker_results: Dict) -> Dict[str, fl
 
 
 # ============== ANALYSIS ENGINE ==============
-def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, capital: float,
-                 holdings: Dict[str, int], mode_key: str, allow_fractional: bool = False,
-                 custom_params: dict = None) -> dict:
+def run_analysis(
+    tickers: List[str],
+    analysts: List[str],
+    risk_level: float,
+    capital: float,
+    holdings: Dict[str, int],
+    mode_key: str,
+    allow_fractional: bool = False,
+    custom_params: dict = None,
+) -> dict:
 
     # Merge tickers with holdings - holdings tickers should always be analyzed
     all_tickers = list(set(tickers) | set(holdings.keys()))
@@ -745,8 +897,17 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
     mode = ALLOCATION_MODES[mode_key]
     timestamp = datetime.now()
 
-    audit = {"inputs": {"tickers": all_tickers, "analysts": sorted_analysts, "capital": capital,
-                        "mode": mode["name"], "risk_level": risk_level, "holdings": holdings}, "steps": []}
+    audit = {
+        "inputs": {
+            "tickers": all_tickers,
+            "analysts": sorted_analysts,
+            "capital": capital,
+            "mode": mode["name"],
+            "risk_level": risk_level,
+            "holdings": holdings,
+        },
+        "steps": [],
+    }
 
     # Note holdings in audit
     if holdings:
@@ -775,12 +936,20 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
             else:
                 signal, confidence = "NEUTRAL", 40 + np.random.uniform(0, 20)
 
-            signals.append({
-                "analyst": info["name"], "analyst_key": analyst_key, "category": info["category"],
-                "signal": signal, "confidence": min(95, max(30, confidence)), "score": score,
-                "thesis": info.get("thesis", ""), "drivers": info.get("drivers", ""),
-                "horizon": info.get("horizon", ""), "risks": info.get("risks", "")
-            })
+            signals.append(
+                {
+                    "analyst": info["name"],
+                    "analyst_key": analyst_key,
+                    "category": info["category"],
+                    "signal": signal,
+                    "confidence": min(95, max(30, confidence)),
+                    "score": score,
+                    "thesis": info.get("thesis", ""),
+                    "drivers": info.get("drivers", ""),
+                    "horizon": info.get("horizon", ""),
+                    "risks": info.get("risks", ""),
+                }
+            )
 
         bullish = sum(1 for s in signals if s["signal"] == "BULLISH")
         bearish = sum(1 for s in signals if s["signal"] == "BEARISH")
@@ -803,13 +972,25 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
             action, reason = "HOLD", f"No consensus ({bullish}B/{neutral}N/{bearish}Be)"
 
         ticker_results[ticker] = {
-            "stock": stock, "signals": signals, "bullish": bullish, "bearish": bearish,
-            "neutral": neutral, "total": total, "avg_confidence": avg_conf,
-            "action": action, "reason": reason, "holdings": holdings.get(ticker, 0)
+            "stock": stock,
+            "signals": signals,
+            "bullish": bullish,
+            "bearish": bearish,
+            "neutral": neutral,
+            "total": total,
+            "avg_confidence": avg_conf,
+            "action": action,
+            "reason": reason,
+            "holdings": holdings.get(ticker, 0),
         }
 
     for t, r in ticker_results.items():
-        audit["steps"].append(("signal", f"{t} → {r['action']} ({r['bullish']}B/{r['neutral']}N/{r['bearish']}Be, {r['avg_confidence']:.0f}% conf)"))
+        audit["steps"].append(
+            (
+                "signal",
+                f"{t} → {r['action']} ({r['bullish']}B/{r['neutral']}N/{r['bearish']}Be, {r['avg_confidence']:.0f}% conf)",
+            )
+        )
 
     # PHASE 2: ALLOCATION
     actionable = {t: r for t, r in ticker_results.items() if r["action"] != "HOLD" and r["stock"]["valid"]}
@@ -830,7 +1011,12 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
         if mode_key == "max_deploy":
             effective_cap = min(target_pct / n_actionable, 0.95)
             if effective_cap > base_cap:
-                audit["steps"].append(("info", f"Position cap scaled: {base_cap:.1%} → {effective_cap:.1%} (for {n_actionable} ticker(s))"))
+                audit["steps"].append(
+                    (
+                        "info",
+                        f"Position cap scaled: {base_cap:.1%} → {effective_cap:.1%} (for {n_actionable} ticker(s))",
+                    )
+                )
         else:
             effective_cap = base_cap
 
@@ -847,7 +1033,7 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
 
             if mode_key == "confidence_weighted":
                 total_conf = sum(r["avg_confidence"] for r in actionable.values())
-                weight = result["avg_confidence"] / total_conf if total_conf > 0 else 1/n_actionable
+                weight = result["avg_confidence"] / total_conf if total_conf > 0 else 1 / n_actionable
                 budget = capital * effective_cap * weight * (result["avg_confidence"] / 100)
             else:
                 budget = per_pos_budget
@@ -885,15 +1071,30 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
             delta = shares - current if result["action"] == "BUY" else -shares - current
 
             positions[ticker] = {
-                "action": result["action"], "shares": shares, "price": price,
-                "notional": actual, "pct": (actual / capital * 100) if capital else 0,
-                "capped": capped, "sl_price": sl_price, "sl_pct": sl_pct, "sl_dir": sl_dir,
-                "tp_price": tp_price, "tp_pct": tp_pct, "tp_dir": tp_dir,
-                "current": current, "delta": delta, "confidence": result["avg_confidence"]
+                "action": result["action"],
+                "shares": shares,
+                "price": price,
+                "notional": actual,
+                "pct": (actual / capital * 100) if capital else 0,
+                "capped": capped,
+                "sl_price": sl_price,
+                "sl_pct": sl_pct,
+                "sl_dir": sl_dir,
+                "tp_price": tp_price,
+                "tp_pct": tp_pct,
+                "tp_dir": tp_dir,
+                "current": current,
+                "delta": delta,
+                "confidence": result["avg_confidence"],
             }
 
             shares_fmt = f"{shares:.2f}" if allow_fractional else f"{shares:,}"
-            audit["steps"].append(("alloc", f"{ticker}: {result['action']} {shares_fmt} shares @ {price:.2f} = {actual:,.0f} ({actual/capital*100:.1f}%)"))
+            audit["steps"].append(
+                (
+                    "alloc",
+                    f"{ticker}: {result['action']} {shares_fmt} shares @ {price:.2f} = {actual:,.0f} ({actual/capital*100:.1f}%)",
+                )
+            )
 
         for t, r in ticker_results.items():
             if t not in positions:
@@ -918,7 +1119,12 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
     total_buys = sum(p["delta"] * p["price"] for p in positions.values() if p["delta"] > 0)
     total_sells = sum(abs(p["delta"]) * p["price"] for p in positions.values() if p["delta"] < 0)
 
-    audit["steps"].append(("result", f"Result: {gross:,.0f} deployed ({gross/capital*100:.1f}%), {cash:,.0f} cash ({cash/capital*100:.1f}%)"))
+    audit["steps"].append(
+        (
+            "result",
+            f"Result: {gross:,.0f} deployed ({gross/capital*100:.1f}%), {cash:,.0f} cash ({cash/capital*100:.1f}%)",
+        )
+    )
     if existing_long > 0 or existing_short > 0:
         audit["steps"].append(("info", f"Existing holdings: ${existing_long:,.0f} long, ${existing_short:,.0f} short"))
     if total_buys > 0 or total_sells > 0:
@@ -930,22 +1136,39 @@ def run_analysis(tickers: List[str], analysts: List[str], risk_level: float, cap
 
     return {
         "timestamp": timestamp,
-        "config": {"tickers": tickers, "analysts": sorted_analysts, "analyst_count": len(sorted_analysts),
-                   "capital": capital, "mode": mode["name"], "risk_level": risk_level, "holdings": holdings},
+        "config": {
+            "tickers": tickers,
+            "analysts": sorted_analysts,
+            "analyst_count": len(sorted_analysts),
+            "capital": capital,
+            "mode": mode["name"],
+            "risk_level": risk_level,
+            "holdings": holdings,
+        },
         "risk_params": risk_params,
         "ticker_results": ticker_results,
         "positions": positions,
         "hold_tickers": hold_tickers,
         "audit": audit,
         "summary": {
-            "capital": capital, "deployed": gross, "deployed_pct": (gross/capital*100) if capital else 0,
-            "cash": cash, "cash_pct": (cash/capital*100) if capital else 0,
-            "long": long_exp, "short": short_exp, "gross": gross, "net": long_exp - short_exp,
-            "cap_blocked": cap_blocked, "rounding": rounding_remainder,
-            "positions_count": len(positions), "hold_count": len(hold_tickers),
-            "existing_long": existing_long, "existing_short": existing_short,
-            "total_buys": total_buys, "total_sells": total_sells
-        }
+            "capital": capital,
+            "deployed": gross,
+            "deployed_pct": (gross / capital * 100) if capital else 0,
+            "cash": cash,
+            "cash_pct": (cash / capital * 100) if capital else 0,
+            "long": long_exp,
+            "short": short_exp,
+            "gross": gross,
+            "net": long_exp - short_exp,
+            "cap_blocked": cap_blocked,
+            "rounding": rounding_remainder,
+            "positions_count": len(positions),
+            "hold_count": len(hold_tickers),
+            "existing_long": existing_long,
+            "existing_short": existing_short,
+            "total_buys": total_buys,
+            "total_sells": total_sells,
+        },
     }
 
 
@@ -990,8 +1213,10 @@ def clear_all_analysts():
 
 def make_category_callback(cat_id: str):
     """Factory to create a callback that keeps a category expander open."""
+
     def callback():
         st.session_state[f"expand_{cat_id}"] = True
+
     return callback
 
 
@@ -1014,9 +1239,29 @@ st.warning(
 )
 
 # ============== TABS ==============
-tab_signals, tab_portfolio, tab_analytics, tab_performance, tab_events, tab_trades, tab_analysts, tab_securities, tab_settings = st.tabs([
-    "📈 Signals", "💼 Portfolio", "📊 Analytics", "🏆 Performance", "📅 Events & Income", "📋 Trades", "🧠 Analysts", "🔍 Securities", "⚙️ Settings"
-])
+(
+    tab_signals,
+    tab_portfolio,
+    tab_analytics,
+    tab_performance,
+    tab_events,
+    tab_trades,
+    tab_analysts,
+    tab_securities,
+    tab_settings,
+) = st.tabs(
+    [
+        "📈 Signals",
+        "💼 Portfolio",
+        "📊 Analytics",
+        "🏆 Performance",
+        "📅 Events & Income",
+        "📋 Trades",
+        "🧠 Analysts",
+        "🔍 Securities",
+        "⚙️ Settings",
+    ]
+)
 
 
 # ============== SIGNALS TAB ==============
@@ -1026,15 +1271,20 @@ with tab_signals:
     with col_config:
         st.subheader("Configuration")
 
-        ticker_input = st.text_input("Stock Tickers", value="AAPL, MSFT, NVDA, GOOGL",
-                                      help="Comma-separated symbols", key="ticker_input")
+        ticker_input = st.text_input(
+            "Stock Tickers", value="AAPL, MSFT, NVDA, GOOGL", help="Comma-separated symbols", key="ticker_input"
+        )
         tickers = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
         st.caption(f"{len(tickers)} ticker(s)")
 
-        capital = st.number_input("Investment Capital ($)", min_value=1000, value=100000, step=10000, key="capital_input")
+        capital = st.number_input(
+            "Investment Capital ($)", min_value=1000, value=100000, step=10000, key="capital_input"
+        )
 
         with st.expander("Current Holdings", expanded=False):
-            holdings_text = st.text_area("TICKER:SHARES per line", placeholder="AAPL:50\nMSFT:30", height=80, key="holdings_input")
+            holdings_text = st.text_area(
+                "TICKER:SHARES per line", placeholder="AAPL:50\nMSFT:30", height=80, key="holdings_input"
+            )
             holdings = {}
             for line in holdings_text.strip().split("\n"):
                 if ":" in line:
@@ -1046,8 +1296,12 @@ with tab_signals:
 
         st.divider()
 
-        mode_key = st.selectbox("Allocation Mode", options=list(ALLOCATION_MODES.keys()),
-                                 format_func=lambda x: ALLOCATION_MODES[x]["name"], key="mode_select")
+        mode_key = st.selectbox(
+            "Allocation Mode",
+            options=list(ALLOCATION_MODES.keys()),
+            format_func=lambda x: ALLOCATION_MODES[x]["name"],
+            key="mode_select",
+        )
         st.caption(ALLOCATION_MODES[mode_key]["desc"])
 
         allow_fractional = st.checkbox("Allow fractional shares", help="Paper trading only", key="fractional_check")
@@ -1061,8 +1315,9 @@ with tab_signals:
         risk_label = "Conservative" if risk_level < 0.35 else "Aggressive" if risk_level > 0.65 else "Moderate"
         st.caption(f"{risk_label} ({risk_level:.0%})")
 
-        effective_params = get_risk_params(st.session_state.risk_level,
-                                            st.session_state.custom_params if st.session_state.use_custom else None)
+        effective_params = get_risk_params(
+            st.session_state.risk_level, st.session_state.custom_params if st.session_state.use_custom else None
+        )
         if st.session_state.use_custom:
             st.warning("⚠️ Custom parameters active")
 
@@ -1093,8 +1348,9 @@ with tab_signals:
             with st.expander(f"{cat} ({cat_count}/{len(analysts)})", expanded=is_expanded):
                 for key, info in analysts.items():
                     # Checkbox with on_change to keep this category's expander open
-                    st.checkbox(info["name"], key=f"chk_{key}", help=info["desc"],
-                               on_change=make_category_callback(cat_id))
+                    st.checkbox(
+                        info["name"], key=f"chk_{key}", help=info["desc"], on_change=make_category_callback(cat_id)
+                    )
 
         selected_analysts = get_selected_analysts()
         selected_count = len(selected_analysts)
@@ -1114,7 +1370,7 @@ with tab_signals:
                 holdings=holdings,
                 mode_key=mode_key,
                 allow_fractional=allow_fractional,
-                custom_params=custom
+                custom_params=custom,
             )
             # Reset all analyst category expanders after running
             for cat in ANALYST_CATEGORIES.keys():
@@ -1134,7 +1390,9 @@ with tab_signals:
             s = r["summary"]
 
             st.subheader("Results")
-            st.caption(f"Mode: {r['config']['mode']} | {r['config']['analyst_count']} analysts | {r['timestamp'].strftime('%H:%M:%S')}")
+            st.caption(
+                f"Mode: {r['config']['mode']} | {r['config']['analyst_count']} analysts | {r['timestamp'].strftime('%H:%M:%S')}"
+            )
 
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -1149,12 +1407,12 @@ with tab_signals:
                 st.write(f"### ${s['cash']:,.0f}")
                 st.caption(f"{s['cash_pct']:.1f}%")
             with col4:
-                max_loss = sum(p['notional'] * p['sl_pct']/100 for p in r['positions'].values())
+                max_loss = sum(p["notional"] * p["sl_pct"] / 100 for p in r["positions"].values())
                 st.write("**Max Loss**")
                 st.write(f"### ${max_loss:,.0f}")
 
             # Show Current Holdings if any were entered
-            input_holdings = r['config'].get('holdings', {})
+            input_holdings = r["config"].get("holdings", {})
             if input_holdings:
                 st.divider()
                 st.write("### Current Holdings Analysis")
@@ -1164,60 +1422,64 @@ with tab_signals:
                 total_holdings_value = 0
                 for tick, shares in input_holdings.items():
                     # Get price and analysis from ticker_results
-                    tr = r['ticker_results'].get(tick, {})
-                    stock = tr.get('stock', {})
-                    price = stock.get('price', 0) if stock.get('valid') else 0
+                    tr = r["ticker_results"].get(tick, {})
+                    stock = tr.get("stock", {})
+                    price = stock.get("price", 0) if stock.get("valid") else 0
                     value = shares * price if price > 0 else 0
                     total_holdings_value += value
 
                     # Get recommendation
-                    action = tr.get('action', 'N/A')
-                    pos = r['positions'].get(tick, {})
-                    target_shares = pos.get('shares', 0) if pos else 0
+                    action = tr.get("action", "N/A")
+                    pos = r["positions"].get(tick, {})
+                    target_shares = pos.get("shares", 0) if pos else 0
 
                     # Determine recommendation with explanation
-                    if action == 'BUY':
+                    if action == "BUY":
                         if target_shares > shares:
                             recommendation = f"BUY MORE (+{int(target_shares - shares)})"
                             explanation = f"Bullish signal. Increase position to {int(target_shares)} shares."
                         else:
                             recommendation = "HOLD"
                             explanation = "Bullish signal. Current position is sufficient."
-                    elif action == 'SHORT':
+                    elif action == "SHORT":
                         recommendation = "SELL ALL"
                         explanation = "Bearish signal. Consider exiting this position."
-                    elif action == 'HOLD':
+                    elif action == "HOLD":
                         recommendation = "HOLD/REVIEW"
-                        explanation = tr.get('reason', 'No clear signal. Review manually.')
+                        explanation = tr.get("reason", "No clear signal. Review manually.")
                     else:
                         recommendation = "N/A"
                         explanation = "Unable to analyze."
 
-                    holdings_data.append({
-                        "Ticker": tick,
-                        "Shares": shares,
-                        "Price": f"${price:.2f}" if price > 0 else "N/A",
-                        "Value": f"${value:,.0f}" if value > 0 else "N/A",
-                        "Signal": action,
-                        "Recommendation": recommendation
-                    })
+                    holdings_data.append(
+                        {
+                            "Ticker": tick,
+                            "Shares": shares,
+                            "Price": f"${price:.2f}" if price > 0 else "N/A",
+                            "Value": f"${value:,.0f}" if value > 0 else "N/A",
+                            "Signal": action,
+                            "Recommendation": recommendation,
+                        }
+                    )
 
                 st.dataframe(pd.DataFrame(holdings_data), hide_index=True, use_container_width=True)
 
                 # Show explanations
                 st.write("**Recommendations Explained:**")
                 for tick, shares in input_holdings.items():
-                    tr = r['ticker_results'].get(tick, {})
-                    action = tr.get('action', 'N/A')
-                    reason = tr.get('reason', 'No analysis available.')
-                    pos = r['positions'].get(tick, {})
-                    target_shares = pos.get('shares', 0) if pos else 0
+                    tr = r["ticker_results"].get(tick, {})
+                    action = tr.get("action", "N/A")
+                    reason = tr.get("reason", "No analysis available.")
+                    pos = r["positions"].get(tick, {})
+                    target_shares = pos.get("shares", 0) if pos else 0
 
-                    if action == 'BUY' and target_shares > shares:
-                        st.info(f"**{tick}**: Bullish consensus. Buy {int(target_shares - shares)} more shares (target: {int(target_shares)}). {reason}")
-                    elif action == 'BUY':
+                    if action == "BUY" and target_shares > shares:
+                        st.info(
+                            f"**{tick}**: Bullish consensus. Buy {int(target_shares - shares)} more shares (target: {int(target_shares)}). {reason}"
+                        )
+                    elif action == "BUY":
                         st.success(f"**{tick}**: Bullish consensus. Hold current {shares} shares. {reason}")
-                    elif action == 'SHORT':
+                    elif action == "SHORT":
                         st.error(f"**{tick}**: Bearish consensus. Consider selling all {shares} shares. {reason}")
                     else:
                         st.warning(f"**{tick}**: {reason}")
@@ -1229,8 +1491,10 @@ with tab_signals:
 
             st.write("### Allocation Audit Trail")
             audit = r["audit"]
-            st.write(f"**Inputs:** {len(audit['inputs']['tickers'])} tickers, {len(audit['inputs']['analysts'])} analysts, "
-                     f"${audit['inputs']['capital']:,.0f} capital, {audit['inputs']['mode']}, {audit['inputs']['risk_level']:.0%} risk")
+            st.write(
+                f"**Inputs:** {len(audit['inputs']['tickers'])} tickers, {len(audit['inputs']['analysts'])} analysts, "
+                f"${audit['inputs']['capital']:,.0f} capital, {audit['inputs']['mode']}, {audit['inputs']['risk_level']:.0%} risk"
+            )
 
             for step_type, step_text in audit["steps"]:
                 if step_type == "signal":
@@ -1262,7 +1526,7 @@ with tab_signals:
                 st.write(f"### ${s['net']:,.0f}")
 
             # Show existing holdings impact
-            if s.get('existing_long', 0) > 0 or s.get('existing_short', 0) > 0:
+            if s.get("existing_long", 0) > 0 or s.get("existing_short", 0) > 0:
                 st.write("#### Current Holdings")
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
@@ -1278,7 +1542,7 @@ with tab_signals:
                     st.write("**To Sell**")
                     st.write(f"${s.get('total_sells', 0):,.0f}")
 
-            if s['short'] > 0:
+            if s["short"] > 0:
                 st.info(f"Short margin required: ${s['short'] * 0.5:,.0f} (50% Reg T)")
 
             st.divider()
@@ -1308,17 +1572,21 @@ with tab_signals:
 
                 if pos:
                     col1, col2, col3, col4 = st.columns(4)
-                    shares_fmt = f"{pos['shares']:.2f}" if isinstance(pos['shares'], float) and pos['shares'] != int(pos['shares']) else f"{int(pos['shares']):,}"
+                    shares_fmt = (
+                        f"{pos['shares']:.2f}"
+                        if isinstance(pos["shares"], float) and pos["shares"] != int(pos["shares"])
+                        else f"{int(pos['shares']):,}"
+                    )
                     with col1:
                         st.write("**Target Shares**")
                         st.write(f"### {shares_fmt}")
-                        if pos['current'] != 0:
+                        if pos["current"] != 0:
                             st.caption(f"Current: {pos['current']:,}")
                     with col2:
                         st.write("**Notional**")
                         st.write(f"### ${pos['notional']:,.0f}")
-                        if pos['delta'] != 0:
-                            delta_val = pos['delta'] * pos['price']
+                        if pos["delta"] != 0:
+                            delta_val = pos["delta"] * pos["price"]
                             st.caption(f"Delta: {'+' if pos['delta'] > 0 else ''}{pos['delta']:,} (${delta_val:+,.0f})")
                     with col3:
                         st.write("**Stop Loss**")
@@ -1331,17 +1599,23 @@ with tab_signals:
                 with st.expander(f"View all {tr['total']} analyst signals"):
                     sig_data = []
                     for sig in sorted(tr["signals"], key=lambda x: (-x["confidence"], x["analyst"])):
-                        sig_data.append({
-                            "Analyst": sig["analyst"],
-                            "Category": sig["category"],
-                            "Signal": sig["signal"],
-                            "Confidence": f"{sig['confidence']:.0f}%"
-                        })
+                        sig_data.append(
+                            {
+                                "Analyst": sig["analyst"],
+                                "Category": sig["category"],
+                                "Signal": sig["signal"],
+                                "Confidence": f"{sig['confidence']:.0f}%",
+                            }
+                        )
                     if sig_data:
                         # Calculate height based on number of rows (35px per row + header)
                         table_height = min(400, 35 + len(sig_data) * 35)
-                        st.dataframe(pd.DataFrame(sig_data), hide_index=True, use_container_width=True, height=table_height)
-                        st.caption(f"Showing {len(sig_data)} analysts: {tr['bullish']} Bullish, {tr['neutral']} Neutral, {tr['bearish']} Bearish")
+                        st.dataframe(
+                            pd.DataFrame(sig_data), hide_index=True, use_container_width=True, height=table_height
+                        )
+                        st.caption(
+                            f"Showing {len(sig_data)} analysts: {tr['bullish']} Bullish, {tr['neutral']} Neutral, {tr['bearish']} Bearish"
+                        )
                     else:
                         st.write("No analyst signals generated.")
 
@@ -1351,24 +1625,38 @@ with tab_signals:
             if r["positions"]:
                 csv_rows = ["Ticker,Action,Shares,Entry,Notional,StopLoss,TakeProfit,Confidence"]
                 for t, p in r["positions"].items():
-                    shares_str = f"{p['shares']:.2f}" if isinstance(p['shares'], float) else str(p['shares'])
-                    csv_rows.append(f"{t},{p['action']},{shares_str},{p['price']:.2f},{p['notional']:.0f},{p['sl_price']:.2f},{p['tp_price']:.2f},{p['confidence']:.0f}")
+                    shares_str = f"{p['shares']:.2f}" if isinstance(p["shares"], float) else str(p["shares"])
+                    csv_rows.append(
+                        f"{t},{p['action']},{shares_str},{p['price']:.2f},{p['notional']:.0f},{p['sl_price']:.2f},{p['tp_price']:.2f},{p['confidence']:.0f}"
+                    )
                 csv_data = "\n".join(csv_rows)
             else:
                 csv_data = "No trades"
 
             col1, col2 = st.columns(2)
             with col1:
-                st.download_button("📥 CSV", csv_data, f"trades_{r['timestamp'].strftime('%Y%m%d_%H%M%S')}.csv",
-                                   "text/csv", key="dl_csv_signals", use_container_width=True)
+                st.download_button(
+                    "📥 CSV",
+                    csv_data,
+                    f"trades_{r['timestamp'].strftime('%Y%m%d_%H%M%S')}.csv",
+                    "text/csv",
+                    key="dl_csv_signals",
+                    use_container_width=True,
+                )
             with col2:
                 text_lines = [f"{p['action']} {p['shares']} {t} @ ${p['price']:.2f}" for t, p in r["positions"].items()]
-                st.download_button("📋 Text", "\n".join(text_lines) if text_lines else "No trades",
-                                   f"trades_{r['timestamp'].strftime('%Y%m%d_%H%M%S')}.txt",
-                                   "text/plain", key="dl_txt_signals", use_container_width=True)
+                st.download_button(
+                    "📋 Text",
+                    "\n".join(text_lines) if text_lines else "No trades",
+                    f"trades_{r['timestamp'].strftime('%Y%m%d_%H%M%S')}.txt",
+                    "text/plain",
+                    key="dl_txt_signals",
+                    use_container_width=True,
+                )
 
         else:
-            st.write("""
+            st.write(
+                """
             ### Getting Started
 
             1. Enter ticker symbols (comma-separated)
@@ -1377,7 +1665,8 @@ with tab_signals:
             4. Adjust risk level
             5. Select AI analysts
             6. Click **RUN ANALYSIS**
-            """)
+            """
+            )
 
 
 # ============== PORTFOLIO TAB ==============
@@ -1408,13 +1697,24 @@ with tab_portfolio:
             st.write("### Positions")
             pos_data = []
             for t, p in r["positions"].items():
-                shares_fmt = f"{p['shares']:.2f}" if isinstance(p['shares'], float) and p['shares'] != int(p['shares']) else int(p['shares'])
-                pos_data.append({
-                    "Ticker": t, "Action": p["action"], "Shares": shares_fmt,
-                    "Entry": f"${p['price']:.2f}", "Notional": f"${p['notional']:,.0f}",
-                    "% Port": f"{p['pct']:.1f}%", "Stop": f"${p['sl_price']:.2f}",
-                    "Target": f"${p['tp_price']:.2f}", "Conf": f"{p['confidence']:.0f}%"
-                })
+                shares_fmt = (
+                    f"{p['shares']:.2f}"
+                    if isinstance(p["shares"], float) and p["shares"] != int(p["shares"])
+                    else int(p["shares"])
+                )
+                pos_data.append(
+                    {
+                        "Ticker": t,
+                        "Action": p["action"],
+                        "Shares": shares_fmt,
+                        "Entry": f"${p['price']:.2f}",
+                        "Notional": f"${p['notional']:,.0f}",
+                        "% Port": f"{p['pct']:.1f}%",
+                        "Stop": f"${p['sl_price']:.2f}",
+                        "Target": f"${p['tp_price']:.2f}",
+                        "Conf": f"{p['confidence']:.0f}%",
+                    }
+                )
             st.dataframe(pd.DataFrame(pos_data), hide_index=True, use_container_width=True)
 
             # Allocation Pie Chart
@@ -1426,7 +1726,18 @@ with tab_portfolio:
                 # Prepare pie chart data with custom colors matching theme
                 pie_data = []
                 # Professional varied color palette - easy to distinguish
-                colors = ['#58a6ff', '#f0883e', '#a371f7', '#3fb950', '#f778ba', '#56d4dd', '#ffd33d', '#ff7b72', '#79c0ff', '#d2a8ff']
+                colors = [
+                    "#58a6ff",
+                    "#f0883e",
+                    "#a371f7",
+                    "#3fb950",
+                    "#f778ba",
+                    "#56d4dd",
+                    "#ffd33d",
+                    "#ff7b72",
+                    "#79c0ff",
+                    "#d2a8ff",
+                ]
                 color_map = {}
 
                 for i, (t, p) in enumerate(r["positions"].items()):
@@ -1434,8 +1745,8 @@ with tab_portfolio:
                     color_map[t] = colors[i % len(colors)]
 
                 # Add cash with distinct gray color
-                if s['cash'] > 0:
-                    pie_data.append({"Category": "Cash", "Value": s['cash'], "Type": "Cash"})
+                if s["cash"] > 0:
+                    pie_data.append({"Category": "Cash", "Value": s["cash"], "Type": "Cash"})
                     color_map["Cash"] = "#30363d"
 
                 pie_df = pd.DataFrame(pie_data)
@@ -1443,16 +1754,26 @@ with tab_portfolio:
                 color_range = [color_map[k] for k in color_domain]
 
                 # Create pie chart with dark theme colors
-                pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=50, stroke='#0d1117', strokeWidth=2).encode(
-                    theta=alt.Theta(field="Value", type="quantitative"),
-                    color=alt.Color(field="Category", type="nominal",
-                                    scale=alt.Scale(domain=color_domain, range=color_range),
-                                    legend=None),
-                    tooltip=[
-                        alt.Tooltip('Category:N', title=''),
-                        alt.Tooltip('Value:Q', title='Value', format='$,.0f')
-                    ]
-                ).properties(height=300).configure_view(strokeWidth=0).configure(background='#161b22')
+                pie_chart = (
+                    alt.Chart(pie_df)
+                    .mark_arc(innerRadius=50, stroke="#0d1117", strokeWidth=2)
+                    .encode(
+                        theta=alt.Theta(field="Value", type="quantitative"),
+                        color=alt.Color(
+                            field="Category",
+                            type="nominal",
+                            scale=alt.Scale(domain=color_domain, range=color_range),
+                            legend=None,
+                        ),
+                        tooltip=[
+                            alt.Tooltip("Category:N", title=""),
+                            alt.Tooltip("Value:Q", title="Value", format="$,.0f"),
+                        ],
+                    )
+                    .properties(height=300)
+                    .configure_view(strokeWidth=0)
+                    .configure(background="#161b22")
+                )
 
                 st.altair_chart(pie_chart, use_container_width=True)
 
@@ -1460,9 +1781,15 @@ with tab_portfolio:
                 st.write("**Breakdown**")
                 for i, (t, p) in enumerate(r["positions"].items()):
                     color = colors[i % len(colors)]
-                    st.markdown(f"<span style='color:{color}; font-size:20px'>■</span> **{t}**: ${p['notional']:,.0f} ({p['pct']:.1f}%)", unsafe_allow_html=True)
-                if s['cash'] > 0:
-                    st.markdown(f"<span style='color:#6e7681; font-size:20px'>■</span> **Cash**: ${s['cash']:,.0f} ({s['cash_pct']:.1f}%)", unsafe_allow_html=True)
+                    st.markdown(
+                        f"<span style='color:{color}; font-size:20px'>■</span> **{t}**: ${p['notional']:,.0f} ({p['pct']:.1f}%)",
+                        unsafe_allow_html=True,
+                    )
+                if s["cash"] > 0:
+                    st.markdown(
+                        f"<span style='color:#6e7681; font-size:20px'>■</span> **Cash**: ${s['cash']:,.0f} ({s['cash_pct']:.1f}%)",
+                        unsafe_allow_html=True,
+                    )
 
         if r["hold_tickers"]:
             st.write("### Not Trading (HOLD)")
@@ -1483,7 +1810,7 @@ with tab_portfolio:
             st.write(f"### ${s['cap_blocked']:,.0f}")
 
         # Show Current Holdings if any were entered
-        input_holdings = r['config'].get('holdings', {})
+        input_holdings = r["config"].get("holdings", {})
         if input_holdings:
             st.divider()
             st.write("### Your Current Holdings")
@@ -1492,37 +1819,39 @@ with tab_portfolio:
             holdings_data = []
             total_holdings_value = 0
             for tick, shares in input_holdings.items():
-                tr = r['ticker_results'].get(tick, {})
-                stock = tr.get('stock', {})
-                price = stock.get('price', 0) if stock.get('valid') else 0
+                tr = r["ticker_results"].get(tick, {})
+                stock = tr.get("stock", {})
+                price = stock.get("price", 0) if stock.get("valid") else 0
                 value = shares * price if price > 0 else 0
                 total_holdings_value += value
 
                 # Get target position and action
-                action = tr.get('action', 'N/A')
-                pos = r['positions'].get(tick, {})
-                target_shares = pos.get('shares', 0) if pos else 0
+                action = tr.get("action", "N/A")
+                pos = r["positions"].get(tick, {})
+                target_shares = pos.get("shares", 0) if pos else 0
                 delta = target_shares - shares if target_shares else -shares
 
                 # Determine recommendation
-                if action == 'BUY' and target_shares > shares:
+                if action == "BUY" and target_shares > shares:
                     recommendation = f"BUY +{int(target_shares - shares)}"
-                elif action == 'BUY':
+                elif action == "BUY":
                     recommendation = "HOLD"
-                elif action == 'SHORT':
+                elif action == "SHORT":
                     recommendation = "SELL ALL"
                 else:
                     recommendation = "REVIEW"
 
-                holdings_data.append({
-                    "Ticker": tick,
-                    "Current": shares,
-                    "Signal": action,
-                    "Target": int(target_shares) if target_shares else "-",
-                    "Action": recommendation,
-                    "Price": f"${price:.2f}" if price > 0 else "N/A",
-                    "Value": f"${value:,.0f}" if value > 0 else "N/A"
-                })
+                holdings_data.append(
+                    {
+                        "Ticker": tick,
+                        "Current": shares,
+                        "Signal": action,
+                        "Target": int(target_shares) if target_shares else "-",
+                        "Action": recommendation,
+                        "Price": f"${price:.2f}" if price > 0 else "N/A",
+                        "Value": f"${value:,.0f}" if value > 0 else "N/A",
+                    }
+                )
             st.dataframe(pd.DataFrame(holdings_data), hide_index=True, use_container_width=True)
             if total_holdings_value > 0:
                 st.write(f"**Total Current Holdings Value:** ${total_holdings_value:,.0f}")
@@ -1533,7 +1862,7 @@ with tab_portfolio:
         st.caption("Compare current allocation to target and generate rebalance trades.")
 
         # Calculate current weights
-        total_portfolio = sum(p['notional'] for p in r["positions"].values()) if r["positions"] else 0
+        total_portfolio = sum(p["notional"] for p in r["positions"].values()) if r["positions"] else 0
 
         if total_portfolio > 0 and len(r["positions"]) > 1:
             # Get target weight (equal weight by default)
@@ -1545,36 +1874,38 @@ with tab_portfolio:
             total_to_sell = 0
 
             for ticker, pos in r["positions"].items():
-                current_weight = pos['notional'] / total_portfolio
+                current_weight = pos["notional"] / total_portfolio
                 target_notional = total_portfolio * target_weight
-                diff_notional = target_notional - pos['notional']
+                diff_notional = target_notional - pos["notional"]
                 diff_pct = (current_weight - target_weight) * 100
 
                 if diff_notional > 50:  # Need to buy more
                     action = "BUY"
-                    shares_to_trade = int(diff_notional / pos['price']) if pos['price'] > 0 else 0
+                    shares_to_trade = int(diff_notional / pos["price"]) if pos["price"] > 0 else 0
                     total_to_buy += diff_notional
                 elif diff_notional < -50:  # Need to sell
                     action = "SELL"
-                    shares_to_trade = int(abs(diff_notional) / pos['price']) if pos['price'] > 0 else 0
+                    shares_to_trade = int(abs(diff_notional) / pos["price"]) if pos["price"] > 0 else 0
                     total_to_sell += abs(diff_notional)
                 else:
                     action = "HOLD"
                     shares_to_trade = 0
 
-                rebalance_data.append({
-                    "Ticker": ticker,
-                    "Current %": f"{current_weight*100:.1f}%",
-                    "Target %": f"{target_weight*100:.1f}%",
-                    "Drift": f"{diff_pct:+.1f}%",
-                    "Action": action,
-                    "Shares": shares_to_trade if shares_to_trade > 0 else "-",
-                    "Amount": f"${abs(diff_notional):,.0f}" if abs(diff_notional) > 50 else "-"
-                })
+                rebalance_data.append(
+                    {
+                        "Ticker": ticker,
+                        "Current %": f"{current_weight*100:.1f}%",
+                        "Target %": f"{target_weight*100:.1f}%",
+                        "Drift": f"{diff_pct:+.1f}%",
+                        "Action": action,
+                        "Shares": shares_to_trade if shares_to_trade > 0 else "-",
+                        "Amount": f"${abs(diff_notional):,.0f}" if abs(diff_notional) > 50 else "-",
+                    }
+                )
 
             # Show metrics
             col1, col2, col3 = st.columns(3)
-            max_drift = max(abs(float(d["Drift"].replace('%','').replace('+',''))) for d in rebalance_data)
+            max_drift = max(abs(float(d["Drift"].replace("%", "").replace("+", ""))) for d in rebalance_data)
 
             with col1:
                 st.metric("Max Drift", f"{max_drift:.1f}%")
@@ -1601,19 +1932,21 @@ with tab_portfolio:
                         new_positions = {}
                         for ticker, pos in r["positions"].items():
                             target_notional = total_portfolio * target_weight
-                            new_shares = target_notional / pos['price'] if pos['price'] > 0 else pos['shares']
+                            new_shares = target_notional / pos["price"] if pos["price"] > 0 else pos["shares"]
 
                             new_positions[ticker] = {
                                 **pos,  # Keep all existing data
-                                'shares': new_shares,
-                                'notional': target_notional,
-                                'pct': target_weight * 100,
+                                "shares": new_shares,
+                                "notional": target_notional,
+                                "pct": target_weight * 100,
                             }
 
                         # Update session state
                         st.session_state.result["positions"] = new_positions
                         st.session_state.result["summary"]["deployed"] = total_portfolio
-                        st.session_state.result["summary"]["deployed_pct"] = (total_portfolio / r["config"]["capital"]) * 100
+                        st.session_state.result["summary"]["deployed_pct"] = (
+                            total_portfolio / r["config"]["capital"]
+                        ) * 100
 
                         st.success("✅ Portfolio rebalanced to equal weight!")
                         st.rerun()
@@ -1630,14 +1963,14 @@ with tab_portfolio:
 
                 for i, (ticker, pos) in enumerate(r["positions"].items()):
                     with cols[i % len(cols)]:
-                        current_pct = pos['notional'] / total_portfolio * 100
+                        current_pct = pos["notional"] / total_portfolio * 100
                         custom_weights[ticker] = st.number_input(
                             f"{ticker} %",
                             min_value=0.0,
                             max_value=100.0,
                             value=round(current_pct, 1),
                             step=1.0,
-                            key=f"custom_weight_{ticker}"
+                            key=f"custom_weight_{ticker}",
                         )
 
                 total_custom = sum(custom_weights.values())
@@ -1650,13 +1983,13 @@ with tab_portfolio:
                         for ticker, pos in r["positions"].items():
                             new_weight = custom_weights[ticker] / 100
                             target_notional = total_portfolio * new_weight
-                            new_shares = target_notional / pos['price'] if pos['price'] > 0 else pos['shares']
+                            new_shares = target_notional / pos["price"] if pos["price"] > 0 else pos["shares"]
 
                             new_positions[ticker] = {
                                 **pos,
-                                'shares': new_shares,
-                                'notional': target_notional,
-                                'pct': custom_weights[ticker],
+                                "shares": new_shares,
+                                "notional": target_notional,
+                                "pct": custom_weights[ticker],
                             }
 
                         st.session_state.result["positions"] = new_positions
@@ -1666,25 +1999,30 @@ with tab_portfolio:
             # Allocation comparison chart
             chart_data = []
             for ticker, pos in r["positions"].items():
-                current_weight = pos['notional'] / total_portfolio * 100
+                current_weight = pos["notional"] / total_portfolio * 100
                 chart_data.append({"Ticker": ticker, "Weight": current_weight, "Type": "Current"})
                 chart_data.append({"Ticker": ticker, "Weight": target_weight * 100, "Type": "Target"})
 
             chart_df = pd.DataFrame(chart_data)
 
-            rebal_chart = alt.Chart(chart_df).mark_bar().encode(
-                x=alt.X('Ticker:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
-                y=alt.Y('Weight:Q', title='Weight (%)', axis=alt.Axis(labelColor='#8b949e')),
-                color=alt.Color('Type:N',
-                               scale=alt.Scale(domain=['Current', 'Target'], range=['#58a6ff', '#3fb950']),
-                               legend=alt.Legend(title=None, orient='top', labelColor='#c9d1d9')),
-                xOffset='Type:N',
-                tooltip=[
-                    alt.Tooltip('Ticker:N'),
-                    alt.Tooltip('Type:N'),
-                    alt.Tooltip('Weight:Q', format='.1f')
-                ]
-            ).properties(height=250).configure_view(strokeWidth=0).configure(background='#161b22')
+            rebal_chart = (
+                alt.Chart(chart_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Ticker:N", title=None, axis=alt.Axis(labelColor="#8b949e")),
+                    y=alt.Y("Weight:Q", title="Weight (%)", axis=alt.Axis(labelColor="#8b949e")),
+                    color=alt.Color(
+                        "Type:N",
+                        scale=alt.Scale(domain=["Current", "Target"], range=["#58a6ff", "#3fb950"]),
+                        legend=alt.Legend(title=None, orient="top", labelColor="#c9d1d9"),
+                    ),
+                    xOffset="Type:N",
+                    tooltip=[alt.Tooltip("Ticker:N"), alt.Tooltip("Type:N"), alt.Tooltip("Weight:Q", format=".1f")],
+                )
+                .properties(height=250)
+                .configure_view(strokeWidth=0)
+                .configure(background="#161b22")
+            )
 
             st.altair_chart(rebal_chart, use_container_width=True)
         else:
@@ -1704,11 +2042,7 @@ with tab_analytics:
         if r["positions"]:
             # Calculate risk metrics
             with st.spinner("Calculating risk metrics..."):
-                risk_metrics = calculate_portfolio_risk_metrics(
-                    r["positions"],
-                    r["ticker_results"],
-                    s["capital"]
-                )
+                risk_metrics = calculate_portfolio_risk_metrics(r["positions"], r["ticker_results"], s["capital"])
 
             if risk_metrics and "error" not in risk_metrics:
                 # ===== KEY RISK METRICS =====
@@ -1787,13 +2121,17 @@ with tab_analytics:
                     st.write("**95% Confidence VaR**")
                     var95 = risk_metrics.get("var_95", 0)
                     daily_loss_95 = abs(var95) * s["deployed"]
-                    st.info(f"There is a 5% chance of losing more than **${daily_loss_95:,.0f}** ({abs(var95):.2%}) in a single day.")
+                    st.info(
+                        f"There is a 5% chance of losing more than **${daily_loss_95:,.0f}** ({abs(var95):.2%}) in a single day."
+                    )
 
                 with col2:
                     st.write("**99% Confidence VaR**")
                     var99 = risk_metrics.get("var_99", 0)
                     daily_loss_99 = abs(var99) * s["deployed"]
-                    st.warning(f"There is a 1% chance of losing more than **${daily_loss_99:,.0f}** ({abs(var99):.2%}) in a single day.")
+                    st.warning(
+                        f"There is a 1% chance of losing more than **${daily_loss_99:,.0f}** ({abs(var99):.2%}) in a single day."
+                    )
 
                 st.divider()
 
@@ -1806,24 +2144,44 @@ with tab_analytics:
 
                     with col_chart:
                         # Prepare sector pie chart
-                        sector_df = pd.DataFrame([
-                            {"Sector": s, "Allocation": v, "Pct": f"{v:.1f}%"}
-                            for s, v in sorted(sector_data.items(), key=lambda x: -x[1])
-                        ])
+                        sector_df = pd.DataFrame(
+                            [
+                                {"Sector": s, "Allocation": v, "Pct": f"{v:.1f}%"}
+                                for s, v in sorted(sector_data.items(), key=lambda x: -x[1])
+                            ]
+                        )
 
                         # Professional varied color palette for sectors - easy to distinguish
-                        sector_colors = ['#58a6ff', '#f0883e', '#a371f7', '#3fb950', '#f778ba', '#56d4dd', '#ffd33d', '#ff7b72', '#79c0ff', '#d2a8ff']
+                        sector_colors = [
+                            "#58a6ff",
+                            "#f0883e",
+                            "#a371f7",
+                            "#3fb950",
+                            "#f778ba",
+                            "#56d4dd",
+                            "#ffd33d",
+                            "#ff7b72",
+                            "#79c0ff",
+                            "#d2a8ff",
+                        ]
 
-                        sector_chart = alt.Chart(sector_df).mark_arc(innerRadius=50, stroke='#0d1117', strokeWidth=2).encode(
-                            theta=alt.Theta(field="Allocation", type="quantitative"),
-                            color=alt.Color(field="Sector", type="nominal",
-                                            scale=alt.Scale(range=sector_colors),
-                                            legend=None),
-                            tooltip=[
-                                alt.Tooltip('Sector:N', title='Sector'),
-                                alt.Tooltip('Pct:N', title='Allocation')
-                            ]
-                        ).properties(height=280).configure_view(strokeWidth=0).configure(background='#161b22')
+                        sector_chart = (
+                            alt.Chart(sector_df)
+                            .mark_arc(innerRadius=50, stroke="#0d1117", strokeWidth=2)
+                            .encode(
+                                theta=alt.Theta(field="Allocation", type="quantitative"),
+                                color=alt.Color(
+                                    field="Sector", type="nominal", scale=alt.Scale(range=sector_colors), legend=None
+                                ),
+                                tooltip=[
+                                    alt.Tooltip("Sector:N", title="Sector"),
+                                    alt.Tooltip("Pct:N", title="Allocation"),
+                                ],
+                            )
+                            .properties(height=280)
+                            .configure_view(strokeWidth=0)
+                            .configure(background="#161b22")
+                        )
 
                         st.altair_chart(sector_chart, use_container_width=True)
 
@@ -1831,7 +2189,10 @@ with tab_analytics:
                         st.write("**Breakdown**")
                         for i, (sector, pct) in enumerate(sorted(sector_data.items(), key=lambda x: -x[1])):
                             color = sector_colors[i % len(sector_colors)]
-                            st.markdown(f"<span style='color:{color}; font-size:20px'>■</span> **{sector}**: {pct:.1f}%", unsafe_allow_html=True)
+                            st.markdown(
+                                f"<span style='color:{color}; font-size:20px'>■</span> **{sector}**: {pct:.1f}%",
+                                unsafe_allow_html=True,
+                            )
 
                 st.divider()
 
@@ -1845,27 +2206,34 @@ with tab_analytics:
                     corr_data = []
                     for i, row_ticker in enumerate(corr_matrix.index):
                         for j, col_ticker in enumerate(corr_matrix.columns):
-                            corr_data.append({
-                                "Ticker1": row_ticker,
-                                "Ticker2": col_ticker,
-                                "Correlation": corr_matrix.iloc[i, j]
-                            })
+                            corr_data.append(
+                                {"Ticker1": row_ticker, "Ticker2": col_ticker, "Correlation": corr_matrix.iloc[i, j]}
+                            )
 
                     corr_df = pd.DataFrame(corr_data)
 
                     # Blue-White-Red diverging color scheme for better clarity
-                    heatmap = alt.Chart(corr_df).mark_rect().encode(
-                        x=alt.X('Ticker1:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
-                        y=alt.Y('Ticker2:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
-                        color=alt.Color('Correlation:Q',
-                                        scale=alt.Scale(domain=[-1, 0, 1], range=['#58a6ff', '#ffffff', '#f85149']),
-                                        legend=alt.Legend(title="Correlation", labelColor='#8b949e', titleColor='#e6edf3')),
-                        tooltip=[
-                            alt.Tooltip('Ticker1:N', title=''),
-                            alt.Tooltip('Ticker2:N', title=''),
-                            alt.Tooltip('Correlation:Q', title='Correlation', format='.2f')
-                        ]
-                    ).properties(height=300).configure_view(strokeWidth=0).configure(background='#161b22')
+                    heatmap = (
+                        alt.Chart(corr_df)
+                        .mark_rect()
+                        .encode(
+                            x=alt.X("Ticker1:N", title=None, axis=alt.Axis(labelColor="#8b949e")),
+                            y=alt.Y("Ticker2:N", title=None, axis=alt.Axis(labelColor="#8b949e")),
+                            color=alt.Color(
+                                "Correlation:Q",
+                                scale=alt.Scale(domain=[-1, 0, 1], range=["#58a6ff", "#ffffff", "#f85149"]),
+                                legend=alt.Legend(title="Correlation", labelColor="#8b949e", titleColor="#e6edf3"),
+                            ),
+                            tooltip=[
+                                alt.Tooltip("Ticker1:N", title=""),
+                                alt.Tooltip("Ticker2:N", title=""),
+                                alt.Tooltip("Correlation:Q", title="Correlation", format=".2f"),
+                            ],
+                        )
+                        .properties(height=300)
+                        .configure_view(strokeWidth=0)
+                        .configure(background="#161b22")
+                    )
 
                     st.altair_chart(heatmap, use_container_width=True)
 
@@ -1876,7 +2244,9 @@ with tab_analytics:
                     elif avg_corr < 0.6:
                         st.info(f"**Diversification: Good** (Avg correlation: {avg_corr:.2f})")
                     else:
-                        st.warning(f"**Diversification: Low** (Avg correlation: {avg_corr:.2f}) - Consider adding uncorrelated assets")
+                        st.warning(
+                            f"**Diversification: Low** (Avg correlation: {avg_corr:.2f}) - Consider adding uncorrelated assets"
+                        )
 
                 st.divider()
 
@@ -1905,22 +2275,36 @@ with tab_analytics:
                     risk_score += 1
 
                 if risk_score >= 4:
-                    st.success("**Overall Assessment: Strong Risk-Adjusted Profile** - This portfolio shows favorable risk characteristics.")
+                    st.success(
+                        "**Overall Assessment: Strong Risk-Adjusted Profile** - This portfolio shows favorable risk characteristics."
+                    )
                 elif risk_score >= 2:
-                    st.info("**Overall Assessment: Moderate Risk Profile** - Consider monitoring volatility and drawdown levels.")
+                    st.info(
+                        "**Overall Assessment: Moderate Risk Profile** - Consider monitoring volatility and drawdown levels."
+                    )
                 else:
-                    st.warning("**Overall Assessment: Higher Risk Profile** - Consider rebalancing or adding defensive positions.")
+                    st.warning(
+                        "**Overall Assessment: Higher Risk Profile** - Consider rebalancing or adding defensive positions."
+                    )
 
                 # Specific recommendations
                 recommendations = []
                 if sharpe < 0.5:
-                    recommendations.append("- Sharpe ratio is low. Consider higher-quality positions or reducing volatile holdings.")
+                    recommendations.append(
+                        "- Sharpe ratio is low. Consider higher-quality positions or reducing volatile holdings."
+                    )
                 if beta > 1.3:
-                    recommendations.append("- High beta indicates significant market sensitivity. Consider adding low-beta stocks.")
+                    recommendations.append(
+                        "- High beta indicates significant market sensitivity. Consider adding low-beta stocks."
+                    )
                 if mdd < -0.25:
-                    recommendations.append("- Historical drawdown is significant. Consider tighter stop-losses or position sizing.")
+                    recommendations.append(
+                        "- Historical drawdown is significant. Consider tighter stop-losses or position sizing."
+                    )
                 if vol > 0.25:
-                    recommendations.append("- Volatility is elevated. Consider diversifying across sectors and asset classes.")
+                    recommendations.append(
+                        "- Volatility is elevated. Consider diversifying across sectors and asset classes."
+                    )
 
                 if recommendations:
                     st.write("**Recommendations:**")
@@ -1950,6 +2334,7 @@ with tab_performance:
             def get_benchmark_data(period: str = "1y"):
                 try:
                     import yfinance as yf
+
                     spy = yf.Ticker("SPY")
                     hist = spy.history(period=period)
                     if not hist.empty:
@@ -1963,9 +2348,9 @@ with tab_performance:
             if benchmark_data is not None and len(benchmark_data) > 20:
                 # Calculate portfolio returns based on positions
                 portfolio_weights = {}
-                total_value = sum(p['notional'] for p in positions.values())
+                total_value = sum(p["notional"] for p in positions.values())
                 for ticker, pos in positions.items():
-                    portfolio_weights[ticker] = pos['notional'] / total_value if total_value > 0 else 0
+                    portfolio_weights[ticker] = pos["notional"] / total_value if total_value > 0 else 0
 
                 # Use benchmark dates as reference (more practical approach)
                 benchmark_returns = benchmark_data["Close"].pct_change().dropna()
@@ -2008,43 +2393,71 @@ with tab_performance:
                     tracking_error = tracking_diff.std() * np.sqrt(252) * 100
 
                     # Information ratio
-                    info_ratio = (tracking_diff.mean() * 252) / (tracking_diff.std() * np.sqrt(252)) if tracking_diff.std() > 0 else 0
+                    info_ratio = (
+                        (tracking_diff.mean() * 252) / (tracking_diff.std() * np.sqrt(252))
+                        if tracking_diff.std() > 0
+                        else 0
+                    )
 
                     with col1:
-                        st.metric("Portfolio Return", f"{portfolio_total_return:.1f}%",
-                                  delta=f"{outperformance:+.1f}% vs S&P 500" if outperformance != 0 else None)
+                        st.metric(
+                            "Portfolio Return",
+                            f"{portfolio_total_return:.1f}%",
+                            delta=f"{outperformance:+.1f}% vs S&P 500" if outperformance != 0 else None,
+                        )
                     with col2:
                         st.metric("S&P 500 Return", f"{benchmark_total_return:.1f}%")
                     with col3:
-                        st.metric("Tracking Error", f"{tracking_error:.1f}%",
-                                  help="Standard deviation of the difference between portfolio and benchmark returns")
+                        st.metric(
+                            "Tracking Error",
+                            f"{tracking_error:.1f}%",
+                            help="Standard deviation of the difference between portfolio and benchmark returns",
+                        )
                     with col4:
-                        st.metric("Information Ratio", f"{info_ratio:.2f}",
-                                  help="Risk-adjusted outperformance: excess return / tracking error")
+                        st.metric(
+                            "Information Ratio",
+                            f"{info_ratio:.2f}",
+                            help="Risk-adjusted outperformance: excess return / tracking error",
+                        )
 
                     st.divider()
 
                     # Performance chart
                     st.write("### Cumulative Performance Comparison")
 
-                    perf_data = pd.DataFrame({
-                        'Date': list(reference_dates) * 2,
-                        'Return': list(portfolio_cumulative * 100) + list(benchmark_cumulative * 100),
-                        'Type': ['Portfolio'] * len(reference_dates) + ['S&P 500 (SPY)'] * len(reference_dates)
-                    })
+                    perf_data = pd.DataFrame(
+                        {
+                            "Date": list(reference_dates) * 2,
+                            "Return": list(portfolio_cumulative * 100) + list(benchmark_cumulative * 100),
+                            "Type": ["Portfolio"] * len(reference_dates) + ["S&P 500 (SPY)"] * len(reference_dates),
+                        }
+                    )
 
-                    perf_chart = alt.Chart(perf_data).mark_line(strokeWidth=2).encode(
-                        x=alt.X('Date:T', title=None, axis=alt.Axis(labelColor='#8b949e', format='%b %Y')),
-                        y=alt.Y('Return:Q', title='Return (%)', axis=alt.Axis(labelColor='#8b949e', titleColor='#e6edf3')),
-                        color=alt.Color('Type:N',
-                                       scale=alt.Scale(domain=['Portfolio', 'S&P 500 (SPY)'], range=['#58a6ff', '#f0883e']),
-                                       legend=alt.Legend(title=None, orient='top', labelColor='#c9d1d9')),
-                        tooltip=[
-                            alt.Tooltip('Date:T', title='Date', format='%Y-%m-%d'),
-                            alt.Tooltip('Type:N', title=''),
-                            alt.Tooltip('Return:Q', title='Return', format='.2f')
-                        ]
-                    ).properties(height=350).configure_view(strokeWidth=0).configure(background='#161b22')
+                    perf_chart = (
+                        alt.Chart(perf_data)
+                        .mark_line(strokeWidth=2)
+                        .encode(
+                            x=alt.X("Date:T", title=None, axis=alt.Axis(labelColor="#8b949e", format="%b %Y")),
+                            y=alt.Y(
+                                "Return:Q",
+                                title="Return (%)",
+                                axis=alt.Axis(labelColor="#8b949e", titleColor="#e6edf3"),
+                            ),
+                            color=alt.Color(
+                                "Type:N",
+                                scale=alt.Scale(domain=["Portfolio", "S&P 500 (SPY)"], range=["#58a6ff", "#f0883e"]),
+                                legend=alt.Legend(title=None, orient="top", labelColor="#c9d1d9"),
+                            ),
+                            tooltip=[
+                                alt.Tooltip("Date:T", title="Date", format="%Y-%m-%d"),
+                                alt.Tooltip("Type:N", title=""),
+                                alt.Tooltip("Return:Q", title="Return", format=".2f"),
+                            ],
+                        )
+                        .properties(height=350)
+                        .configure_view(strokeWidth=0)
+                        .configure(background="#161b22")
+                    )
 
                     st.altair_chart(perf_chart, use_container_width=True)
 
@@ -2053,47 +2466,79 @@ with tab_performance:
                     st.write("### Performance Analysis")
 
                     if outperformance > 5:
-                        st.success(f"**Strong Outperformance**: Portfolio beat S&P 500 by {outperformance:.1f}% over this period.")
+                        st.success(
+                            f"**Strong Outperformance**: Portfolio beat S&P 500 by {outperformance:.1f}% over this period."
+                        )
                     elif outperformance > 0:
                         st.info(f"**Modest Outperformance**: Portfolio beat S&P 500 by {outperformance:.1f}%.")
                     elif outperformance > -5:
-                        st.warning(f"**Slight Underperformance**: Portfolio trailed S&P 500 by {abs(outperformance):.1f}%.")
+                        st.warning(
+                            f"**Slight Underperformance**: Portfolio trailed S&P 500 by {abs(outperformance):.1f}%."
+                        )
                     else:
-                        st.error(f"**Underperformance**: Portfolio trailed S&P 500 by {abs(outperformance):.1f}%. Consider rebalancing.")
+                        st.error(
+                            f"**Underperformance**: Portfolio trailed S&P 500 by {abs(outperformance):.1f}%. Consider rebalancing."
+                        )
 
                     # Risk-adjusted analysis
                     col_left, col_right = st.columns(2)
 
                     with col_left:
                         st.write("**Volatility Comparison**")
-                        vol_data = pd.DataFrame({
-                            'Type': ['Portfolio', 'S&P 500'],
-                            'Volatility': [portfolio_vol, benchmark_vol]
-                        })
-                        vol_chart = alt.Chart(vol_data).mark_bar().encode(
-                            x=alt.X('Type:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
-                            y=alt.Y('Volatility:Q', title='Annualized Volatility (%)', axis=alt.Axis(labelColor='#8b949e')),
-                            color=alt.Color('Type:N', scale=alt.Scale(domain=['Portfolio', 'S&P 500'], range=['#58a6ff', '#f0883e']), legend=None),
-                            tooltip=[alt.Tooltip('Type:N'), alt.Tooltip('Volatility:Q', format='.1f')]
-                        ).properties(height=200).configure_view(strokeWidth=0).configure(background='#161b22')
+                        vol_data = pd.DataFrame(
+                            {"Type": ["Portfolio", "S&P 500"], "Volatility": [portfolio_vol, benchmark_vol]}
+                        )
+                        vol_chart = (
+                            alt.Chart(vol_data)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("Type:N", title=None, axis=alt.Axis(labelColor="#8b949e")),
+                                y=alt.Y(
+                                    "Volatility:Q",
+                                    title="Annualized Volatility (%)",
+                                    axis=alt.Axis(labelColor="#8b949e"),
+                                ),
+                                color=alt.Color(
+                                    "Type:N",
+                                    scale=alt.Scale(domain=["Portfolio", "S&P 500"], range=["#58a6ff", "#f0883e"]),
+                                    legend=None,
+                                ),
+                                tooltip=[alt.Tooltip("Type:N"), alt.Tooltip("Volatility:Q", format=".1f")],
+                            )
+                            .properties(height=200)
+                            .configure_view(strokeWidth=0)
+                            .configure(background="#161b22")
+                        )
                         st.altair_chart(vol_chart, use_container_width=True)
 
                         if portfolio_vol < benchmark_vol:
-                            st.caption(f"✅ Lower volatility than benchmark ({portfolio_vol:.1f}% vs {benchmark_vol:.1f}%)")
+                            st.caption(
+                                f"✅ Lower volatility than benchmark ({portfolio_vol:.1f}% vs {benchmark_vol:.1f}%)"
+                            )
                         else:
-                            st.caption(f"⚠️ Higher volatility than benchmark ({portfolio_vol:.1f}% vs {benchmark_vol:.1f}%)")
+                            st.caption(
+                                f"⚠️ Higher volatility than benchmark ({portfolio_vol:.1f}% vs {benchmark_vol:.1f}%)"
+                            )
 
                     with col_right:
                         st.write("**Risk-Adjusted Metrics**")
-                        metrics_table = pd.DataFrame({
-                            'Metric': ['Total Return', 'Volatility', 'Return/Risk Ratio', 'Information Ratio'],
-                            'Portfolio': [f"{portfolio_total_return:.1f}%", f"{portfolio_vol:.1f}%",
-                                         f"{portfolio_total_return/portfolio_vol:.2f}" if portfolio_vol > 0 else "N/A",
-                                         f"{info_ratio:.2f}"],
-                            'S&P 500': [f"{benchmark_total_return:.1f}%", f"{benchmark_vol:.1f}%",
-                                       f"{benchmark_total_return/benchmark_vol:.2f}" if benchmark_vol > 0 else "N/A",
-                                       "1.00 (baseline)"]
-                        })
+                        metrics_table = pd.DataFrame(
+                            {
+                                "Metric": ["Total Return", "Volatility", "Return/Risk Ratio", "Information Ratio"],
+                                "Portfolio": [
+                                    f"{portfolio_total_return:.1f}%",
+                                    f"{portfolio_vol:.1f}%",
+                                    f"{portfolio_total_return/portfolio_vol:.2f}" if portfolio_vol > 0 else "N/A",
+                                    f"{info_ratio:.2f}",
+                                ],
+                                "S&P 500": [
+                                    f"{benchmark_total_return:.1f}%",
+                                    f"{benchmark_vol:.1f}%",
+                                    f"{benchmark_total_return/benchmark_vol:.2f}" if benchmark_vol > 0 else "N/A",
+                                    "1.00 (baseline)",
+                                ],
+                            }
+                        )
                         st.dataframe(metrics_table, hide_index=True, use_container_width=True)
 
                         if info_ratio > 0.5:
@@ -2104,7 +2549,9 @@ with tab_performance:
                             st.caption("⚠️ Negative information ratio - consider index tracking")
 
                 else:
-                    st.warning("Unable to retrieve price history for portfolio positions. Check that tickers are valid.")
+                    st.warning(
+                        "Unable to retrieve price history for portfolio positions. Check that tickers are valid."
+                    )
             else:
                 st.warning("Unable to fetch S&P 500 benchmark data.")
         else:
@@ -2133,7 +2580,7 @@ with tab_events:
 
             dividend_table = []
             total_annual_income = 0
-            total_portfolio_value = sum(p['notional'] for p in positions.values())
+            total_portfolio_value = sum(p["notional"] for p in positions.values())
 
             for ticker, pos in positions.items():
                 ev = events_data.get(ticker, {})
@@ -2142,17 +2589,19 @@ with tab_events:
                 ex_date = ev.get("ex_dividend_date")
 
                 # Calculate income from this position
-                annual_income = pos['notional'] * (div_yield / 100) if div_yield > 0 else 0
+                annual_income = pos["notional"] * (div_yield / 100) if div_yield > 0 else 0
                 total_annual_income += annual_income
 
-                dividend_table.append({
-                    "Ticker": ticker,
-                    "Value": f"${pos['notional']:,.0f}",
-                    "Yield": f"{div_yield:.2f}%" if div_yield > 0 else "-",
-                    "Annual Div/Share": f"${div_rate:.2f}" if div_rate > 0 else "-",
-                    "Annual Income": f"${annual_income:,.0f}" if annual_income > 0 else "-",
-                    "Ex-Dividend": ex_date.strftime("%b %d") if ex_date else "-"
-                })
+                dividend_table.append(
+                    {
+                        "Ticker": ticker,
+                        "Value": f"${pos['notional']:,.0f}",
+                        "Yield": f"{div_yield:.2f}%" if div_yield > 0 else "-",
+                        "Annual Div/Share": f"${div_rate:.2f}" if div_rate > 0 else "-",
+                        "Annual Income": f"${annual_income:,.0f}" if annual_income > 0 else "-",
+                        "Ex-Dividend": ex_date.strftime("%b %d") if ex_date else "-",
+                    }
+                )
 
             # Income metrics
             col1, col2, col3 = st.columns(3)
@@ -2169,7 +2618,9 @@ with tab_events:
             if portfolio_yield >= 3:
                 st.success(f"**Strong Income Portfolio** - {portfolio_yield:.1f}% yield provides solid passive income.")
             elif portfolio_yield >= 1:
-                st.info(f"**Moderate Income** - {portfolio_yield:.1f}% yield. Consider dividend stocks if income is a goal.")
+                st.info(
+                    f"**Moderate Income** - {portfolio_yield:.1f}% yield. Consider dividend stocks if income is a goal."
+                )
             elif portfolio_yield > 0:
                 st.warning(f"**Low Income** - {portfolio_yield:.1f}% yield. This is a growth-focused portfolio.")
             else:
@@ -2203,16 +2654,20 @@ with tab_events:
                             days_until = (earn_date.date() - today.date()).days
 
                             if days_until >= -7:  # Show recent and upcoming
-                                status = "REPORTED" if days_until < 0 else ("THIS WEEK" if days_until <= 7 else "UPCOMING")
-                                earnings_events.append({
-                                    "date": earn_date,
-                                    "Ticker": ticker,
-                                    "Date": earn_date.strftime("%b %d, %Y"),
-                                    "Days": days_until if days_until >= 0 else "Past",
-                                    "Status": status,
-                                    "Position Size": f"${pos['notional']:,.0f}",
-                                    "% of Portfolio": f"{pos['pct']:.1f}%"
-                                })
+                                status = (
+                                    "REPORTED" if days_until < 0 else ("THIS WEEK" if days_until <= 7 else "UPCOMING")
+                                )
+                                earnings_events.append(
+                                    {
+                                        "date": earn_date,
+                                        "Ticker": ticker,
+                                        "Date": earn_date.strftime("%b %d, %Y"),
+                                        "Days": days_until if days_until >= 0 else "Past",
+                                        "Status": status,
+                                        "Position Size": f"${pos['notional']:,.0f}",
+                                        "% of Portfolio": f"{pos['pct']:.1f}%",
+                                    }
+                                )
                         except Exception:
                             continue
 
@@ -2221,9 +2676,13 @@ with tab_events:
                 earnings_events.sort(key=lambda x: x["date"])
 
                 # Check for imminent earnings
-                imminent = [e for e in earnings_events if isinstance(e["Days"], int) and e["Days"] <= 7 and e["Days"] >= 0]
+                imminent = [
+                    e for e in earnings_events if isinstance(e["Days"], int) and e["Days"] <= 7 and e["Days"] >= 0
+                ]
                 if imminent:
-                    st.warning(f"⚠️ **{len(imminent)} position(s) reporting earnings within 7 days!** Consider position sizing.")
+                    st.warning(
+                        f"⚠️ **{len(imminent)} position(s) reporting earnings within 7 days!** Consider position sizing."
+                    )
 
                 # Display table without the date key used for sorting
                 display_events = [{k: v for k, v in e.items() if k != "date"} for e in earnings_events]
@@ -2235,7 +2694,9 @@ with tab_events:
 
             # ===== 52-WEEK RANGE SECTION =====
             st.write("### 📊 52-Week Range Analysis")
-            st.caption("Where each stock trades relative to its yearly high/low. Helps identify if buying near highs or lows.")
+            st.caption(
+                "Where each stock trades relative to its yearly high/low. Helps identify if buying near highs or lows."
+            )
 
             range_data = []
             for ticker, pos in positions.items():
@@ -2262,15 +2723,17 @@ with tab_events:
                     status = "🔴 Near Low"
                     assessment = "Deep discount or distressed"
 
-                range_data.append({
-                    "Ticker": ticker,
-                    "Current": f"${current:.2f}" if current else "-",
-                    "52W Low": f"${low:.2f}" if low else "-",
-                    "52W High": f"${high:.2f}" if high else "-",
-                    "Range %": f"{range_pos:.0f}%",
-                    "Status": status,
-                    "Assessment": assessment
-                })
+                range_data.append(
+                    {
+                        "Ticker": ticker,
+                        "Current": f"${current:.2f}" if current else "-",
+                        "52W Low": f"${low:.2f}" if low else "-",
+                        "52W High": f"${high:.2f}" if high else "-",
+                        "Range %": f"{range_pos:.0f}%",
+                        "Status": status,
+                        "Assessment": assessment,
+                    }
+                )
 
             st.dataframe(pd.DataFrame(range_data), hide_index=True, use_container_width=True)
 
@@ -2285,18 +2748,31 @@ with tab_events:
                 range_df = pd.DataFrame(range_chart_data)
 
                 # Color based on position
-                range_chart = alt.Chart(range_df).mark_bar().encode(
-                    x=alt.X('Ticker:N', title=None, axis=alt.Axis(labelColor='#8b949e')),
-                    y=alt.Y('Range Position:Q', title='52-Week Range %', scale=alt.Scale(domain=[0, 100]),
-                           axis=alt.Axis(labelColor='#8b949e')),
-                    color=alt.Color('Range Position:Q',
-                                   scale=alt.Scale(domain=[0, 50, 100], range=['#f85149', '#ffd33d', '#3fb950']),
-                                   legend=None),
-                    tooltip=[
-                        alt.Tooltip('Ticker:N'),
-                        alt.Tooltip('Range Position:Q', title='Range %', format='.0f')
-                    ]
-                ).properties(height=250).configure_view(strokeWidth=0).configure(background='#161b22')
+                range_chart = (
+                    alt.Chart(range_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("Ticker:N", title=None, axis=alt.Axis(labelColor="#8b949e")),
+                        y=alt.Y(
+                            "Range Position:Q",
+                            title="52-Week Range %",
+                            scale=alt.Scale(domain=[0, 100]),
+                            axis=alt.Axis(labelColor="#8b949e"),
+                        ),
+                        color=alt.Color(
+                            "Range Position:Q",
+                            scale=alt.Scale(domain=[0, 50, 100], range=["#f85149", "#ffd33d", "#3fb950"]),
+                            legend=None,
+                        ),
+                        tooltip=[
+                            alt.Tooltip("Ticker:N"),
+                            alt.Tooltip("Range Position:Q", title="Range %", format=".0f"),
+                        ],
+                    )
+                    .properties(height=250)
+                    .configure_view(strokeWidth=0)
+                    .configure(background="#161b22")
+                )
 
                 st.altair_chart(range_chart, use_container_width=True)
 
@@ -2306,9 +2782,13 @@ with tab_events:
             # Summary insight
             avg_range = sum(events_data[t].get("range_position", 50) for t in positions.keys()) / len(positions)
             if avg_range >= 70:
-                st.warning(f"**Portfolio trading near highs** (avg {avg_range:.0f}%). Consider taking profits or tightening stops.")
+                st.warning(
+                    f"**Portfolio trading near highs** (avg {avg_range:.0f}%). Consider taking profits or tightening stops."
+                )
             elif avg_range <= 30:
-                st.warning(f"**Portfolio trading near lows** (avg {avg_range:.0f}%). Verify fundamentals before adding.")
+                st.warning(
+                    f"**Portfolio trading near lows** (avg {avg_range:.0f}%). Verify fundamentals before adding."
+                )
             else:
                 st.success(f"**Portfolio in balanced range** (avg {avg_range:.0f}%). Good entry/exit flexibility.")
 
@@ -2328,39 +2808,67 @@ with tab_trades:
         if r["positions"]:
             trade_data = []
             for t, p in r["positions"].items():
-                shares_fmt = f"{p['shares']:.2f}" if isinstance(p['shares'], float) and p['shares'] != int(p['shares']) else int(p['shares'])
+                shares_fmt = (
+                    f"{p['shares']:.2f}"
+                    if isinstance(p["shares"], float) and p["shares"] != int(p["shares"])
+                    else int(p["shares"])
+                )
                 delta = p["delta"]
                 delta_str = "New" if p["current"] == 0 else f"{delta:+,}" if isinstance(delta, int) else f"{delta:+.2f}"
-                trade_data.append({
-                    "Ticker": t, "Action": p["action"], "Shares": shares_fmt,
-                    "Entry": f"${p['price']:.2f}", "Notional": f"${p['notional']:,.0f}",
-                    "Stop": f"${p['sl_price']:.2f}", "Target": f"${p['tp_price']:.2f}",
-                    "Delta": delta_str
-                })
+                trade_data.append(
+                    {
+                        "Ticker": t,
+                        "Action": p["action"],
+                        "Shares": shares_fmt,
+                        "Entry": f"${p['price']:.2f}",
+                        "Notional": f"${p['notional']:,.0f}",
+                        "Stop": f"${p['sl_price']:.2f}",
+                        "Target": f"${p['tp_price']:.2f}",
+                        "Delta": delta_str,
+                    }
+                )
             st.dataframe(pd.DataFrame(trade_data), hide_index=True, use_container_width=True)
 
             st.divider()
             with st.expander("📝 Execution Notes", expanded=True):
-                st.write("""
+                st.write(
+                    """
                 - **Data delay**: Prices are 15-20 min delayed. Use live quotes.
                 - **Order type**: Consider limit orders near entry prices.
                 - **Stop losses**: Set immediately after entry.
                 - **Margin**: Shorts require 50% initial margin (Reg T).
-                """)
+                """
+                )
 
             st.divider()
             csv_rows = ["Ticker,Action,Shares,Entry,Notional,Stop,Target,Delta"]
             for t, p in r["positions"].items():
-                shares_str = f"{p['shares']:.2f}" if isinstance(p['shares'], float) else str(p['shares'])
+                shares_str = f"{p['shares']:.2f}" if isinstance(p["shares"], float) else str(p["shares"])
                 delta_str = "New" if p["current"] == 0 else str(p["delta"])
-                csv_rows.append(f"{t},{p['action']},{shares_str},{p['price']:.2f},{p['notional']:.0f},{p['sl_price']:.2f},{p['tp_price']:.2f},{delta_str}")
+                csv_rows.append(
+                    f"{t},{p['action']},{shares_str},{p['price']:.2f},{p['notional']:.0f},{p['sl_price']:.2f},{p['tp_price']:.2f},{delta_str}"
+                )
 
             col1, col2 = st.columns(2)
             with col1:
-                st.download_button("📥 CSV", "\n".join(csv_rows), "trades.csv", "text/csv", key="dl_csv_trades", use_container_width=True)
+                st.download_button(
+                    "📥 CSV",
+                    "\n".join(csv_rows),
+                    "trades.csv",
+                    "text/csv",
+                    key="dl_csv_trades",
+                    use_container_width=True,
+                )
             with col2:
                 text_lines = [f"{p['action']} {p['shares']} {t} @ ${p['price']:.2f}" for t, p in r["positions"].items()]
-                st.download_button("📋 Text", "\n".join(text_lines), "trades.txt", "text/plain", key="dl_txt_trades", use_container_width=True)
+                st.download_button(
+                    "📋 Text",
+                    "\n".join(text_lines),
+                    "trades.txt",
+                    "text/plain",
+                    key="dl_txt_trades",
+                    use_container_width=True,
+                )
         else:
             st.info("No trades. All positions are HOLD.")
     else:
@@ -2394,7 +2902,9 @@ with tab_analysts:
                 for ticker, tr in r["ticker_results"].items():
                     for sig in tr["signals"]:
                         if sig["analyst_key"] == analyst_key:
-                            sig_data.append({"Ticker": ticker, "Signal": sig["signal"], "Confidence": f"{sig['confidence']:.0f}%"})
+                            sig_data.append(
+                                {"Ticker": ticker, "Signal": sig["signal"], "Confidence": f"{sig['confidence']:.0f}%"}
+                            )
                 if sig_data:
                     st.dataframe(pd.DataFrame(sig_data), hide_index=True, use_container_width=True)
 
@@ -2407,7 +2917,11 @@ with tab_analysts:
                 st.write(f"**Reason:** {tr['reason']}")
                 st.write(f"**Vote:** {tr['bullish']} Bullish / {tr['neutral']} Neutral / {tr['bearish']} Bearish")
 
-                for signal_type, label, emoji in [("BULLISH", "Bullish", "📈"), ("BEARISH", "Bearish", "📉"), ("NEUTRAL", "Neutral", "⏸️")]:
+                for signal_type, label, emoji in [
+                    ("BULLISH", "Bullish", "📈"),
+                    ("BEARISH", "Bearish", "📉"),
+                    ("NEUTRAL", "Neutral", "⏸️"),
+                ]:
                     sigs = [s for s in tr["signals"] if s["signal"] == signal_type]
                     if sigs:
                         st.write(f"---")
@@ -2452,7 +2966,9 @@ with tab_securities:
                 st.write(stock["sector"])
                 if stock["market_cap"]:
                     cap = stock["market_cap"]
-                    cap_str = f"${cap/1e12:.2f}T" if cap >= 1e12 else f"${cap/1e9:.1f}B" if cap >= 1e9 else f"${cap/1e6:.0f}M"
+                    cap_str = (
+                        f"${cap/1e12:.2f}T" if cap >= 1e12 else f"${cap/1e9:.1f}B" if cap >= 1e9 else f"${cap/1e6:.0f}M"
+                    )
                     st.write("**Market Cap**")
                     st.write(cap_str)
 
@@ -2461,16 +2977,16 @@ with tab_securities:
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.write("**P/E Ratio**")
-                st.write(f"{stock['pe_ratio']:.1f}" if stock['pe_ratio'] else "N/A")
+                st.write(f"{stock['pe_ratio']:.1f}" if stock["pe_ratio"] else "N/A")
             with col2:
                 st.write("**Beta**")
-                st.write(f"{stock['beta']:.2f}" if stock['beta'] else "N/A")
+                st.write(f"{stock['beta']:.2f}" if stock["beta"] else "N/A")
             with col3:
                 st.write("**52W High**")
-                st.write(f"${stock['high_52w']:.2f}" if stock['high_52w'] else "N/A")
+                st.write(f"${stock['high_52w']:.2f}" if stock["high_52w"] else "N/A")
             with col4:
                 st.write("**52W Low**")
-                st.write(f"${stock['low_52w']:.2f}" if stock['low_52w'] else "N/A")
+                st.write(f"${stock['low_52w']:.2f}" if stock["low_52w"] else "N/A")
 
             st.divider()
             st.write("### Price & Volume Chart")
@@ -2488,33 +3004,62 @@ with tab_securities:
             if len(hist) > 0:
                 # Prepare chart data
                 chart_data = hist.reset_index()
-                chart_data['Date'] = pd.to_datetime(chart_data['Date']).dt.tz_localize(None)
-                chart_data['Price'] = chart_data['Close'].round(2)
-                chart_data['Vol_M'] = (chart_data['Volume'] / 1e6).round(2)
+                chart_data["Date"] = pd.to_datetime(chart_data["Date"]).dt.tz_localize(None)
+                chart_data["Price"] = chart_data["Close"].round(2)
+                chart_data["Vol_M"] = (chart_data["Volume"] / 1e6).round(2)
 
                 # Interactive Price Line Chart with tooltip
                 st.write("**Price**")
-                price_chart = alt.Chart(chart_data).mark_line(color='#58a6ff', strokeWidth=2).encode(
-                    x=alt.X('Date:T', title='Date', axis=alt.Axis(format='%b %d', labelColor='#8b949e', titleColor='#8b949e')),
-                    y=alt.Y('Price:Q', title='Price ($)', scale=alt.Scale(zero=False), axis=alt.Axis(labelColor='#8b949e', titleColor='#8b949e')),
-                    tooltip=[
-                        alt.Tooltip('Date:T', title='Date', format='%b %d, %Y'),
-                        alt.Tooltip('Price:Q', title='Price', format='$.2f')
-                    ]
-                ).properties(height=250).configure_view(strokeWidth=0).configure(background='#161b22')
+                price_chart = (
+                    alt.Chart(chart_data)
+                    .mark_line(color="#58a6ff", strokeWidth=2)
+                    .encode(
+                        x=alt.X(
+                            "Date:T",
+                            title="Date",
+                            axis=alt.Axis(format="%b %d", labelColor="#8b949e", titleColor="#8b949e"),
+                        ),
+                        y=alt.Y(
+                            "Price:Q",
+                            title="Price ($)",
+                            scale=alt.Scale(zero=False),
+                            axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e"),
+                        ),
+                        tooltip=[
+                            alt.Tooltip("Date:T", title="Date", format="%b %d, %Y"),
+                            alt.Tooltip("Price:Q", title="Price", format="$.2f"),
+                        ],
+                    )
+                    .properties(height=250)
+                    .configure_view(strokeWidth=0)
+                    .configure(background="#161b22")
+                )
                 st.altair_chart(price_chart, use_container_width=True)
 
                 # Interactive Volume Bar Chart with tooltip
-                if 'Volume' in chart_data.columns and chart_data['Volume'].sum() > 0:
+                if "Volume" in chart_data.columns and chart_data["Volume"].sum() > 0:
                     st.write("**Volume**")
-                    volume_chart = alt.Chart(chart_data).mark_bar(color='#f0883e', opacity=0.7).encode(
-                        x=alt.X('Date:T', title='Date', axis=alt.Axis(format='%b %d', labelColor='#8b949e', titleColor='#8b949e')),
-                        y=alt.Y('Volume:Q', title='Volume', axis=alt.Axis(labelColor='#8b949e', titleColor='#8b949e')),
-                        tooltip=[
-                            alt.Tooltip('Date:T', title='Date', format='%b %d, %Y'),
-                            alt.Tooltip('Vol_M:Q', title='Volume (M)', format='.2f')
-                        ]
-                    ).properties(height=150).configure_view(strokeWidth=0).configure(background='#161b22')
+                    volume_chart = (
+                        alt.Chart(chart_data)
+                        .mark_bar(color="#f0883e", opacity=0.7)
+                        .encode(
+                            x=alt.X(
+                                "Date:T",
+                                title="Date",
+                                axis=alt.Axis(format="%b %d", labelColor="#8b949e", titleColor="#8b949e"),
+                            ),
+                            y=alt.Y(
+                                "Volume:Q", title="Volume", axis=alt.Axis(labelColor="#8b949e", titleColor="#8b949e")
+                            ),
+                            tooltip=[
+                                alt.Tooltip("Date:T", title="Date", format="%b %d, %Y"),
+                                alt.Tooltip("Vol_M:Q", title="Volume (M)", format=".2f"),
+                            ],
+                        )
+                        .properties(height=150)
+                        .configure_view(strokeWidth=0)
+                        .configure(background="#161b22")
+                    )
                     st.altair_chart(volume_chart, use_container_width=True)
 
                 # Stats
@@ -2527,12 +3072,12 @@ with tab_securities:
                         st.write("**Period Low**")
                         st.write(f"${hist['Close'].min():.2f}")
                     with col3:
-                        change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0] * 100)
+                        change = (hist["Close"].iloc[-1] - hist["Close"].iloc[0]) / hist["Close"].iloc[0] * 100
                         st.write("**Period Change**")
                         color = "green" if change >= 0 else "red"
                         st.write(f":{color}[{change:+.1f}%]")
                     with col4:
-                        avg_vol = hist['Volume'].mean() if 'Volume' in hist.columns else 0
+                        avg_vol = hist["Volume"].mean() if "Volume" in hist.columns else 0
                         st.write("**Avg Volume**")
                         vol_str = f"{avg_vol/1e6:.1f}M" if avg_vol >= 1e6 else f"{avg_vol/1e3:.0f}K"
                         st.write(vol_str)
@@ -2549,7 +3094,7 @@ with tab_securities:
                         for i, article in enumerate(news[:5]):
                             col1, col2 = st.columns([4, 1])
                             with col1:
-                                title = article.get('title', 'Untitled')
+                                title = article.get("title", "Untitled")
                                 link = article.get("link")
                                 if link:
                                     st.markdown(f"**[{title}]({link})**")
@@ -2601,25 +3146,44 @@ with tab_settings:
         preset_data = []
         for level in [0.0, 0.25, 0.5, 0.75, 1.0]:
             params = get_risk_params(level)
-            label = "Very Conservative" if level == 0 else "Conservative" if level == 0.25 else "Moderate" if level == 0.5 else "Aggressive" if level == 0.75 else "Very Aggressive"
-            preset_data.append({
-                "Risk": f"{level:.0%} ({label})",
-                "Max Position": f"{params['max_position_pct']['value']}%",
-                "Stop Loss": f"{params['stop_loss_pct']['value']}%",
-                "Take Profit": f"{params['take_profit_pct']['value']}%",
-                "Min Confidence": f"{params['min_confidence']['value']}%",
-                "Leverage": f"{params['leverage_cap']['value']}x"
-            })
+            label = (
+                "Very Conservative"
+                if level == 0
+                else (
+                    "Conservative"
+                    if level == 0.25
+                    else "Moderate" if level == 0.5 else "Aggressive" if level == 0.75 else "Very Aggressive"
+                )
+            )
+            preset_data.append(
+                {
+                    "Risk": f"{level:.0%} ({label})",
+                    "Max Position": f"{params['max_position_pct']['value']}%",
+                    "Stop Loss": f"{params['stop_loss_pct']['value']}%",
+                    "Take Profit": f"{params['take_profit_pct']['value']}%",
+                    "Min Confidence": f"{params['min_confidence']['value']}%",
+                    "Leverage": f"{params['leverage_cap']['value']}x",
+                }
+            )
         st.dataframe(pd.DataFrame(preset_data), hide_index=True, use_container_width=True)
 
         st.divider()
 
         # Current Active Risk Parameters
         st.write("### Current Active Risk Parameters")
-        risk_label = "Conservative" if st.session_state.risk_level < 0.35 else "Aggressive" if st.session_state.risk_level > 0.65 else "Moderate"
-        st.caption(f"Risk level: {st.session_state.risk_level:.0%} ({risk_label})" + (" with custom overrides" if st.session_state.use_custom else ""))
+        risk_label = (
+            "Conservative"
+            if st.session_state.risk_level < 0.35
+            else "Aggressive" if st.session_state.risk_level > 0.65 else "Moderate"
+        )
+        st.caption(
+            f"Risk level: {st.session_state.risk_level:.0%} ({risk_label})"
+            + (" with custom overrides" if st.session_state.use_custom else "")
+        )
 
-        current_params = get_risk_params(st.session_state.risk_level, st.session_state.custom_params if st.session_state.use_custom else None)
+        current_params = get_risk_params(
+            st.session_state.risk_level, st.session_state.custom_params if st.session_state.use_custom else None
+        )
         col1, col2 = st.columns(2)
         param_items = list(current_params.items())
         for i, (key, param) in enumerate(param_items):
@@ -2631,19 +3195,56 @@ with tab_settings:
 
         # Custom Risk Parameters
         st.write("### Custom Risk Overrides")
-        use_custom = st.checkbox("Enable custom risk parameters", value=st.session_state.use_custom, key="use_custom_check")
+        use_custom = st.checkbox(
+            "Enable custom risk parameters", value=st.session_state.use_custom, key="use_custom_check"
+        )
         st.session_state.use_custom = use_custom
 
         if use_custom:
             st.warning("⚠️ Custom parameters override preset values")
             col1, col2 = st.columns(2)
             with col1:
-                st.session_state.custom_params["max_position_pct"] = st.number_input("Max Position %", 5.0, 100.0, float(st.session_state.custom_params.get("max_position_pct", 22.5)), 1.0, key="custom_max_pos")
-                st.session_state.custom_params["stop_loss_pct"] = st.number_input("Stop Loss %", 1.0, 50.0, float(st.session_state.custom_params.get("stop_loss_pct", 12.5)), 0.5, key="custom_sl")
-                st.session_state.custom_params["take_profit_pct"] = st.number_input("Take Profit %", 5.0, 200.0, float(st.session_state.custom_params.get("take_profit_pct", 37.5)), 1.0, key="custom_tp")
+                st.session_state.custom_params["max_position_pct"] = st.number_input(
+                    "Max Position %",
+                    5.0,
+                    100.0,
+                    float(st.session_state.custom_params.get("max_position_pct", 22.5)),
+                    1.0,
+                    key="custom_max_pos",
+                )
+                st.session_state.custom_params["stop_loss_pct"] = st.number_input(
+                    "Stop Loss %",
+                    1.0,
+                    50.0,
+                    float(st.session_state.custom_params.get("stop_loss_pct", 12.5)),
+                    0.5,
+                    key="custom_sl",
+                )
+                st.session_state.custom_params["take_profit_pct"] = st.number_input(
+                    "Take Profit %",
+                    5.0,
+                    200.0,
+                    float(st.session_state.custom_params.get("take_profit_pct", 37.5)),
+                    1.0,
+                    key="custom_tp",
+                )
             with col2:
-                st.session_state.custom_params["min_confidence"] = st.number_input("Min Confidence %", 10.0, 90.0, float(st.session_state.custom_params.get("min_confidence", 47.5)), 5.0, key="custom_conf")
-                st.session_state.custom_params["leverage_cap"] = st.number_input("Leverage Cap", 1.0, 5.0, float(st.session_state.custom_params.get("leverage_cap", 1.5)), 0.1, key="custom_lev")
+                st.session_state.custom_params["min_confidence"] = st.number_input(
+                    "Min Confidence %",
+                    10.0,
+                    90.0,
+                    float(st.session_state.custom_params.get("min_confidence", 47.5)),
+                    5.0,
+                    key="custom_conf",
+                )
+                st.session_state.custom_params["leverage_cap"] = st.number_input(
+                    "Leverage Cap",
+                    1.0,
+                    5.0,
+                    float(st.session_state.custom_params.get("leverage_cap", 1.5)),
+                    0.1,
+                    key="custom_lev",
+                )
 
             if st.button("Reset Risk to Defaults", use_container_width=True, key="reset_custom"):
                 st.session_state.custom_params = {}
@@ -2656,11 +3257,13 @@ with tab_settings:
         alloc_data = []
         for mode_key, mode_info in ALLOCATION_MODES.items():
             target = mode_info.get("target_pct")
-            alloc_data.append({
-                "Mode": mode_info["name"],
-                "Target Deploy": f"{target*100:.0f}%" if target else "Variable",
-                "Description": mode_info["desc"]
-            })
+            alloc_data.append(
+                {
+                    "Mode": mode_info["name"],
+                    "Target Deploy": f"{target*100:.0f}%" if target else "Variable",
+                    "Description": mode_info["desc"],
+                }
+            )
         st.dataframe(pd.DataFrame(alloc_data), hide_index=True, use_container_width=True)
 
         st.divider()
@@ -2675,15 +3278,20 @@ with tab_settings:
                     current_mode = mk
                     break
 
-        alloc_params = get_allocation_params(current_mode, st.session_state.alloc_custom_params if st.session_state.use_alloc_custom else None)
-        st.caption(f"Mode: {ALLOCATION_MODES[current_mode]['name']}" + (" with custom overrides" if st.session_state.use_alloc_custom else ""))
+        alloc_params = get_allocation_params(
+            current_mode, st.session_state.alloc_custom_params if st.session_state.use_alloc_custom else None
+        )
+        st.caption(
+            f"Mode: {ALLOCATION_MODES[current_mode]['name']}"
+            + (" with custom overrides" if st.session_state.use_alloc_custom else "")
+        )
 
         col1, col2 = st.columns(2)
         alloc_items = list(alloc_params.items())
         for i, (key, param) in enumerate(alloc_items):
             with col1 if i % 2 == 0 else col2:
                 status = " ✏️" if param.get("custom") else ""
-                val = param['value']
+                val = param["value"]
                 if isinstance(val, bool):
                     val = "Yes" if val else "No"
                 st.write(f"**{param['desc']}:** {val}{param['unit']}{status}")
@@ -2692,7 +3300,9 @@ with tab_settings:
 
         # Custom Allocation Parameters
         st.write("### Custom Allocation Overrides")
-        use_alloc_custom = st.checkbox("Enable custom allocation parameters", value=st.session_state.use_alloc_custom, key="use_alloc_custom_check")
+        use_alloc_custom = st.checkbox(
+            "Enable custom allocation parameters", value=st.session_state.use_alloc_custom, key="use_alloc_custom_check"
+        )
         st.session_state.use_alloc_custom = use_alloc_custom
 
         if use_alloc_custom:
@@ -2700,25 +3310,38 @@ with tab_settings:
             col1, col2 = st.columns(2)
             with col1:
                 st.session_state.alloc_custom_params["target_deploy_pct"] = st.number_input(
-                    "Target Deployment %", 10.0, 100.0,
-                    float(st.session_state.alloc_custom_params.get("target_deploy_pct", 95.0)), 5.0,
-                    key="custom_target_deploy", help="Percentage of capital to deploy"
+                    "Target Deployment %",
+                    10.0,
+                    100.0,
+                    float(st.session_state.alloc_custom_params.get("target_deploy_pct", 95.0)),
+                    5.0,
+                    key="custom_target_deploy",
+                    help="Percentage of capital to deploy",
                 )
                 st.session_state.alloc_custom_params["position_cap_pct"] = st.number_input(
-                    "Max Single Position %", 5.0, 100.0,
-                    float(st.session_state.alloc_custom_params.get("position_cap_pct", 35.0)), 5.0,
-                    key="custom_pos_cap", help="Maximum allocation to any single position"
+                    "Max Single Position %",
+                    5.0,
+                    100.0,
+                    float(st.session_state.alloc_custom_params.get("position_cap_pct", 35.0)),
+                    5.0,
+                    key="custom_pos_cap",
+                    help="Maximum allocation to any single position",
                 )
             with col2:
                 st.session_state.alloc_custom_params["min_position_pct"] = st.number_input(
-                    "Min Position Size %", 0.5, 20.0,
-                    float(st.session_state.alloc_custom_params.get("min_position_pct", 2.0)), 0.5,
-                    key="custom_min_pos", help="Minimum position size to avoid tiny trades"
+                    "Min Position Size %",
+                    0.5,
+                    20.0,
+                    float(st.session_state.alloc_custom_params.get("min_position_pct", 2.0)),
+                    0.5,
+                    key="custom_min_pos",
+                    help="Minimum position size to avoid tiny trades",
                 )
                 st.session_state.alloc_custom_params["scale_caps"] = st.checkbox(
                     "Scale caps with # tickers",
                     value=st.session_state.alloc_custom_params.get("scale_caps", True),
-                    key="custom_scale_caps", help="Automatically adjust position caps based on number of tickers"
+                    key="custom_scale_caps",
+                    help="Automatically adjust position caps based on number of tickers",
                 )
 
             if st.button("Reset Allocation to Defaults", use_container_width=True, key="reset_alloc_custom"):
